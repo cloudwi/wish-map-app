@@ -7,6 +7,7 @@ import { router, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
+import { useAuthRequest } from 'expo-auth-session';
 import * as Google from 'expo-auth-session/providers/google';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { useAuthStore } from '../stores/authStore';
@@ -37,23 +38,24 @@ export default function LoginScreen() {
   const { promptAsync: googlePrompt, response: googleResponse } = useGoogleAuth();
 
   // ── 카카오 ──────────────────────────────────
+  const kakaoRedirectUri = AuthSession.makeRedirectUri({ scheme: 'wishmap', path: 'oauth' });
+  const [kakaoRequest, , promptKakao] = useAuthRequest(
+    {
+      clientId: KAKAO_CLIENT_ID,
+      redirectUri: kakaoRedirectUri,
+      responseType: AuthSession.ResponseType.Token,
+    },
+    { authorizationEndpoint: 'https://kauth.kakao.com/oauth/authorize' }
+  );
+
   const handleKakao = async () => {
     try {
       setLoading('KAKAO');
-      const redirectUri = AuthSession.makeRedirectUri({ scheme: 'wishmap', path: 'oauth' });
-
-      const result = await AuthSession.startAsync({
-        authUrl:
-          `https://kauth.kakao.com/oauth/authorize` +
-          `?client_id=${KAKAO_CLIENT_ID}` +
-          `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-          `&response_type=token`,
-      });
-
-      if (result.type === 'success' && result.params?.access_token) {
+      const result = await promptKakao();
+      if (result?.type === 'success' && result.params?.access_token) {
         await login('KAKAO', result.params.access_token);
         router.replace('/(tabs)');
-      } else if (result.type !== 'cancel') {
+      } else if (result?.type !== 'cancel') {
         throw new Error('카카오 로그인에 실패했습니다.');
       }
     } catch (e: any) {
@@ -83,22 +85,22 @@ export default function LoginScreen() {
   };
 
   // ── 네이버 ──────────────────────────────────
+  const naverRedirectUri = AuthSession.makeRedirectUri({ scheme: 'wishmap', path: 'oauth' });
+  const [, , promptNaver] = useAuthRequest(
+    {
+      clientId: NAVER_CLIENT_ID,
+      redirectUri: naverRedirectUri,
+      responseType: AuthSession.ResponseType.Code,
+    },
+    { authorizationEndpoint: 'https://nid.naver.com/oauth2.0/authorize' }
+  );
+
   const handleNaver = async () => {
     try {
       setLoading('NAVER');
-      const redirectUri = AuthSession.makeRedirectUri({ scheme: 'wishmap', path: 'oauth' });
-      const state = Math.random().toString(36).substring(2);
+      const result = await promptNaver();
 
-      const result = await AuthSession.startAsync({
-        authUrl:
-          `https://nid.naver.com/oauth2.0/authorize` +
-          `?client_id=${NAVER_CLIENT_ID}` +
-          `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-          `&response_type=code` +
-          `&state=${state}`,
-      });
-
-      if (result.type === 'success' && result.params?.code) {
+      if (result?.type === 'success' && result.params?.code) {
         // code → access_token (네이버 CORS 제한 없음 – native fetch)
         const tokenRes = await fetch('https://nid.naver.com/oauth2.0/token', {
           method: 'POST',
@@ -108,7 +110,7 @@ export default function LoginScreen() {
             client_id: NAVER_CLIENT_ID,
             client_secret: NAVER_CLIENT_SECRET,
             code: result.params.code,
-            state: result.params.state || state,
+            state: result.params.state ?? '',
           }).toString(),
         });
         const tokenData = await tokenRes.json();
@@ -116,7 +118,7 @@ export default function LoginScreen() {
         if (!tokenData.access_token) throw new Error('네이버 토큰 발급 실패');
         await login('NAVER', tokenData.access_token);
         router.replace('/(tabs)');
-      } else if (result.type !== 'cancel') {
+      } else if (result?.type !== 'cancel') {
         throw new Error('네이버 로그인에 실패했습니다.');
       }
     } catch (e: any) {

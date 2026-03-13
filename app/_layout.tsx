@@ -1,15 +1,7 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
-import { useAuthStore } from '../stores/authStore';
 
 export default function RootLayout() {
-  const { checkAuth } = useAuthStore();
-
-  useEffect(() => {
-    checkAuth();
-  }, []);
-
   return (
     <>
       <StatusBar style="light" />

@@ -1,11 +1,11 @@
-import { StyleSheet, View, Text, ActivityIndicator, TouchableOpacity, Dimensions } from 'react-native';
+import { StyleSheet, View, Text, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { useState, useEffect, useRef } from 'react';
 import { WebView } from 'react-native-webview';
 import { router } from 'expo-router';
 import { Restaurant, MapBounds } from '../../types';
 import { restaurantApi } from '../../api/restaurant';
 
-const { width, height } = Dimensions.get('window');
+const NAVER_MAP_CLIENT_ID = process.env.EXPO_PUBLIC_NAVER_MAP_CLIENT_ID || '';
 
 // 서울 중심 좌표
 const INITIAL_REGION = {
@@ -51,7 +51,7 @@ export default function MapScreen() {
         * { margin: 0; padding: 0; }
         html, body, #map { width: 100%; height: 100%; }
       </style>
-      <script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpClientId=YOUR_CLIENT_ID"></script>
+      <script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpClientId=${NAVER_MAP_CLIENT_ID}"></script>
     </head>
     <body>
       <div id="map"></div>

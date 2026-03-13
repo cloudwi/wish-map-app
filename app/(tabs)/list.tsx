@@ -1,10 +1,14 @@
-import { StyleSheet, View, Text, FlatList, TouchableOpacity, Image, ActivityIndicator, RefreshControl } from 'react-native';
+import { StyleSheet, View, Text, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { useState, useEffect, useCallback } from 'react';
-import { router } from 'expo-router';
 import { Restaurant } from '../../types';
 import { restaurantApi } from '../../api/restaurant';
+import { RestaurantCard } from '../../components/RestaurantCard';
+import { LoadingScreen } from '../../components/LoadingScreen';
 
 const CATEGORIES = ['전체', '한식', '중식', '일식', '양식', '카페', '술집', '기타'];
+
+// 전체 한국 범위
+const KOREA_BOUNDS = { minLat: 33, maxLat: 38.5, minLng: 124, maxLng: 132 };
 
 export default function ListScreen() {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
@@ -14,27 +18,14 @@ export default function ListScreen() {
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
 
-  const fetchRestaurants = async (pageNum = 0, refresh = false) => {
+  const fetchRestaurants = useCallback(async (pageNum = 0, refresh = false) => {
     try {
       if (refresh) setRefreshing(true);
       else if (pageNum === 0) setLoading(true);
 
-      // 전체 한국 범위로 조회
-      const response = await restaurantApi.getRestaurants({
-        minLat: 33,
-        maxLat: 38.5,
-        minLng: 124,
-        maxLng: 132,
-      }, pageNum, 20);
+      const response = await restaurantApi.getRestaurants(KOREA_BOUNDS, pageNum, 20);
 
-      const newRestaurants = response.content;
-      
-      if (pageNum === 0) {
-        setRestaurants(newRestaurants);
-      } else {
-        setRestaurants(prev => [...prev, ...newRestaurants]);
-      }
-      
+      setRestaurants(prev => pageNum === 0 ? response.content : [...prev, ...response.content]);
       setHasMore(!response.last);
       setPage(pageNum);
     } catch (error) {
@@ -43,56 +34,21 @@ export default function ListScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
-
-  useEffect(() => {
-    fetchRestaurants(0);
   }, []);
 
-  const onRefresh = useCallback(() => {
-    fetchRestaurants(0, true);
-  }, []);
+  useEffect(() => { fetchRestaurants(0); }, [fetchRestaurants]);
 
-  const loadMore = () => {
-    if (hasMore && !loading) {
-      fetchRestaurants(page + 1);
-    }
-  };
+  const onRefresh = useCallback(() => fetchRestaurants(0, true), [fetchRestaurants]);
+
+  const loadMore = useCallback(() => {
+    if (hasMore && !loading) fetchRestaurants(page + 1);
+  }, [hasMore, loading, page, fetchRestaurants]);
 
   const filteredRestaurants = selectedCategory === '전체'
     ? restaurants
     : restaurants.filter(r => r.category === selectedCategory);
 
-  const renderItem = ({ item }: { item: Restaurant }) => (
-    <TouchableOpacity 
-      style={styles.card}
-      onPress={() => router.push(`/restaurant/${item.id}`)}
-      activeOpacity={0.8}
-    >
-      <Image 
-        source={{ uri: item.thumbnailImage || 'https://via.placeholder.com/100' }}
-        style={styles.thumbnail}
-      />
-      <View style={styles.cardContent}>
-        <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
-        <Text style={styles.address} numberOfLines={1}>{item.address}</Text>
-        <View style={styles.meta}>
-          {item.category && (
-            <Text style={styles.category}>{item.category}</Text>
-          )}
-          <Text style={styles.likes}>❤️ {item.likeCount}</Text>
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
-
-  if (loading && restaurants.length === 0) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FF6B35" />
-      </View>
-    );
-  }
+  if (loading && restaurants.length === 0) return <LoadingScreen />;
 
   return (
     <View style={styles.container}>
@@ -106,16 +62,10 @@ export default function ListScreen() {
         contentContainerStyle={styles.categoryContent}
         renderItem={({ item }) => (
           <TouchableOpacity
-            style={[
-              styles.categoryButton,
-              selectedCategory === item && styles.categoryButtonActive
-            ]}
+            style={[styles.categoryBtn, selectedCategory === item && styles.categoryBtnActive]}
             onPress={() => setSelectedCategory(item)}
           >
-            <Text style={[
-              styles.categoryButtonText,
-              selectedCategory === item && styles.categoryButtonTextActive
-            ]}>
+            <Text style={[styles.categoryText, selectedCategory === item && styles.categoryTextActive]}>
               {item}
             </Text>
           </TouchableOpacity>
@@ -126,7 +76,7 @@ export default function ListScreen() {
       <FlatList
         data={filteredRestaurants}
         keyExtractor={(item) => item.id.toString()}
-        renderItem={renderItem}
+        renderItem={({ item }) => <RestaurantCard item={item} />}
         contentContainerStyle={styles.listContent}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#FF6B35']} />
@@ -134,120 +84,29 @@ export default function ListScreen() {
         onEndReached={loadMore}
         onEndReachedThreshold={0.5}
         ListEmptyComponent={
-          <View style={styles.emptyContainer}>
+          <View style={styles.empty}>
             <Text style={styles.emptyText}>등록된 맛집이 없습니다</Text>
           </View>
         }
-        ListFooterComponent={
-          hasMore ? (
-            <ActivityIndicator style={styles.footer} color="#FF6B35" />
-          ) : null
-        }
+        ListFooterComponent={hasMore ? <ActivityIndicator style={styles.footer} color="#FF6B35" /> : null}
       />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
+  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  categoryList: { backgroundColor: '#fff', maxHeight: 50 },
+  categoryContent: { paddingHorizontal: 15, paddingVertical: 10, gap: 8 },
+  categoryBtn: {
+    paddingHorizontal: 16, paddingVertical: 8,
+    borderRadius: 20, backgroundColor: '#f0f0f0', marginRight: 8,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  categoryList: {
-    backgroundColor: '#fff',
-    maxHeight: 50,
-  },
-  categoryContent: {
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    gap: 8,
-  },
-  categoryButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#f0f0f0',
-    marginRight: 8,
-  },
-  categoryButtonActive: {
-    backgroundColor: '#FF6B35',
-  },
-  categoryButtonText: {
-    fontSize: 14,
-    color: '#666',
-  },
-  categoryButtonTextActive: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-  listContent: {
-    padding: 15,
-    gap: 12,
-  },
-  card: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    overflow: 'hidden',
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  thumbnail: {
-    width: 100,
-    height: 100,
-    backgroundColor: '#eee',
-  },
-  cardContent: {
-    flex: 1,
-    padding: 12,
-    justifyContent: 'center',
-  },
-  name: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
-  },
-  address: {
-    fontSize: 13,
-    color: '#888',
-    marginBottom: 8,
-  },
-  meta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  category: {
-    backgroundColor: '#f5f5f5',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
-    fontSize: 12,
-    color: '#666',
-  },
-  likes: {
-    fontSize: 13,
-    color: '#FF6B35',
-  },
-  emptyContainer: {
-    padding: 40,
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 15,
-    color: '#999',
-  },
-  footer: {
-    paddingVertical: 20,
-  },
+  categoryBtnActive: { backgroundColor: '#FF6B35' },
+  categoryText: { fontSize: 14, color: '#666' },
+  categoryTextActive: { color: '#fff', fontWeight: '600' },
+  listContent: { padding: 15 },
+  empty: { padding: 40, alignItems: 'center' },
+  emptyText: { fontSize: 15, color: '#999' },
+  footer: { paddingVertical: 20 },
 });
