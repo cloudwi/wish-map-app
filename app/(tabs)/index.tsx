@@ -14,9 +14,98 @@ const INITIAL_REGION = {
   zoom: 14,
 };
 
+// 컴포넌트 외부에 정의 (매 렌더마다 재생성 방지)
+const mapHTML = `
+  <!DOCTYPE html>
+  <html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <style>
+      * { margin: 0; padding: 0; }
+      html, body, #map { width: 100%; height: 100%; }
+      #error { display:none; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:red; text-align:center; font-size:14px; }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <div id="error"></div>
+    <script>
+      function showError(msg) {
+        var el = document.getElementById('error');
+        el.style.display = 'block';
+        el.textContent = msg;
+        window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'error', message: msg }));
+      }
+
+      var script = document.createElement('script');
+      script.src = 'https://oapi.map.naver.com/openapi/v3/maps.js?ncpClientId=${NAVER_MAP_CLIENT_ID}';
+      script.onload = function() {
+        try {
+          var map = new naver.maps.Map('map', {
+            center: new naver.maps.LatLng(${INITIAL_REGION.lat}, ${INITIAL_REGION.lng}),
+            zoom: ${INITIAL_REGION.zoom},
+            zoomControl: true,
+            zoomControlOptions: {
+              position: naver.maps.Position.RIGHT_CENTER
+            }
+          });
+
+          var markers = [];
+
+          window.addMarkers = function(restaurantsJson) {
+            markers.forEach(function(m) { m.setMap(null); });
+            markers.length = 0;
+
+            var restaurants = JSON.parse(restaurantsJson);
+            restaurants.forEach(function(r) {
+              var marker = new naver.maps.Marker({
+                position: new naver.maps.LatLng(r.lat, r.lng),
+                map: map,
+                title: r.name
+              });
+
+              naver.maps.Event.addListener(marker, 'click', function() {
+                window.ReactNativeWebView.postMessage(JSON.stringify({
+                  type: 'markerClick',
+                  restaurant: r
+                }));
+              });
+
+              markers.push(marker);
+            });
+          };
+
+          naver.maps.Event.addListener(map, 'idle', function() {
+            var bounds = map.getBounds();
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+              type: 'boundsChanged',
+              bounds: {
+                minLat: bounds.getSW().lat(),
+                maxLat: bounds.getNE().lat(),
+                minLng: bounds.getSW().lng(),
+                maxLng: bounds.getNE().lng()
+              }
+            }));
+          });
+
+          window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'mapReady' }));
+        } catch(e) {
+          showError('지도 초기화 실패: ' + e.message);
+        }
+      };
+      script.onerror = function() {
+        showError('네이버 지도 스크립트 로드 실패\\n(Client ID: ${NAVER_MAP_CLIENT_ID || "없음"})');
+      };
+      document.head.appendChild(script);
+    </script>
+  </body>
+  </html>
+`;
+
 export default function MapScreen() {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(true);
+  const [mapError, setMapError] = useState<string | null>(null);
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
   const webViewRef = useRef<WebView>(null);
 
@@ -41,75 +130,6 @@ export default function MapScreen() {
     });
   }, []);
 
-  // 네이버 지도 HTML
-  const mapHTML = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-      <style>
-        * { margin: 0; padding: 0; }
-        html, body, #map { width: 100%; height: 100%; }
-      </style>
-      <script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpClientId=${NAVER_MAP_CLIENT_ID}"></script>
-    </head>
-    <body>
-      <div id="map"></div>
-      <script>
-        const map = new naver.maps.Map('map', {
-          center: new naver.maps.LatLng(${INITIAL_REGION.lat}, ${INITIAL_REGION.lng}),
-          zoom: ${INITIAL_REGION.zoom},
-          zoomControl: true,
-          zoomControlOptions: {
-            position: naver.maps.Position.RIGHT_CENTER
-          }
-        });
-
-        const markers = [];
-
-        // 마커 추가 함수
-        window.addMarkers = function(restaurantsJson) {
-          // 기존 마커 제거
-          markers.forEach(m => m.setMap(null));
-          markers.length = 0;
-
-          const restaurants = JSON.parse(restaurantsJson);
-          restaurants.forEach(r => {
-            const marker = new naver.maps.Marker({
-              position: new naver.maps.LatLng(r.lat, r.lng),
-              map: map,
-              title: r.name
-            });
-
-            naver.maps.Event.addListener(marker, 'click', () => {
-              window.ReactNativeWebView.postMessage(JSON.stringify({
-                type: 'markerClick',
-                restaurant: r
-              }));
-            });
-
-            markers.push(marker);
-          });
-        };
-
-        // 지도 이동 시 범위 전송
-        naver.maps.Event.addListener(map, 'idle', () => {
-          const bounds = map.getBounds();
-          window.ReactNativeWebView.postMessage(JSON.stringify({
-            type: 'boundsChanged',
-            bounds: {
-              minLat: bounds.getSW().lat(),
-              maxLat: bounds.getNE().lat(),
-              minLng: bounds.getSW().lng(),
-              maxLng: bounds.getNE().lng()
-            }
-          }));
-        });
-      </script>
-    </body>
-    </html>
-  `;
-
   const handleMessage = (event: any) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
@@ -118,6 +138,11 @@ export default function MapScreen() {
         setSelectedRestaurant(data.restaurant);
       } else if (data.type === 'boundsChanged') {
         fetchRestaurants(data.bounds);
+      } else if (data.type === 'mapReady') {
+        setLoading(false);
+      } else if (data.type === 'error') {
+        setMapError(data.message);
+        setLoading(false);
       }
     } catch (error) {
       console.error('Failed to parse message:', error);
@@ -140,11 +165,21 @@ export default function MapScreen() {
         style={styles.map}
         onMessage={handleMessage}
         javaScriptEnabled={true}
+        originWhitelist={['*']}
+        mixedContentMode="always"
+        onError={(e) => setMapError(e.nativeEvent.description)}
       />
       
-      {loading && (
+      {loading && !mapError && (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color="#FF6B35" />
+        </View>
+      )}
+
+      {mapError && (
+        <View style={styles.errorOverlay}>
+          <Text style={styles.errorText}>지도를 불러올 수 없습니다</Text>
+          <Text style={styles.errorDetail}>{mapError}</Text>
         </View>
       )}
 
@@ -253,5 +288,23 @@ const styles = StyleSheet.create({
   closeButtonText: {
     fontSize: 18,
     color: '#999',
+  },
+  errorOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 8,
+  },
+  errorDetail: {
+    fontSize: 13,
+    color: '#999',
+    textAlign: 'center',
   },
 });
