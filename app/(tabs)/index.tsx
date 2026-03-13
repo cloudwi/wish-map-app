@@ -1,98 +1,257 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { StyleSheet, View, Text, ActivityIndicator, TouchableOpacity, Dimensions } from 'react-native';
+import { useState, useEffect, useRef } from 'react';
+import { WebView } from 'react-native-webview';
+import { router } from 'expo-router';
+import { Restaurant, MapBounds } from '../../types';
+import { restaurantApi } from '../../api/restaurant';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+const { width, height } = Dimensions.get('window');
 
-export default function HomeScreen() {
+// 서울 중심 좌표
+const INITIAL_REGION = {
+  lat: 37.5665,
+  lng: 126.9780,
+  zoom: 14,
+};
+
+export default function MapScreen() {
+  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
+  const webViewRef = useRef<WebView>(null);
+
+  const fetchRestaurants = async (bounds: MapBounds) => {
+    try {
+      const response = await restaurantApi.getRestaurants(bounds);
+      setRestaurants(response.content);
+    } catch (error) {
+      console.error('Failed to fetch restaurants:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    // 초기 서울 범위로 맛집 로드
+    fetchRestaurants({
+      minLat: 37.4,
+      maxLat: 37.7,
+      minLng: 126.8,
+      maxLng: 127.2,
+    });
+  }, []);
+
+  // 네이버 지도 HTML
+  const mapHTML = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+      <style>
+        * { margin: 0; padding: 0; }
+        html, body, #map { width: 100%; height: 100%; }
+      </style>
+      <script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpClientId=YOUR_CLIENT_ID"></script>
+    </head>
+    <body>
+      <div id="map"></div>
+      <script>
+        const map = new naver.maps.Map('map', {
+          center: new naver.maps.LatLng(${INITIAL_REGION.lat}, ${INITIAL_REGION.lng}),
+          zoom: ${INITIAL_REGION.zoom},
+          zoomControl: true,
+          zoomControlOptions: {
+            position: naver.maps.Position.RIGHT_CENTER
+          }
+        });
+
+        const markers = [];
+
+        // 마커 추가 함수
+        window.addMarkers = function(restaurantsJson) {
+          // 기존 마커 제거
+          markers.forEach(m => m.setMap(null));
+          markers.length = 0;
+
+          const restaurants = JSON.parse(restaurantsJson);
+          restaurants.forEach(r => {
+            const marker = new naver.maps.Marker({
+              position: new naver.maps.LatLng(r.lat, r.lng),
+              map: map,
+              title: r.name
+            });
+
+            naver.maps.Event.addListener(marker, 'click', () => {
+              window.ReactNativeWebView.postMessage(JSON.stringify({
+                type: 'markerClick',
+                restaurant: r
+              }));
+            });
+
+            markers.push(marker);
+          });
+        };
+
+        // 지도 이동 시 범위 전송
+        naver.maps.Event.addListener(map, 'idle', () => {
+          const bounds = map.getBounds();
+          window.ReactNativeWebView.postMessage(JSON.stringify({
+            type: 'boundsChanged',
+            bounds: {
+              minLat: bounds.getSW().lat(),
+              maxLat: bounds.getNE().lat(),
+              minLng: bounds.getSW().lng(),
+              maxLng: bounds.getNE().lng()
+            }
+          }));
+        });
+      </script>
+    </body>
+    </html>
+  `;
+
+  const handleMessage = (event: any) => {
+    try {
+      const data = JSON.parse(event.nativeEvent.data);
+      
+      if (data.type === 'markerClick') {
+        setSelectedRestaurant(data.restaurant);
+      } else if (data.type === 'boundsChanged') {
+        fetchRestaurants(data.bounds);
+      }
+    } catch (error) {
+      console.error('Failed to parse message:', error);
+    }
+  };
+
+  // 마커 업데이트
+  useEffect(() => {
+    if (webViewRef.current && restaurants.length > 0) {
+      const script = `window.addMarkers('${JSON.stringify(restaurants).replace(/'/g, "\\'")}');`;
+      webViewRef.current.injectJavaScript(script);
+    }
+  }, [restaurants]);
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    <View style={styles.container}>
+      <WebView
+        ref={webViewRef}
+        source={{ html: mapHTML }}
+        style={styles.map}
+        onMessage={handleMessage}
+        javaScriptEnabled={true}
+      />
+      
+      {loading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#FF6B35" />
+        </View>
+      )}
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+      {/* 선택된 맛집 바텀시트 */}
+      {selectedRestaurant && (
+        <TouchableOpacity 
+          style={styles.bottomSheet}
+          onPress={() => router.push(`/restaurant/${selectedRestaurant.id}`)}
+          activeOpacity={0.9}
+        >
+          <View style={styles.bottomSheetHandle} />
+          <Text style={styles.restaurantName}>{selectedRestaurant.name}</Text>
+          <Text style={styles.restaurantAddress}>{selectedRestaurant.address}</Text>
+          <View style={styles.restaurantMeta}>
+            {selectedRestaurant.category && (
+              <Text style={styles.category}>{selectedRestaurant.category}</Text>
+            )}
+            <Text style={styles.likes}>❤️ {selectedRestaurant.likeCount}</Text>
+          </View>
+          <TouchableOpacity 
+            style={styles.closeButton}
+            onPress={() => setSelectedRestaurant(null)}
+          >
+            <Text style={styles.closeButtonText}>✕</Text>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
+  container: {
+    flex: 1,
+  },
+  map: {
+    flex: 1,
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
+  bottomSheet: {
+    position: 'absolute',
     bottom: 0,
     left: 0,
+    right: 0,
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: 40,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  bottomSheetHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#ddd',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 15,
+  },
+  restaurantName: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 8,
+  },
+  restaurantAddress: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 12,
+  },
+  restaurantMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  category: {
+    backgroundColor: '#f0f0f0',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    fontSize: 13,
+    color: '#666',
+  },
+  likes: {
+    fontSize: 14,
+    color: '#FF6B35',
+  },
+  closeButton: {
     position: 'absolute',
+    top: 15,
+    right: 15,
+    width: 30,
+    height: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    fontSize: 18,
+    color: '#999',
   },
 });

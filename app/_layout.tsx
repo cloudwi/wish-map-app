@@ -1,24 +1,35 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
-
-import { useColorScheme } from '@/hooks/use-color-scheme';
-
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
+import { useEffect } from 'react';
+import { useAuthStore } from '../stores/authStore';
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
+  const { checkAuth } = useAuthStore();
+
+  useEffect(() => {
+    checkAuth();
+  }, []);
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
+    <>
+      <StatusBar style="light" />
+      <Stack
+        screenOptions={{
+          headerStyle: {
+            backgroundColor: '#FF6B35',
+          },
+          headerTintColor: '#fff',
+          headerTitleStyle: {
+            fontWeight: 'bold',
+          },
+        }}
+      >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+        <Stack.Screen name="login" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="restaurant/[id]" options={{ title: '맛집 상세' }} />
+        <Stack.Screen name="my-suggestions" options={{ title: '내 제안 목록' }} />
+        <Stack.Screen name="bookmarks" options={{ title: '북마크' }} />
       </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    </>
   );
 }

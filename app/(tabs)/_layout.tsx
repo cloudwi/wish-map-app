@@ -1,33 +1,74 @@
 import { Tabs } from 'expo-router';
-import React from 'react';
-
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Ionicons } from '@expo/vector-icons';
+import { useAuthStore } from '../../stores/authStore';
+import { useEffect } from 'react';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const { checkAuth, isLoading } = useAuthStore();
+
+  useEffect(() => {
+    checkAuth();
+  }, []);
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
-      }}>
+        tabBarActiveTintColor: '#FF6B35',
+        tabBarInactiveTintColor: '#999',
+        tabBarStyle: {
+          backgroundColor: '#fff',
+          borderTopColor: '#eee',
+          height: 85,
+          paddingBottom: 30,
+          paddingTop: 10,
+        },
+        headerStyle: {
+          backgroundColor: '#FF6B35',
+        },
+        headerTintColor: '#fff',
+        headerTitleStyle: {
+          fontWeight: 'bold',
+        },
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          title: '지도',
+          headerTitle: '위시맵',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="map" size={size} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="list"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          title: '목록',
+          headerTitle: '맛집 목록',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="list" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="suggest"
+        options={{
+          title: '제안',
+          headerTitle: '맛집 제안하기',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="add-circle" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="mypage"
+        options={{
+          title: 'MY',
+          headerTitle: '마이페이지',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="person" size={size} color={color} />
+          ),
         }}
       />
     </Tabs>
