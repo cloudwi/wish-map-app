@@ -3,18 +3,17 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Restaurant } from '../../types';
 import { restaurantApi } from '../../api/restaurant';
+import { categoryApi, Category } from '../../api/category';
 import { RestaurantCard } from '../../components/RestaurantCard';
 import RestaurantCardSkeleton from '../../components/RestaurantCardSkeleton';
-import FloatingActionButton from '../../components/FloatingActionButton';
 import { lightTap } from '../../utils/haptics';
-
-const CATEGORIES = ['전체', '한식', '중식', '일식', '양식', '카페', '술집', '기타'];
 const KOREA_BOUNDS = { minLat: 33, maxLat: 38.5, minLng: 124, maxLng: 132 };
 
 type SortBy = 'latest' | 'likes';
 
 export default function ListScreen() {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [categories, setCategories] = useState<string[]>(['전체']);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('전체');
@@ -22,6 +21,12 @@ export default function ListScreen() {
   const [hasMore, setHasMore] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortBy>('latest');
+
+  useEffect(() => {
+    categoryApi.getCategories()
+      .then((data) => setCategories(['전체', ...data.map((c) => c.name)]))
+      .catch(() => {});
+  }, []);
 
   const fetchRestaurants = useCallback(async (pageNum = 0, refresh = false) => {
     try {
@@ -102,7 +107,7 @@ export default function ListScreen() {
       {/* 카테고리 필터 */}
       <FlatList
         horizontal
-        data={CATEGORIES}
+        data={categories}
         keyExtractor={(item) => item}
         showsHorizontalScrollIndicator={false}
         style={styles.categoryList}
@@ -136,8 +141,6 @@ export default function ListScreen() {
           ))}
         </View>
       </View>
-
-      <FloatingActionButton />
 
       {/* 맛집 목록 */}
       <FlatList
@@ -202,7 +205,7 @@ const styles = StyleSheet.create({
   sortBtnActive: { backgroundColor: '#f0f0f0' },
   sortText: { fontSize: 13, color: '#bbb' },
   sortTextActive: { color: '#333', fontWeight: '600' },
-  listContent: { padding: 15, paddingTop: 4 },
+  listContent: { padding: 15, paddingTop: 4, paddingBottom: 100 },
   empty: { padding: 60, alignItems: 'center', gap: 8 },
   emptyTitle: { fontSize: 16, fontWeight: '600', color: '#999' },
   emptyDesc: { fontSize: 13, color: '#bbb' },

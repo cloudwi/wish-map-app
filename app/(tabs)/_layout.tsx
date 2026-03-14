@@ -1,9 +1,10 @@
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Tabs, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../stores/authStore';
 import { useEffect } from 'react';
 import Animated, { useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import { BlurView } from 'expo-blur';
 import { lightTap } from '../../utils/haptics';
 
 function AnimatedTabIcon({ name, color, size, focused }: {
@@ -65,13 +66,25 @@ export default function TabLayout() {
         tabBarActiveTintColor: '#FF6B35',
         tabBarInactiveTintColor: '#999',
         tabBarStyle: {
-          backgroundColor: '#fff',
-          borderTopColor: '#f0f0f0',
-          borderTopWidth: 0.5,
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          backgroundColor: Platform.OS === 'ios' ? 'transparent' : 'rgba(255,255,255,0.95)',
+          borderTopWidth: 0,
+          elevation: 0,
           height: 85,
           paddingBottom: 30,
           paddingTop: 8,
         },
+        tabBarBackground: () =>
+          Platform.OS === 'ios' ? (
+            <BlurView
+              intensity={80}
+              tint="light"
+              style={StyleSheet.absoluteFill}
+            />
+          ) : null,
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
         headerStyle: { backgroundColor: '#fff' },
         headerShadowVisible: false,

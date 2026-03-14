@@ -1,11 +1,12 @@
 // Native (iOS/Android) - 네이버 지도 네이티브 SDK
-import { useCallback } from 'react';
+import { useCallback, forwardRef } from 'react';
 import { StyleSheet } from 'react-native';
 import {
   NaverMapView,
   NaverMapMarkerOverlay,
   type Camera,
   type Region,
+  type NaverMapViewRef,
 } from '@mj-studio/react-native-naver-map';
 import { Restaurant, MapBounds } from '../types';
 
@@ -18,14 +19,14 @@ interface Props {
   initialZoom?: number;
 }
 
-export default function NaverMap({
+const NaverMap = forwardRef<NaverMapViewRef, Props>(({
   restaurants,
   onMarkerClick,
   onBoundsChange,
   initialLat = 37.5665,
   initialLng = 126.9780,
   initialZoom = 14,
-}: Props) {
+}, ref) => {
   const handleCameraChanged = useCallback(
     (params: Camera & { reason: number; region: Region }) => {
       const { region } = params;
@@ -41,6 +42,7 @@ export default function NaverMap({
 
   return (
     <NaverMapView
+      ref={ref}
       style={StyleSheet.absoluteFill}
       initialCamera={{
         latitude: initialLat,
@@ -50,6 +52,7 @@ export default function NaverMap({
       onCameraChanged={handleCameraChanged}
       isShowZoomControls
       isShowCompass
+      isShowLocationButton={false}
     >
       {restaurants.map((r) => (
         <NaverMapMarkerOverlay
@@ -62,4 +65,7 @@ export default function NaverMap({
       ))}
     </NaverMapView>
   );
-}
+});
+
+NaverMap.displayName = 'NaverMap';
+export default NaverMap;

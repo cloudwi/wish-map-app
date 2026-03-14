@@ -1,15 +1,18 @@
-import { StyleSheet, View, Text, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, Text, TextInput, ActivityIndicator, TouchableOpacity, FlatList, Keyboard } from 'react-native';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet';
-import Animated, { FadeIn } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import type * as LocationType from 'expo-location';
+import { type NaverMapViewRef } from '@mj-studio/react-native-naver-map';
 import { Restaurant, MapBounds } from '../../types';
 import { restaurantApi } from '../../api/restaurant';
+import { searchPlaces, PlaceResult } from '../../api/search';
 import NaverMap from '../../components/NaverMap';
 import { RestaurantCard } from '../../components/RestaurantCard';
-import FloatingActionButton from '../../components/FloatingActionButton';
-import { lightTap } from '../../utils/haptics';
+import { lightTap, mediumTap } from '../../utils/haptics';
+import { showError } from '../../utils/toast';
 
 const INITIAL_BOUNDS: MapBounds = { minLat: 37.4, maxLat: 37.7, minLng: 126.8, maxLng: 127.2 };
 
@@ -17,14 +20,26 @@ export default function MapScreen() {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Restaurant | null>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const [locating, setLocating] = useState(false);
+  const [showResearchBtn, setShowResearchBtn] = useState(false);
+
+  // 검색
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<PlaceResult[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [searchFocused, setSearchFocused] = useState(false);
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+
   const bottomSheetRef = useRef<BottomSheet>(null);
+  const mapRef = useRef<NaverMapViewRef>(null);
+  const currentBoundsRef = useRef<MapBounds>(INITIAL_BOUNDS);
   const snapPoints = useMemo(() => ['12%', '40%', '80%'], []);
 
   const fetchRestaurants = useCallback(async (bounds: MapBounds) => {
     try {
       const response = await restaurantApi.getRestaurants(bounds);
       setRestaurants(response.content);
+      setShowResearchBtn(false);
     } catch (error) {
       console.error('Failed to fetch restaurants:', error);
     } finally {
@@ -32,15 +47,85 @@ export default function MapScreen() {
     }
   }, []);
 
-  const debouncedFetch = useCallback((bounds: MapBounds) => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => fetchRestaurants(bounds), 500);
-  }, [fetchRestaurants]);
-
   useEffect(() => {
     fetchRestaurants(INITIAL_BOUNDS);
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [fetchRestaurants]);
+
+  // 지도 이동 시 자동 조회 대신 "재검색" 버튼 표시
+  const handleBoundsChange = useCallback((bounds: MapBounds) => {
+    currentBoundsRef.current = bounds;
+    setShowResearchBtn(true);
+  }, []);
+
+  const handleResearch = useCallback(() => {
+    mediumTap();
+    fetchRestaurants(currentBoundsRef.current);
+  }, [fetchRestaurants]);
+
+  // 검색
+  const handleSearch = (text: string) => {
+    setSearchQuery(text);
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+
+    if (!text.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    searchTimeoutRef.current = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const results = await searchPlaces(text);
+        setSearchResults(results);
+      } catch {
+        setSearchResults([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 400);
+  };
+
+  const handleSelectPlace = (place: PlaceResult) => {
+    lightTap();
+    setSearchQuery('');
+    setSearchResults([]);
+    setSearchFocused(false);
+    Keyboard.dismiss();
+
+    mapRef.current?.animateCameraTo({
+      latitude: place.lat,
+      longitude: place.lng,
+      zoom: 16,
+    });
+  };
+
+  const clearSearch = () => {
+    setSearchQuery('');
+    setSearchResults([]);
+  };
+
+  const goToMyLocation = useCallback(async () => {
+    mediumTap();
+    setLocating(true);
+    try {
+      const Location = require('expo-location') as typeof LocationType;
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        showError('위치 권한 필요', '설정에서 위치 권한을 허용해주세요.');
+        return;
+      }
+      const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      mapRef.current?.animateCameraTo({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        zoom: 15,
+      });
+    } catch {
+      showError('위치 오류', '현재 위치를 가져올 수 없습니다.');
+    } finally {
+      setLocating(false);
+    }
+  }, []);
 
   const handleMarkerClick = useCallback((restaurant: Restaurant) => {
     lightTap();
@@ -52,15 +137,95 @@ export default function MapScreen() {
     <RestaurantCard item={item} index={index} />
   ), []);
 
+  const showResults = searchFocused && searchResults.length > 0;
+
   return (
     <View style={styles.container}>
       <NaverMap
+        ref={mapRef}
         restaurants={restaurants}
         onMarkerClick={handleMarkerClick}
-        onBoundsChange={debouncedFetch}
+        onBoundsChange={handleBoundsChange}
       />
 
-      <FloatingActionButton />
+      {/* 검색바 */}
+      <View style={styles.searchContainer}>
+        <View style={[styles.searchBar, searchFocused && styles.searchBarFocused]}>
+          <Ionicons name="search-outline" size={18} color="#999" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="맛집 검색"
+            placeholderTextColor="#bbb"
+            value={searchQuery}
+            onChangeText={handleSearch}
+            onFocus={() => setSearchFocused(true)}
+            onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
+            returnKeyType="search"
+          />
+          {searching && <ActivityIndicator size="small" color="#FF6B35" />}
+          {searchQuery.length > 0 && !searching && (
+            <TouchableOpacity onPress={clearSearch} style={styles.clearBtn}>
+              <Ionicons name="close-circle" size={18} color="#ccc" />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* 검색 결과 드롭다운 */}
+        {showResults && (
+          <Animated.View entering={FadeIn.duration(150)} style={styles.searchResults}>
+            <FlatList
+              data={searchResults}
+              keyExtractor={(item) => item.id}
+              keyboardShouldPersistTaps="handled"
+              renderItem={({ item, index }) => (
+                <TouchableOpacity
+                  style={[styles.resultItem, index === searchResults.length - 1 && styles.resultItemLast]}
+                  onPress={() => handleSelectPlace(item)}
+                  activeOpacity={0.6}
+                >
+                  <Ionicons name="location-outline" size={18} color="#FF6B35" />
+                  <View style={styles.resultContent}>
+                    <Text style={styles.resultName} numberOfLines={1}>{item.name}</Text>
+                    <Text style={styles.resultAddress} numberOfLines={1}>
+                      {item.roadAddress || item.address}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+            />
+          </Animated.View>
+        )}
+      </View>
+
+      {/* 현재 지도에서 재검색 버튼 */}
+      {showResearchBtn && (
+        <Animated.View entering={FadeInDown.duration(200)} style={styles.researchContainer}>
+          <TouchableOpacity
+            style={styles.researchBtn}
+            onPress={handleResearch}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="refresh-outline" size={16} color="#fff" />
+            <Text style={styles.researchText}>현재 지도에서 재검색</Text>
+          </TouchableOpacity>
+        </Animated.View>
+      )}
+
+      {/* 오른쪽: 내 위치 버튼 */}
+      <View style={styles.rightButtons}>
+        <TouchableOpacity
+          style={styles.mapBtn}
+          onPress={goToMyLocation}
+          activeOpacity={0.8}
+          disabled={locating}
+        >
+          <Ionicons
+            name={locating ? 'locate' : 'locate-outline'}
+            size={22}
+            color={locating ? '#FF6B35' : '#555'}
+          />
+        </TouchableOpacity>
+      </View>
 
       {loading && (
         <View style={styles.loadingOverlay}>
@@ -77,7 +242,6 @@ export default function MapScreen() {
         enablePanDownToClose={false}
       >
         {selected ? (
-          // 선택된 맛집 미리보기
           <Animated.View entering={FadeIn.duration(200)} style={styles.preview}>
             <View style={styles.previewHeader}>
               <View style={{ flex: 1 }}>
@@ -106,7 +270,6 @@ export default function MapScreen() {
               <Ionicons name="chevron-forward" size={16} color="#fff" />
             </TouchableOpacity>
 
-            {/* 나머지 목록 */}
             <View style={styles.listHeader}>
               <Text style={styles.listTitle}>주변 맛집 {restaurants.length}개</Text>
             </View>
@@ -118,7 +281,6 @@ export default function MapScreen() {
             />
           </Animated.View>
         ) : (
-          // 주변 맛집 리스트
           <View style={styles.listWrap}>
             <View style={styles.listHeader}>
               <Ionicons name="restaurant" size={18} color="#FF6B35" />
@@ -144,12 +306,113 @@ export default function MapScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  // 검색
+  searchContainer: {
+    position: 'absolute',
+    top: 8,
+    left: 16,
+    right: 16,
+    zIndex: 10,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    height: 46,
+    gap: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  searchBarFocused: {
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+  },
+  searchInput: { flex: 1, fontSize: 15, color: '#333', paddingVertical: 0 },
+  clearBtn: { padding: 8 },
+  searchResults: {
+    marginTop: 6,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    maxHeight: 320,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 6,
+    overflow: 'hidden',
+  },
+  resultItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    gap: 12,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#f0f0f0',
+  },
+  resultItemLast: { borderBottomWidth: 0 },
+  resultContent: { flex: 1 },
+  resultName: { fontSize: 15, fontWeight: '600', color: '#333', marginBottom: 2 },
+  resultAddress: { fontSize: 13, color: '#999' },
+  // 재검색 버튼
+  researchContainer: {
+    position: 'absolute',
+    top: 62,
+    alignSelf: 'center',
+    zIndex: 9,
+  },
+  researchBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FF6B35',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    shadowColor: '#FF6B35',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  researchText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  // 오른쪽 버튼 그룹
+  rightButtons: {
+    position: 'absolute',
+    right: 16,
+    top: 66,
+    zIndex: 5,
+    gap: 8,
+  },
+  mapBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 4,
+  },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(255,255,255,0.8)',
     justifyContent: 'center',
     alignItems: 'center',
   },
+  // 바텀시트
   sheetBg: {
     backgroundColor: '#fff',
     borderTopLeftRadius: 20,
@@ -195,6 +458,6 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   listTitle: { fontSize: 15, fontWeight: '600', color: '#333' },
-  listContent: { paddingHorizontal: 16, paddingBottom: 20 },
+  listContent: { paddingHorizontal: 16, paddingBottom: 100 },
   emptyText: { textAlign: 'center', color: '#999', paddingVertical: 30, fontSize: 14 },
 });
