@@ -1,10 +1,11 @@
 import { StyleSheet, View, Text, FlatList, TouchableOpacity } from 'react-native';
 import { useState, useEffect } from 'react';
 import { router, Stack } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { Restaurant } from '../types';
 import { restaurantApi } from '../api/restaurant';
 import { RestaurantCard } from '../components/RestaurantCard';
-import { LoadingScreen } from '../components/LoadingScreen';
+import RestaurantCardSkeleton from '../components/RestaurantCardSkeleton';
 
 type RestaurantStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
@@ -34,7 +35,15 @@ export default function MySuggestionsScreen() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <LoadingScreen />;
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <View style={{ paddingTop: 16 }}>
+          {Array.from({ length: 4 }).map((_, i) => <RestaurantCardSkeleton key={i} />)}
+        </View>
+      </View>
+    );
+  }
 
   return (
     <>
@@ -43,16 +52,18 @@ export default function MySuggestionsScreen() {
         <FlatList
           data={restaurants}
           keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => (
+          renderItem={({ item, index }) => (
             <RestaurantCard
               item={item}
+              index={index}
               badge={<StatusBadge status={item.status} />}
             />
           )}
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={
             <View style={styles.empty}>
-              <Text style={styles.emptyText}>제안한 맛집이 없습니다</Text>
+              <Ionicons name="restaurant-outline" size={48} color="#ddd" />
+              <Text style={styles.emptyTitle}>제안한 맛집이 없습니다</Text>
               <TouchableOpacity
                 style={styles.suggestBtn}
                 onPress={() => router.push('/(tabs)/suggest')}
@@ -72,8 +83,8 @@ const styles = StyleSheet.create({
   listContent: { padding: 15 },
   badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
   badgeText: { fontSize: 11, color: '#fff', fontWeight: '600' },
-  empty: { padding: 60, alignItems: 'center' },
-  emptyText: { fontSize: 15, color: '#999', marginBottom: 20 },
+  empty: { padding: 60, alignItems: 'center', gap: 12 },
+  emptyTitle: { fontSize: 16, fontWeight: '600', color: '#999' },
   suggestBtn: { backgroundColor: '#FF6B35', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 20 },
   suggestBtnText: { color: '#fff', fontSize: 15, fontWeight: '600' },
 });

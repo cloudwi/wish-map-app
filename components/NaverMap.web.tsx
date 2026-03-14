@@ -28,7 +28,7 @@ export default function NaverMap({
     if (iframeRef.current?.contentWindow && restaurants.length > 0) {
       iframeRef.current.contentWindow.postMessage(
         { type: 'addMarkers', restaurants },
-        '*'
+        window.location.origin
       );
     }
   }, [restaurants]);
@@ -36,6 +36,8 @@ export default function NaverMap({
   // iframe → parent 메시지 수신
   useEffect(() => {
     const handler = (e: MessageEvent) => {
+      // srcDoc iframe의 origin은 'null'이므로 source 체크로 대체
+      if (e.source !== iframeRef.current?.contentWindow) return;
       if (!e.data?.type) return;
       if (e.data.type === 'markerClick') onMarkerClick(e.data.restaurant);
       else if (e.data.type === 'boundsChanged') onBoundsChange(e.data.bounds);

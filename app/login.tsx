@@ -1,134 +1,93 @@
 import {
   StyleSheet, View, Text, TouchableOpacity,
-  Image, ActivityIndicator, Alert, Platform,
+  Image, ActivityIndicator, Platform,
 } from 'react-native';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { router, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import * as WebBrowser from 'expo-web-browser';
-import * as AuthSession from 'expo-auth-session';
-import { useAuthRequest } from 'expo-auth-session';
-import * as Google from 'expo-auth-session/providers/google';
+import Animated, { FadeInUp, FadeInDown } from 'react-native-reanimated';
 import * as AppleAuthentication from 'expo-apple-authentication';
+import { login as kakaoLogin } from '@react-native-seoul/kakao-login';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import NaverLogin from '@react-native-seoul/naver-login';
 import { useAuthStore } from '../stores/authStore';
 import { AuthProvider } from '../types';
+import { showError } from '../utils/toast';
 
-WebBrowser.maybeCompleteAuthSession();
+const GOOGLE_IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || '';
+const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '';
+const NAVER_CONSUMER_KEY = process.env.EXPO_PUBLIC_NAVER_CONSUMER_KEY || '';
+const NAVER_CONSUMER_SECRET = process.env.EXPO_PUBLIC_NAVER_CONSUMER_SECRET || '';
 
-const KAKAO_CLIENT_ID  = process.env.EXPO_PUBLIC_KAKAO_CLIENT_ID  || '';
-const GOOGLE_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '';
-const NAVER_CLIENT_ID  = process.env.EXPO_PUBLIC_NAVER_CLIENT_ID  || '';
-const NAVER_CLIENT_SECRET = process.env.EXPO_PUBLIC_NAVER_CLIENT_SECRET || '';
-
-// ──────────────────────────────────────────────
-// Google (implicit flow – access_token 즉시 획득)
-// ──────────────────────────────────────────────
-function useGoogleAuth() {
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    clientId: GOOGLE_CLIENT_ID,
-    scopes: ['openid', 'profile', 'email'],
-  });
-  return { request, response, promptAsync };
-}
+GoogleSignin.configure({
+  iosClientId: GOOGLE_IOS_CLIENT_ID,
+  webClientId: GOOGLE_WEB_CLIENT_ID,
+  scopes: ['profile', 'email'],
+});
 
 export default function LoginScreen() {
   const { login } = useAuthStore();
   const [loading, setLoading] = useState<AuthProvider | null>(null);
 
-  const { promptAsync: googlePrompt, response: googleResponse } = useGoogleAuth();
-
-  // ── 카카오 ──────────────────────────────────
-  const kakaoRedirectUri = AuthSession.makeRedirectUri({ scheme: 'wishmap', path: 'oauth' });
-  const [kakaoRequest, , promptKakao] = useAuthRequest(
-    {
-      clientId: KAKAO_CLIENT_ID,
-      redirectUri: kakaoRedirectUri,
-      responseType: AuthSession.ResponseType.Token,
-    },
-    { authorizationEndpoint: 'https://kauth.kakao.com/oauth/authorize' }
-  );
+  useEffect(() => {
+    NaverLogin.initialize({
+      appName: '위시맵',
+      consumerKey: NAVER_CONSUMER_KEY,
+      consumerSecret: NAVER_CONSUMER_SECRET,
+      serviceUrlSchemeIOS: 'wishmap',
+      disableNaverAppAuthIOS: false,
+    });
+  }, []);
 
   const handleKakao = async () => {
     try {
       setLoading('KAKAO');
-      const result = await promptKakao();
-      if (result?.type === 'success' && result.params?.access_token) {
-        await login('KAKAO', result.params.access_token);
-        router.replace('/(tabs)');
-      } else if (result?.type !== 'cancel') {
-        throw new Error('카카오 로그인에 실패했습니다.');
-      }
+      const result = await kakaoLogin();
+      await login('KAKAO', result.accessToken);
+      router.replace('/(tabs)');
     } catch (e: any) {
-      Alert.alert('로그인 실패', e.message || '카카오 로그인 중 오류가 발생했습니다.');
+      if (e.code !== 'E_CANCELLED_OPERATION') {
+        showError('로그인 실패', e.message || '카카오 로그인 중 오류가 발생했습니다.');
+      }
     } finally {
       setLoading(null);
     }
   };
 
-  // ── 구글 ────────────────────────────────────
   const handleGoogle = async () => {
     try {
       setLoading('GOOGLE');
-      const result = await googlePrompt();
-
-      if (result.type === 'success' && result.authentication?.accessToken) {
-        await login('GOOGLE', result.authentication.accessToken);
-        router.replace('/(tabs)');
-      } else if (result.type !== 'cancel') {
-        throw new Error('구글 로그인에 실패했습니다.');
-      }
+      await GoogleSignin.hasPlayServices();
+      const response = await GoogleSignin.signIn();
+      const idToken = response.data?.idToken;
+      if (!idToken) throw new Error('구글 토큰 발급 실패');
+      await login('GOOGLE', idToken);
+      router.replace('/(tabs)');
     } catch (e: any) {
-      Alert.alert('로그인 실패', e.message || '구글 로그인 중 오류가 발생했습니다.');
+      if (e.code !== 'SIGN_IN_CANCELLED') {
+        showError('로그인 실패', e.message || '구글 로그인 중 오류가 발생했습니다.');
+      }
     } finally {
       setLoading(null);
     }
   };
-
-  // ── 네이버 ──────────────────────────────────
-  const naverRedirectUri = AuthSession.makeRedirectUri({ scheme: 'wishmap', path: 'oauth' });
-  const [, , promptNaver] = useAuthRequest(
-    {
-      clientId: NAVER_CLIENT_ID,
-      redirectUri: naverRedirectUri,
-      responseType: AuthSession.ResponseType.Code,
-    },
-    { authorizationEndpoint: 'https://nid.naver.com/oauth2.0/authorize' }
-  );
 
   const handleNaver = async () => {
     try {
       setLoading('NAVER');
-      const result = await promptNaver();
-
-      if (result?.type === 'success' && result.params?.code) {
-        // code → access_token (네이버 CORS 제한 없음 – native fetch)
-        const tokenRes = await fetch('https://nid.naver.com/oauth2.0/token', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams({
-            grant_type: 'authorization_code',
-            client_id: NAVER_CLIENT_ID,
-            client_secret: NAVER_CLIENT_SECRET,
-            code: result.params.code,
-            state: result.params.state ?? '',
-          }).toString(),
-        });
-        const tokenData = await tokenRes.json();
-
-        if (!tokenData.access_token) throw new Error('네이버 토큰 발급 실패');
-        await login('NAVER', tokenData.access_token);
-        router.replace('/(tabs)');
-      } else if (result?.type !== 'cancel') {
+      const result = await NaverLogin.login();
+      if (!result.isSuccess || !result.successResponse) {
         throw new Error('네이버 로그인에 실패했습니다.');
       }
+      await login('NAVER', result.successResponse.accessToken);
+      router.replace('/(tabs)');
     } catch (e: any) {
-      Alert.alert('로그인 실패', e.message || '네이버 로그인 중 오류가 발생했습니다.');
+      showError('로그인 실패', e.message || '네이버 로그인 중 오류가 발생했습니다.');
     } finally {
       setLoading(null);
     }
   };
 
-  // ── 애플 (iOS 전용) ─────────────────────────
   const handleApple = async () => {
     try {
       setLoading('APPLE');
@@ -138,46 +97,49 @@ export default function LoginScreen() {
           AppleAuthentication.AppleAuthenticationScope.EMAIL,
         ],
       });
-
       if (!credential.identityToken) throw new Error('Apple identity token 없음');
       await login('APPLE', credential.identityToken);
       router.replace('/(tabs)');
     } catch (e: any) {
       if (e.code !== 'ERR_REQUEST_CANCELED') {
-        Alert.alert('로그인 실패', e.message || 'Apple 로그인 중 오류가 발생했습니다.');
+        showError('로그인 실패', e.message || 'Apple 로그인 중 오류가 발생했습니다.');
       }
     } finally {
       setLoading(null);
     }
   };
 
+  const isDisabled = loading !== null;
+
   return (
     <>
       <Stack.Screen
         options={{
           title: '로그인',
-          headerStyle: { backgroundColor: '#FF6B35' },
-          headerTintColor: '#fff',
+          headerStyle: { backgroundColor: '#fff' },
+          headerTintColor: '#333',
+          headerShadowVisible: false,
         }}
       />
 
       <View style={styles.container}>
         {/* 로고 */}
-        <View style={styles.logoContainer}>
+        <Animated.View entering={FadeInUp.duration(500)} style={styles.logoContainer}>
           <View style={styles.logoPlaceholder}>
             <Ionicons name="map" size={60} color="#FF6B35" />
           </View>
           <Text style={styles.appName}>위시맵</Text>
           <Text style={styles.tagline}>우리 동네 맛집 지도</Text>
-        </View>
+        </Animated.View>
 
         {/* 소셜 로그인 버튼 */}
-        <View style={styles.buttonContainer}>
+        <Animated.View entering={FadeInDown.delay(200).duration(500)} style={styles.buttonContainer}>
           {/* 카카오 */}
           <TouchableOpacity
-            style={[styles.socialButton, styles.kakaoButton]}
+            style={[styles.socialButton, styles.kakaoButton, isDisabled && loading !== 'KAKAO' && styles.dimmed]}
             onPress={handleKakao}
-            disabled={loading !== null}
+            disabled={isDisabled}
+            activeOpacity={0.85}
           >
             {loading === 'KAKAO' ? (
               <ActivityIndicator color="#000" />
@@ -194,9 +156,10 @@ export default function LoginScreen() {
 
           {/* 구글 */}
           <TouchableOpacity
-            style={[styles.socialButton, styles.googleButton]}
+            style={[styles.socialButton, styles.googleButton, isDisabled && loading !== 'GOOGLE' && styles.dimmed]}
             onPress={handleGoogle}
-            disabled={loading !== null}
+            disabled={isDisabled}
+            activeOpacity={0.85}
           >
             {loading === 'GOOGLE' ? (
               <ActivityIndicator color="#666" />
@@ -210,9 +173,10 @@ export default function LoginScreen() {
 
           {/* 네이버 */}
           <TouchableOpacity
-            style={[styles.socialButton, styles.naverButton]}
+            style={[styles.socialButton, styles.naverButton, isDisabled && loading !== 'NAVER' && styles.dimmed]}
             onPress={handleNaver}
-            disabled={loading !== null}
+            disabled={isDisabled}
+            activeOpacity={0.85}
           >
             {loading === 'NAVER' ? (
               <ActivityIndicator color="#fff" />
@@ -230,16 +194,18 @@ export default function LoginScreen() {
               buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
               buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
               cornerRadius={12}
-              style={styles.appleButton}
+              style={[styles.appleButton, isDisabled && styles.dimmed]}
               onPress={handleApple}
             />
           )}
-        </View>
+        </Animated.View>
 
         {/* 건너뛰기 */}
-        <TouchableOpacity style={styles.skipButton} onPress={() => router.back()}>
-          <Text style={styles.skipButtonText}>로그인 없이 둘러보기</Text>
-        </TouchableOpacity>
+        <Animated.View entering={FadeInDown.delay(400).duration(400)}>
+          <TouchableOpacity style={styles.skipButton} onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)')}>
+            <Text style={styles.skipButtonText}>로그인 없이 둘러보기</Text>
+          </TouchableOpacity>
+        </Animated.View>
 
         {/* 약관 */}
         <Text style={styles.terms}>
@@ -255,8 +221,9 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff', padding: 30 },
   logoContainer: { alignItems: 'center', marginTop: 40, marginBottom: 50 },
   logoPlaceholder: {
-    width: 100, height: 100, borderRadius: 25,
+    width: 100, height: 100, borderRadius: 50,
     backgroundColor: '#FFF5F0', justifyContent: 'center', alignItems: 'center', marginBottom: 16,
+    shadowColor: '#FF6B35', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12,
   },
   appName: { fontSize: 28, fontWeight: 'bold', color: '#FF6B35', marginBottom: 8 },
   tagline: { fontSize: 16, color: '#888' },
@@ -266,6 +233,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14, borderRadius: 12, gap: 10,
   },
   socialIcon: { width: 20, height: 20 },
+  dimmed: { opacity: 0.5 },
   kakaoButton: { backgroundColor: '#FEE500' },
   kakaoButtonText: { fontSize: 16, fontWeight: '600', color: '#000' },
   googleButton: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#ddd' },

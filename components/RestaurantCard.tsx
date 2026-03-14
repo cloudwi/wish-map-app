@@ -1,38 +1,46 @@
 import { StyleSheet, View, Text, TouchableOpacity, Image } from 'react-native';
 import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Restaurant } from '../types';
+import { lightTap } from '../utils/haptics';
 
 interface Props {
   item: Restaurant;
-  /** 오른쪽에 표시할 배지 (예: 상태 뱃지) */
   badge?: React.ReactNode;
+  index?: number;
 }
 
-export function RestaurantCard({ item, badge }: Props) {
+export function RestaurantCard({ item, badge, index = 0 }: Props) {
   return (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={() => router.push(`/restaurant/${item.id}`)}
-      activeOpacity={0.8}
-    >
-      <Image
-        source={{ uri: item.thumbnailImage || 'https://via.placeholder.com/100' }}
-        style={styles.thumbnail}
-      />
-      <View style={styles.content}>
-        <View style={styles.titleRow}>
-          <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
-          {badge}
+    <Animated.View entering={FadeInDown.delay(index * 60).duration(300).springify()}>
+      <TouchableOpacity
+        style={styles.card}
+        onPress={() => { lightTap(); router.push(`/restaurant/${item.id}`); }}
+        activeOpacity={0.8}
+      >
+        {item.thumbnailImage ? (
+          <Image source={{ uri: item.thumbnailImage }} style={styles.thumbnail} />
+        ) : (
+          <View style={[styles.thumbnail, styles.thumbnailPlaceholder]}>
+            <Ionicons name="restaurant-outline" size={26} color="#d4c4bc" />
+          </View>
+        )}
+        <View style={styles.content}>
+          <View style={styles.titleRow}>
+            <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
+            {badge}
+          </View>
+          <Text style={styles.address} numberOfLines={1}>{item.address}</Text>
+          <View style={styles.meta}>
+            {item.category && (
+              <Text style={styles.category}>{item.category}</Text>
+            )}
+            <Text style={styles.likes}>❤️ {item.likeCount}</Text>
+          </View>
         </View>
-        <Text style={styles.address} numberOfLines={1}>{item.address}</Text>
-        <View style={styles.meta}>
-          {item.category && (
-            <Text style={styles.category}>{item.category}</Text>
-          )}
-          <Text style={styles.likes}>❤️ {item.likeCount}</Text>
-        </View>
-      </View>
-    </TouchableOpacity>
+      </TouchableOpacity>
+    </Animated.View>
   );
 }
 
@@ -52,7 +60,11 @@ const styles = StyleSheet.create({
   thumbnail: {
     width: 90,
     height: 90,
-    backgroundColor: '#eee',
+    backgroundColor: '#FFF5F0',
+  },
+  thumbnailPlaceholder: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   content: {
     flex: 1,

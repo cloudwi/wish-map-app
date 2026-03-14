@@ -32,7 +32,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   logout: async () => {
-    try { await authApi.logout(); } catch {}
+    try { await authApi.logout(); } catch (e) { console.warn('Logout API failed:', e); }
     finally {
       await deleteItem('accessToken');
       await deleteItem('refreshToken');
@@ -55,7 +55,8 @@ export const useAuthStore = create<AuthState>((set) => ({
       await setItem('accessToken', response.accessToken);
       await setItem('refreshToken', response.refreshToken);
       set({ user: response.user, isAuthenticated: true, isLoading: false });
-    } catch {
+    } catch (e) {
+      console.warn('Auth check failed:', e);
       await deleteItem('accessToken');
       await deleteItem('refreshToken');
       set({ user: null, isAuthenticated: false, isLoading: false });
