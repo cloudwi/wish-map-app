@@ -47,3 +47,4 @@ app-example
 /android
 .idea/
 .idea/
+*.ipa

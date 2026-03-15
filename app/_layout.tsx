@@ -24,7 +24,7 @@ export default function RootLayout() {
         <Stack.Screen name="bookmarks" options={{ title: '북마크' }} />
         <Stack.Screen name="legal/terms" options={{ title: '이용약관' }} />
         <Stack.Screen name="legal/privacy" options={{ title: '개인정보 처리방침' }} />
-        <Stack.Screen name="notifications/index" options={{ title: '알림' }} />
+        <Stack.Screen name="notifications/index" options={{ title: '알림', headerBackTitle: ' ' }} />
       </Stack>
       <Toast config={toastConfig} topOffset={60} />
     </GestureHandlerRootView>

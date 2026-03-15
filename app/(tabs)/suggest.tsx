@@ -1,12 +1,13 @@
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform, FlatList } from 'react-native';
-import { useState, useRef, useCallback } from 'react';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
+import { useState, useRef } from 'react';
 import { Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../stores/authStore';
 import { restaurantApi } from '../../api/restaurant';
-import { searchPlaces, PlaceResult } from '../../api/search';
+import { PlaceResult } from '../../api/search';
 import { CreateRestaurantRequest } from '../../types';
 import { AuthRequired } from '../../components/AuthRequired';
+import { useSearch } from '../../hooks/useSearch';
 import { showSuccess, showError, showInfo } from '../../utils/toast';
 import { lightTap, successTap } from '../../utils/haptics';
 
@@ -15,14 +16,11 @@ const CATEGORIES = ['한식', '중식', '일식', '양식', '카페', '술집', 
 export default function SuggestScreen() {
   const { isAuthenticated } = useAuthStore();
   const [loading, setLoading] = useState(false);
-  const [searching, setSearching] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<PlaceResult[]>([]);
+  const { searchQuery, setSearchQuery, searchResults, setSearchResults, searching, handleSearch: onSearch, clearSearch } = useSearch({ debounceDelay: 300 });
   const [selectedPlace, setSelectedPlace] = useState<PlaceResult | null>(null);
   const [category, setCategory] = useState('');
   const [description, setDescription] = useState('');
   const [focusedField, setFocusedField] = useState<string | null>(null);
-  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const descRef = useRef<TextInput>(null);
 
   if (!isAuthenticated) {
@@ -35,27 +33,8 @@ export default function SuggestScreen() {
   }
 
   const handleSearch = (text: string) => {
-    setSearchQuery(text);
     setSelectedPlace(null);
-
-    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-
-    if (!text.trim()) {
-      setSearchResults([]);
-      return;
-    }
-
-    searchTimeoutRef.current = setTimeout(async () => {
-      setSearching(true);
-      try {
-        const results = await searchPlaces(text);
-        setSearchResults(results);
-      } catch {
-        setSearchResults([]);
-      } finally {
-        setSearching(false);
-      }
-    }, 300);
+    onSearch(text);
   };
 
   const handleSelectPlace = (place: PlaceResult) => {
@@ -98,7 +77,7 @@ export default function SuggestScreen() {
       await restaurantApi.createRestaurant(form);
       successTap();
       showSuccess('제안 완료!', '관리자 승인 후 지도에 표시됩니다.');
-      setSearchQuery('');
+      clearSearch();
       setSelectedPlace(null);
       setCategory('');
       setDescription('');
@@ -143,7 +122,7 @@ export default function SuggestScreen() {
               />
               {searching && <ActivityIndicator size="small" color="#FF6B35" />}
               {searchQuery.length > 0 && !searching && (
-                <TouchableOpacity onPress={() => { setSearchQuery(''); setSearchResults([]); setSelectedPlace(null); }} style={styles.clearBtn}>
+                <TouchableOpacity onPress={() => { clearSearch(); setSelectedPlace(null); }} style={styles.clearBtn}>
                   <Ionicons name="close-circle" size={18} color="#ccc" />
                 </TouchableOpacity>
               )}

@@ -11,6 +11,18 @@ export interface PlaceResult {
   phone: string;
 }
 
+export interface NaverPlaceItem {
+  title: string;
+  link: string;
+  category: string;
+  description: string;
+  telephone: string;
+  address: string;
+  roadAddress: string;
+  mapx: string;
+  mapy: string;
+}
+
 // HTML 태그 제거
 function stripHtml(str: string): string {
   return str.replace(/<[^>]*>/g, '');
@@ -24,7 +36,7 @@ export async function searchPlaces(query: string): Promise<PlaceResult[]> {
     params: { query, display: 15 },
   });
 
-  return (data.items || []).map((item: any, index: number) => ({
+  return (data.items || []).map((item: NaverPlaceItem, index: number) => ({
     id: `${index}-${item.mapx}-${item.mapy}`,
     name: stripHtml(item.title),
     address: item.address || '',

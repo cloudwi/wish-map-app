@@ -8,9 +8,11 @@ import type * as LocationType from 'expo-location';
 import { type NaverMapViewRef } from '@mj-studio/react-native-naver-map';
 import { Restaurant, MapBounds } from '../../types';
 import { restaurantApi } from '../../api/restaurant';
-import { searchPlaces, PlaceResult } from '../../api/search';
+import { PlaceResult } from '../../api/search';
 import NaverMap from '../../components/NaverMap';
 import { RestaurantCard } from '../../components/RestaurantCard';
+import { PlaceDetailSheet } from '../../components/PlaceDetailSheet';
+import { useSearch } from '../../hooks/useSearch';
 import { lightTap, mediumTap } from '../../utils/haptics';
 import { showError } from '../../utils/toast';
 
@@ -24,12 +26,9 @@ export default function MapScreen() {
   const [showResearchBtn, setShowResearchBtn] = useState(false);
 
   // 검색
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<PlaceResult[]>([]);
-  const [searching, setSearching] = useState(false);
+  const { searchQuery, searchResults, searching, handleSearch, clearSearch } = useSearch();
   const [searchFocused, setSearchFocused] = useState(false);
   const [selectedPlace, setSelectedPlace] = useState<PlaceResult | null>(null);
-  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
   const bottomSheetRef = useRef<BottomSheet>(null);
   const mapRef = useRef<NaverMapViewRef>(null);
@@ -49,7 +48,26 @@ export default function MapScreen() {
   }, []);
 
   useEffect(() => {
-    fetchRestaurants(INITIAL_BOUNDS);
+    (async () => {
+      try {
+        const Location = require('expo-location') as typeof LocationType;
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+          const { latitude, longitude } = location.coords;
+          mapRef.current?.animateCameraTo({ latitude, longitude, zoom: 15 });
+          const bounds: MapBounds = {
+            minLat: latitude - 0.01,
+            maxLat: latitude + 0.01,
+            minLng: longitude - 0.01,
+            maxLng: longitude + 0.01,
+          };
+          fetchRestaurants(bounds);
+          return;
+        }
+      } catch {}
+      fetchRestaurants(INITIAL_BOUNDS);
+    })();
   }, [fetchRestaurants]);
 
   // 지도 이동 시 자동 조회 대신 "재검색" 버튼 표시
@@ -63,33 +81,9 @@ export default function MapScreen() {
     fetchRestaurants(currentBoundsRef.current);
   }, [fetchRestaurants]);
 
-  // 검색
-  const handleSearch = (text: string) => {
-    setSearchQuery(text);
-    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-
-    if (!text.trim()) {
-      setSearchResults([]);
-      return;
-    }
-
-    searchTimeoutRef.current = setTimeout(async () => {
-      setSearching(true);
-      try {
-        const results = await searchPlaces(text);
-        setSearchResults(results);
-      } catch {
-        setSearchResults([]);
-      } finally {
-        setSearching(false);
-      }
-    }, 400);
-  };
-
   const handleSelectPlace = (place: PlaceResult) => {
     lightTap();
-    setSearchQuery('');
-    setSearchResults([]);
+    clearSearch();
     setSearchFocused(false);
     setSelected(null);
     setSelectedPlace(place);
@@ -128,11 +122,6 @@ export default function MapScreen() {
   const callPhone = (phone: string) => {
     lightTap();
     Linking.openURL(`tel:${phone}`);
-  };
-
-  const clearSearch = () => {
-    setSearchQuery('');
-    setSearchResults([]);
   };
 
   const goToMyLocation = useCallback(async () => {
@@ -274,71 +263,12 @@ export default function MapScreen() {
         enablePanDownToClose={false}
       >
         {selectedPlace ? (
-          <Animated.View entering={FadeIn.duration(200)} style={styles.preview}>
-            {/* 장소명 + 닫기 */}
-            <View style={styles.previewHeader}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.placeName}>{selectedPlace.name}</Text>
-                {selectedPlace.category ? (
-                  <Text style={styles.placeCategory}>{selectedPlace.category}</Text>
-                ) : null}
-              </View>
-              <TouchableOpacity style={styles.previewClose} onPress={closePlaceDetail}>
-                <Ionicons name="close" size={20} color="#999" />
-              </TouchableOpacity>
-            </View>
-
-            {/* 액션 버튼 */}
-            <View style={styles.placeActions}>
-              <TouchableOpacity style={styles.placeActionBtn} onPress={() => openNaverMap(selectedPlace)}>
-                <View style={[styles.placeActionIcon, { backgroundColor: '#E8F5E9' }]}>
-                  <Ionicons name="storefront-outline" size={20} color="#1EC800" />
-                </View>
-                <Text style={styles.placeActionText}>상세보기</Text>
-              </TouchableOpacity>
-              {selectedPlace.phone ? (
-                <TouchableOpacity style={styles.placeActionBtn} onPress={() => callPhone(selectedPlace.phone)}>
-                  <View style={[styles.placeActionIcon, { backgroundColor: '#E3F2FD' }]}>
-                    <Ionicons name="call-outline" size={20} color="#2196F3" />
-                  </View>
-                  <Text style={styles.placeActionText}>전화</Text>
-                </TouchableOpacity>
-              ) : null}
-            </View>
-
-            {/* 주소 */}
-            <View style={styles.placeInfoSection}>
-              <View style={styles.placeInfoRow}>
-                <Ionicons name="location-outline" size={18} color="#888" />
-                <Text style={styles.placeInfoText}>
-                  {selectedPlace.roadAddress || selectedPlace.address}
-                </Text>
-              </View>
-              {selectedPlace.phone ? (
-                <View style={styles.placeInfoRow}>
-                  <Ionicons name="call-outline" size={18} color="#888" />
-                  <Text style={styles.placeInfoText}>{selectedPlace.phone}</Text>
-                </View>
-              ) : null}
-            </View>
-
-            {/* 리뷰 */}
-            <View style={styles.placeReviewSection}>
-              <Text style={styles.placeReviewTitle}>리뷰</Text>
-              <TouchableOpacity
-                style={styles.firstReviewBtn}
-                onPress={() => {
-                  lightTap();
-                  // TODO: 리뷰 작성 화면으로 이동
-                }}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="chatbubble-ellipses-outline" size={20} color="#FF6B35" />
-                <Text style={styles.firstReviewText}>첫 리뷰 작성하기</Text>
-                <Ionicons name="chevron-forward" size={16} color="#ccc" />
-              </TouchableOpacity>
-            </View>
-          </Animated.View>
+          <PlaceDetailSheet
+            place={selectedPlace}
+            onClose={closePlaceDetail}
+            onOpenNaverMap={openNaverMap}
+            onCallPhone={callPhone}
+          />
         ) : selected ? (
           <Animated.View entering={FadeIn.duration(200)} style={styles.preview}>
             <View style={styles.previewHeader}>
@@ -558,41 +488,4 @@ const styles = StyleSheet.create({
   listTitle: { fontSize: 15, fontWeight: '600', color: '#333' },
   listContent: { paddingHorizontal: 16, paddingBottom: 120 },
   emptyText: { textAlign: 'center', color: '#999', paddingVertical: 30, fontSize: 14 },
-  // 검색 장소 상세
-  placeName: { fontSize: 20, fontWeight: '700', color: '#191F28', marginBottom: 4 },
-  placeCategory: { fontSize: 13, color: '#888', marginBottom: 4 },
-  placeActions: {
-    flexDirection: 'row',
-    gap: 24,
-    paddingVertical: 16,
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#f0f0f0',
-  },
-  placeActionBtn: { alignItems: 'center', gap: 6 },
-  placeActionIcon: {
-    width: 48, height: 48, borderRadius: 24,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  placeActionText: { fontSize: 12, color: '#555', fontWeight: '500' },
-  placeInfoSection: { paddingVertical: 16, gap: 12 },
-  placeInfoRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  placeInfoText: { fontSize: 14, color: '#333', flex: 1 },
-  placeReviewSection: {
-    borderTopWidth: 0.5,
-    borderTopColor: '#f0f0f0',
-    paddingTop: 16,
-  },
-  placeReviewTitle: { fontSize: 16, fontWeight: '700', color: '#191F28', marginBottom: 12 },
-  firstReviewBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: '#FFF8F5',
-    borderRadius: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    borderWidth: 1,
-    borderColor: '#FFE0D0',
-  },
-  firstReviewText: { flex: 1, fontSize: 14, fontWeight: '600', color: '#FF6B35' },
 });
