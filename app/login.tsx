@@ -128,7 +128,7 @@ export default function LoginScreen() {
         {/* 로고 */}
         <Animated.View entering={FadeInUp.duration(500)} style={styles.logoContainer}>
           <Image
-            source={require('../assets/images/icon.png')}
+            source={require('../assets/images/logo.png')}
             style={styles.logoImage}
           />
           <Text style={[styles.appName, { color: c.primary }]}>위시맵</Text>

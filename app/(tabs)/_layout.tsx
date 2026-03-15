@@ -62,7 +62,7 @@ function HeaderTitle() {
   const c = useTheme();
   return (
     <View style={styles.headerTitleWrap}>
-      <Image source={require('../../assets/images/icon.png')} style={styles.headerLogo} />
+      <Image source={require('../../assets/images/logo.png')} style={styles.headerLogo} />
       <Text style={[styles.headerTitleText, { color: c.textPrimary }]}>위시맵</Text>
     </View>
   );
