@@ -2,7 +2,7 @@ import { ExpoConfig, ConfigContext } from 'expo/config';
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: 'wish-map-app',
+  name: '위시맵',
   slug: 'wish-map-app',
   version: '1.0.0',
   orientation: 'portrait',
@@ -14,6 +14,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     supportsTablet: true,
     bundleIdentifier: 'com.wishmap.app',
     infoPlist: {
+      ITSAppUsesNonExemptEncryption: false,
       LSApplicationQueriesSchemes: [
         'kakaokompassauth',
         'naversearchapp',
@@ -81,6 +82,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       },
     ],
   ],
+  extra: {
+    eas: {
+      projectId: '8fb1765b-9b9e-4dff-a01b-ceebec4dc209',
+    },
+  },
   experiments: {
     typedRoutes: true,
     reactCompiler: true,

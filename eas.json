@@ -12,19 +12,14 @@
       }
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "store",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.wishmap.kr",
+        "EXPO_PUBLIC_NAVER_MAP_CLIENT_ID": "o0vtdj20he"
+      }
     },
     "production": {
       "autoIncrement": true
-    }
-  },
-  "submit": {
-    "production": {
-      "ios": {
-        "appleId": "cloudwi@naver.com",
-        "ascAppId": "",
-        "appleTeamId": ""
-      }
     }
   }
 }

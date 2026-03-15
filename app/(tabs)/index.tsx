@@ -1,4 +1,4 @@
-import { StyleSheet, View, Text, TextInput, ActivityIndicator, TouchableOpacity, FlatList, Keyboard } from 'react-native';
+import { StyleSheet, View, Text, TextInput, ActivityIndicator, TouchableOpacity, FlatList, Keyboard, Linking, Platform } from 'react-native';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -28,12 +28,13 @@ export default function MapScreen() {
   const [searchResults, setSearchResults] = useState<PlaceResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
+  const [selectedPlace, setSelectedPlace] = useState<PlaceResult | null>(null);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
   const bottomSheetRef = useRef<BottomSheet>(null);
   const mapRef = useRef<NaverMapViewRef>(null);
   const currentBoundsRef = useRef<MapBounds>(INITIAL_BOUNDS);
-  const snapPoints = useMemo(() => ['12%', '40%', '80%'], []);
+  const snapPoints = useMemo(() => ['18%', '45%', '60%', '85%'], []);
 
   const fetchRestaurants = useCallback(async (bounds: MapBounds) => {
     try {
@@ -90,6 +91,8 @@ export default function MapScreen() {
     setSearchQuery('');
     setSearchResults([]);
     setSearchFocused(false);
+    setSelected(null);
+    setSelectedPlace(place);
     Keyboard.dismiss();
 
     mapRef.current?.animateCameraTo({
@@ -97,6 +100,34 @@ export default function MapScreen() {
       longitude: place.lng,
       zoom: 16,
     });
+    bottomSheetRef.current?.snapToIndex(2);
+  };
+
+  const closePlaceDetail = () => {
+    setSelectedPlace(null);
+    bottomSheetRef.current?.snapToIndex(0);
+  };
+
+  const openNaverMap = (place: PlaceResult) => {
+    lightTap();
+    const url = Platform.select({
+      ios: `nmap://place?lat=${place.lat}&lng=${place.lng}&name=${encodeURIComponent(place.name)}&appname=com.mindbridge.wishmap`,
+      android: `nmap://place?lat=${place.lat}&lng=${place.lng}&name=${encodeURIComponent(place.name)}&appname=com.mindbridge.wishmap`,
+    });
+    if (url) {
+      Linking.canOpenURL(url).then((supported) => {
+        if (supported) {
+          Linking.openURL(url);
+        } else {
+          Linking.openURL(`https://map.naver.com/v5/search/${encodeURIComponent(place.name)}`);
+        }
+      });
+    }
+  };
+
+  const callPhone = (phone: string) => {
+    lightTap();
+    Linking.openURL(`tel:${phone}`);
   };
 
   const clearSearch = () => {
@@ -130,6 +161,7 @@ export default function MapScreen() {
   const handleMarkerClick = useCallback((restaurant: Restaurant) => {
     lightTap();
     setSelected(restaurant);
+    setSelectedPlace(null);
     bottomSheetRef.current?.snapToIndex(1);
   }, []);
 
@@ -241,7 +273,73 @@ export default function MapScreen() {
         handleIndicatorStyle={styles.sheetHandle}
         enablePanDownToClose={false}
       >
-        {selected ? (
+        {selectedPlace ? (
+          <Animated.View entering={FadeIn.duration(200)} style={styles.preview}>
+            {/* 장소명 + 닫기 */}
+            <View style={styles.previewHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.placeName}>{selectedPlace.name}</Text>
+                {selectedPlace.category ? (
+                  <Text style={styles.placeCategory}>{selectedPlace.category}</Text>
+                ) : null}
+              </View>
+              <TouchableOpacity style={styles.previewClose} onPress={closePlaceDetail}>
+                <Ionicons name="close" size={20} color="#999" />
+              </TouchableOpacity>
+            </View>
+
+            {/* 액션 버튼 */}
+            <View style={styles.placeActions}>
+              <TouchableOpacity style={styles.placeActionBtn} onPress={() => openNaverMap(selectedPlace)}>
+                <View style={[styles.placeActionIcon, { backgroundColor: '#E8F5E9' }]}>
+                  <Ionicons name="storefront-outline" size={20} color="#1EC800" />
+                </View>
+                <Text style={styles.placeActionText}>상세보기</Text>
+              </TouchableOpacity>
+              {selectedPlace.phone ? (
+                <TouchableOpacity style={styles.placeActionBtn} onPress={() => callPhone(selectedPlace.phone)}>
+                  <View style={[styles.placeActionIcon, { backgroundColor: '#E3F2FD' }]}>
+                    <Ionicons name="call-outline" size={20} color="#2196F3" />
+                  </View>
+                  <Text style={styles.placeActionText}>전화</Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+
+            {/* 주소 */}
+            <View style={styles.placeInfoSection}>
+              <View style={styles.placeInfoRow}>
+                <Ionicons name="location-outline" size={18} color="#888" />
+                <Text style={styles.placeInfoText}>
+                  {selectedPlace.roadAddress || selectedPlace.address}
+                </Text>
+              </View>
+              {selectedPlace.phone ? (
+                <View style={styles.placeInfoRow}>
+                  <Ionicons name="call-outline" size={18} color="#888" />
+                  <Text style={styles.placeInfoText}>{selectedPlace.phone}</Text>
+                </View>
+              ) : null}
+            </View>
+
+            {/* 리뷰 */}
+            <View style={styles.placeReviewSection}>
+              <Text style={styles.placeReviewTitle}>리뷰</Text>
+              <TouchableOpacity
+                style={styles.firstReviewBtn}
+                onPress={() => {
+                  lightTap();
+                  // TODO: 리뷰 작성 화면으로 이동
+                }}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="chatbubble-ellipses-outline" size={20} color="#FF6B35" />
+                <Text style={styles.firstReviewText}>첫 리뷰 작성하기</Text>
+                <Ionicons name="chevron-forward" size={16} color="#ccc" />
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
+        ) : selected ? (
           <Animated.View entering={FadeIn.duration(200)} style={styles.preview}>
             <View style={styles.previewHeader}>
               <View style={{ flex: 1 }}>
@@ -389,7 +487,7 @@ const styles = StyleSheet.create({
   rightButtons: {
     position: 'absolute',
     right: 16,
-    top: 66,
+    bottom: '20%',
     zIndex: 5,
     gap: 8,
   },
@@ -458,6 +556,43 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   listTitle: { fontSize: 15, fontWeight: '600', color: '#333' },
-  listContent: { paddingHorizontal: 16, paddingBottom: 100 },
+  listContent: { paddingHorizontal: 16, paddingBottom: 120 },
   emptyText: { textAlign: 'center', color: '#999', paddingVertical: 30, fontSize: 14 },
+  // 검색 장소 상세
+  placeName: { fontSize: 20, fontWeight: '700', color: '#191F28', marginBottom: 4 },
+  placeCategory: { fontSize: 13, color: '#888', marginBottom: 4 },
+  placeActions: {
+    flexDirection: 'row',
+    gap: 24,
+    paddingVertical: 16,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#f0f0f0',
+  },
+  placeActionBtn: { alignItems: 'center', gap: 6 },
+  placeActionIcon: {
+    width: 48, height: 48, borderRadius: 24,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  placeActionText: { fontSize: 12, color: '#555', fontWeight: '500' },
+  placeInfoSection: { paddingVertical: 16, gap: 12 },
+  placeInfoRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  placeInfoText: { fontSize: 14, color: '#333', flex: 1 },
+  placeReviewSection: {
+    borderTopWidth: 0.5,
+    borderTopColor: '#f0f0f0',
+    paddingTop: 16,
+  },
+  placeReviewTitle: { fontSize: 16, fontWeight: '700', color: '#191F28', marginBottom: 12 },
+  firstReviewBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#FFF8F5',
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: '#FFE0D0',
+  },
+  firstReviewText: { flex: 1, fontSize: 14, fontWeight: '600', color: '#FF6B35' },
 });
