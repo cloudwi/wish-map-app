@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { Tabs, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../stores/authStore';
@@ -26,6 +26,19 @@ function AnimatedTabIcon({ name, color, size, focused }: {
 
 function HeaderRight() {
   const c = useTheme();
+  const { isLoggedIn } = useAuthStore();
+
+  if (!isLoggedIn) {
+    return (
+      <TouchableOpacity
+        style={[styles.loginBtn, { backgroundColor: c.primary }]}
+        onPress={() => { lightTap(); router.push('/login'); }}
+      >
+        <Text style={styles.loginBtnText}>로그인</Text>
+      </TouchableOpacity>
+    );
+  }
+
   return (
     <View style={styles.headerRight}>
       <TouchableOpacity
@@ -49,7 +62,7 @@ function HeaderTitle() {
   const c = useTheme();
   return (
     <View style={styles.headerTitleWrap}>
-      <Ionicons name="map" size={22} color={c.primary} />
+      <Image source={require('../../assets/images/icon.png')} style={styles.headerLogo} />
       <Text style={[styles.headerTitleText, { color: c.textPrimary }]}>위시맵</Text>
     </View>
   );
@@ -152,6 +165,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#FF6B35',
     borderWidth: 1.5,
   },
+  headerLogo: {
+    width: 26,
+    height: 26,
+    borderRadius: 6,
+  },
   headerTitleWrap: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -160,5 +178,16 @@ const styles = StyleSheet.create({
   headerTitleText: {
     fontSize: 20,
     fontWeight: '800',
+  },
+  loginBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 16,
+    marginRight: 8,
+  },
+  loginBtnText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '700',
   },
 });

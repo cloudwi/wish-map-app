@@ -24,7 +24,7 @@ export default function RootLayout() {
           contentStyle: { backgroundColor: c.background },
         }}
       >
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false, headerBackTitle: ' ' }} />
         <Stack.Screen name="login" options={{ presentation: 'modal' }} />
         <Stack.Screen name="restaurant/[id]" options={{ title: '맛집 상세' }} />
         <Stack.Screen name="my-suggestions" options={{ title: '내 제안 목록' }} />

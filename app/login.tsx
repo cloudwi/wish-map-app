@@ -127,9 +127,10 @@ export default function LoginScreen() {
       <View style={[styles.container, { backgroundColor: c.surface }]}>
         {/* 로고 */}
         <Animated.View entering={FadeInUp.duration(500)} style={styles.logoContainer}>
-          <View style={[styles.logoPlaceholder, { backgroundColor: c.primaryBg }]}>
-            <Ionicons name="map" size={60} color={c.primary} />
-          </View>
+          <Image
+            source={require('../assets/images/icon.png')}
+            style={styles.logoImage}
+          />
           <Text style={[styles.appName, { color: c.primary }]}>위시맵</Text>
           <Text style={[styles.tagline, { color: c.textSecondary }]}>우리 동네 맛집 지도</Text>
         </Animated.View>
@@ -222,10 +223,8 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 30 },
   logoContainer: { alignItems: 'center', marginTop: 40, marginBottom: 50 },
-  logoPlaceholder: {
-    width: 100, height: 100, borderRadius: 50,
-    justifyContent: 'center', alignItems: 'center', marginBottom: 16,
-    shadowColor: '#FF6B35', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12,
+  logoImage: {
+    width: 100, height: 100, borderRadius: 24, marginBottom: 16,
   },
   appName: { fontSize: 28, fontWeight: 'bold', marginBottom: 8 },
   tagline: { fontSize: 16 },
