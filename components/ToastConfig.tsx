@@ -1,6 +1,7 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, useColorScheme } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { BaseToastProps } from 'react-native-toast-message';
+import { themes } from '../constants/theme';
 
 const icons: Record<string, { name: keyof typeof Ionicons.glyphMap; color: string }> = {
   success: { name: 'checkmark-circle', color: '#4CAF50' },
@@ -9,14 +10,17 @@ const icons: Record<string, { name: keyof typeof Ionicons.glyphMap; color: strin
 };
 
 function ToastBase({ type, text1, text2 }: BaseToastProps & { type: string }) {
+  const scheme = useColorScheme();
+  const c = scheme === 'dark' ? themes.dark : themes.light;
   const icon = icons[type] || icons.info;
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: c.surface }]}>
       <View style={[styles.accent, { backgroundColor: icon.color }]} />
       <Ionicons name={icon.name} size={22} color={icon.color} style={styles.icon} />
       <View style={styles.textWrap}>
-        {text1 ? <Text style={styles.title} numberOfLines={1}>{text1}</Text> : null}
-        {text2 ? <Text style={styles.message} numberOfLines={2}>{text2}</Text> : null}
+        {text1 ? <Text style={[styles.title, { color: c.textPrimary }]} numberOfLines={1}>{text1}</Text> : null}
+        {text2 ? <Text style={[styles.message, { color: c.textSecondary }]} numberOfLines={2}>{text2}</Text> : null}
       </View>
     </View>
   );
@@ -33,7 +37,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     width: '90%',
-    backgroundColor: '#fff',
     borderRadius: 12,
     paddingVertical: 12,
     paddingRight: 16,
@@ -47,6 +50,6 @@ const styles = StyleSheet.create({
   accent: { width: 4, alignSelf: 'stretch', borderTopLeftRadius: 12, borderBottomLeftRadius: 12 },
   icon: { marginLeft: 12, marginRight: 10 },
   textWrap: { flex: 1 },
-  title: { fontSize: 14, fontWeight: '600', color: '#333' },
-  message: { fontSize: 12, color: '#888', marginTop: 2 },
+  title: { fontSize: 14, fontWeight: '600' },
+  message: { fontSize: 12, marginTop: 2 },
 });

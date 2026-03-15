@@ -5,6 +5,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { useEffect } from 'react';
 import Animated, { useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { lightTap } from '../../utils/haptics';
+import { useTheme } from '../../hooks/useTheme';
 
 function AnimatedTabIcon({ name, color, size, focused }: {
   name: keyof typeof Ionicons.glyphMap;
@@ -24,36 +25,39 @@ function AnimatedTabIcon({ name, color, size, focused }: {
 }
 
 function HeaderRight() {
+  const c = useTheme();
   return (
     <View style={styles.headerRight}>
       <TouchableOpacity
         style={styles.headerIconBtn}
         onPress={() => { lightTap(); router.push('/notifications'); }}
       >
-        <Ionicons name="notifications-outline" size={26} color="#333" />
-        <View style={styles.badge} />
+        <Ionicons name="notifications-outline" size={26} color={c.textPrimary} />
+        <View style={[styles.badge, { borderColor: c.headerBg }]} />
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.headerIconBtn}
         onPress={() => { lightTap(); /* TODO: friends */ }}
       >
-        <Ionicons name="people-outline" size={26} color="#333" />
+        <Ionicons name="people-outline" size={26} color={c.textPrimary} />
       </TouchableOpacity>
     </View>
   );
 }
 
 function HeaderTitle() {
+  const c = useTheme();
   return (
     <View style={styles.headerTitleWrap}>
-      <Ionicons name="map" size={22} color="#FF6B35" />
-      <Text style={styles.headerTitleText}>위시맵</Text>
+      <Ionicons name="map" size={22} color={c.primary} />
+      <Text style={[styles.headerTitleText, { color: c.textPrimary }]}>위시맵</Text>
     </View>
   );
 }
 
 export default function TabLayout() {
   const { checkAuth } = useAuthStore();
+  const c = useTheme();
 
   useEffect(() => {
     checkAuth();
@@ -62,14 +66,14 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#FF6B35',
-        tabBarInactiveTintColor: '#999',
+        tabBarActiveTintColor: c.primary,
+        tabBarInactiveTintColor: c.textTertiary,
         tabBarStyle: {
           position: 'absolute',
           bottom: 0,
           left: 0,
           right: 0,
-          backgroundColor: 'rgba(255,255,255,0.92)',
+          backgroundColor: c.tabBarBg,
           borderTopWidth: 0,
           elevation: 0,
           height: 85,
@@ -77,9 +81,9 @@ export default function TabLayout() {
           paddingTop: 8,
         },
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
-        headerStyle: { backgroundColor: '#fff' },
+        headerStyle: { backgroundColor: c.headerBg },
         headerShadowVisible: false,
-        headerTintColor: '#333',
+        headerTintColor: c.textPrimary,
         headerTitleStyle: { fontWeight: '700' },
       }}
     >
@@ -114,7 +118,7 @@ export default function TabLayout() {
         options={{
           title: 'MY',
           headerTitle: '마이페이지',
-          headerTitleStyle: { fontWeight: '700', fontSize: 17, color: '#333' },
+          headerTitleStyle: { fontWeight: '700', fontSize: 17, color: c.textPrimary },
           tabBarIcon: ({ color, size, focused }) => (
             <AnimatedTabIcon name="person" color={color} size={size} focused={focused} />
           ),
@@ -147,7 +151,6 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: '#FF6B35',
     borderWidth: 1.5,
-    borderColor: '#fff',
   },
   headerTitleWrap: {
     flexDirection: 'row',
@@ -157,6 +160,5 @@ const styles = StyleSheet.create({
   headerTitleText: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#333',
   },
 });

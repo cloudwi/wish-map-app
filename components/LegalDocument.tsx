@@ -1,6 +1,5 @@
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
-import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { useTheme } from '../hooks/useTheme';
 
 interface Section {
   title: string;
@@ -14,14 +13,16 @@ interface Props {
 }
 
 export default function LegalDocument({ title, effectiveDate, sections }: Props) {
+  const c = useTheme();
+
   return (
-    <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
-      <Text style={styles.effectiveDate}>시행일: {effectiveDate}</Text>
+    <ScrollView style={[styles.scroll, { backgroundColor: c.surface }]} showsVerticalScrollIndicator={false}>
+      <Text style={[styles.effectiveDate, { color: c.textTertiary }]}>시행일: {effectiveDate}</Text>
 
       {sections.map((section, index) => (
         <View key={index} style={styles.section}>
-          <Text style={styles.sectionTitle}>{section.title}</Text>
-          <Text style={styles.sectionContent}>{section.content}</Text>
+          <Text style={[styles.sectionTitle, { color: c.textPrimary }]}>{section.title}</Text>
+          <Text style={[styles.sectionContent, { color: c.textSecondary }]}>{section.content}</Text>
         </View>
       ))}
 
@@ -32,8 +33,8 @@ export default function LegalDocument({ title, effectiveDate, sections }: Props)
 
 const styles = StyleSheet.create({
   scroll: { flex: 1, paddingHorizontal: 24 },
-  effectiveDate: { fontSize: 13, color: '#999', marginTop: 16, marginBottom: 24 },
+  effectiveDate: { fontSize: 13, marginTop: 16, marginBottom: 24 },
   section: { marginBottom: 24 },
-  sectionTitle: { fontSize: 15, fontWeight: '600', color: '#333', marginBottom: 8 },
-  sectionContent: { fontSize: 14, lineHeight: 22, color: '#666' },
+  sectionTitle: { fontSize: 15, fontWeight: '600', marginBottom: 8 },
+  sectionContent: { fontSize: 14, lineHeight: 22 },
 });

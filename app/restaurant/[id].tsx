@@ -7,12 +7,14 @@ import { RestaurantDetail, Comment } from '../../types';
 import { restaurantApi } from '../../api/restaurant';
 import { commentApi } from '../../api/comment';
 import { useAuthStore } from '../../stores/authStore';
+import { useTheme } from '../../hooks/useTheme';
 import { showError, showInfo } from '../../utils/toast';
 import { mediumTap, lightTap, successTap } from '../../utils/haptics';
 import RestaurantCardSkeleton from '../../components/RestaurantCardSkeleton';
 import Skeleton from '../../components/Skeleton';
 
 export default function RestaurantDetailScreen() {
+  const c = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { isAuthenticated } = useAuthStore();
 
@@ -107,7 +109,7 @@ export default function RestaurantDetailScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={[styles.loadingContainer, { backgroundColor: c.surface }]}>
         <Skeleton width="100%" height={250} borderRadius={0} />
         <View style={{ padding: 20, gap: 12 }}>
           <Skeleton width="70%" height={24} borderRadius={4} />
@@ -122,9 +124,9 @@ export default function RestaurantDetailScreen() {
 
   if (!restaurant) {
     return (
-      <View style={styles.loadingContainer}>
-        <Ionicons name="alert-circle-outline" size={48} color="#ddd" />
-        <Text style={{ color: '#999', marginTop: 12 }}>맛집 정보를 찾을 수 없습니다.</Text>
+      <View style={[styles.loadingContainer, { backgroundColor: c.surface }]}>
+        <Ionicons name="alert-circle-outline" size={48} color={c.textDisabled} />
+        <Text style={{ color: c.textSecondary, marginTop: 12 }}>맛집 정보를 찾을 수 없습니다.</Text>
       </View>
     );
   }
@@ -134,14 +136,14 @@ export default function RestaurantDetailScreen() {
       <Stack.Screen
         options={{
           title: restaurant.name,
-          headerStyle: { backgroundColor: '#fff' },
-          headerTintColor: '#333',
+          headerStyle: { backgroundColor: c.headerBg },
+          headerTintColor: c.textPrimary,
           headerShadowVisible: false,
         }}
       />
 
       <KeyboardAvoidingView
-        style={styles.container}
+        style={[styles.container, { backgroundColor: c.surface }]}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={90}
       >
@@ -156,21 +158,21 @@ export default function RestaurantDetailScreen() {
           {restaurant.thumbnailImage || restaurant.images[0] ? (
             <Image
               source={{ uri: restaurant.thumbnailImage || restaurant.images[0] }}
-              style={styles.mainImage}
+              style={[styles.mainImage, { backgroundColor: c.imagePlaceholderBg }]}
             />
           ) : (
-            <View style={[styles.mainImage, styles.imagePlaceholder]}>
+            <View style={[styles.mainImage, styles.imagePlaceholder, { backgroundColor: c.imagePlaceholderBg }]}>
               <Ionicons name="restaurant-outline" size={48} color="#d4c4bc" />
             </View>
           )}
 
           {/* 기본 정보 */}
-          <Animated.View entering={FadeIn.duration(400)} style={styles.infoSection}>
+          <Animated.View entering={FadeIn.duration(400)} style={[styles.infoSection, { borderBottomColor: c.background }]}>
             <View style={styles.header}>
               <View style={styles.titleRow}>
-                <Text style={styles.name}>{restaurant.name}</Text>
+                <Text style={[styles.name, { color: c.textPrimary }]}>{restaurant.name}</Text>
                 {restaurant.category && (
-                  <Text style={styles.category}>{restaurant.category}</Text>
+                  <Text style={[styles.category, { backgroundColor: c.categoryBadgeBg, color: c.categoryBadgeText }]}>{restaurant.category}</Text>
                 )}
               </View>
               <View style={styles.actions}>
@@ -178,34 +180,34 @@ export default function RestaurantDetailScreen() {
                   <Ionicons
                     name={restaurant.isLiked ? 'heart' : 'heart-outline'}
                     size={26}
-                    color={restaurant.isLiked ? '#FF6B35' : '#666'}
+                    color={restaurant.isLiked ? c.primary : c.textSecondary}
                   />
-                  <Text style={styles.actionCount}>{restaurant.likeCount}</Text>
+                  <Text style={[styles.actionCount, { color: c.textSecondary }]}>{restaurant.likeCount}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={handleBookmark} style={styles.actionButton}>
                   <Ionicons
                     name={restaurant.isBookmarked ? 'bookmark' : 'bookmark-outline'}
                     size={24}
-                    color={restaurant.isBookmarked ? '#FF6B35' : '#666'}
+                    color={restaurant.isBookmarked ? c.primary : c.textSecondary}
                   />
                 </TouchableOpacity>
               </View>
             </View>
 
             <View style={styles.addressRow}>
-              <Ionicons name="location-outline" size={18} color="#888" />
-              <Text style={styles.address}>{restaurant.address}</Text>
+              <Ionicons name="location-outline" size={18} color={c.textSecondary} />
+              <Text style={[styles.address, { color: c.textSecondary }]}>{restaurant.address}</Text>
             </View>
 
             {restaurant.description && (
-              <Text style={styles.description}>{restaurant.description}</Text>
+              <Text style={[styles.description, { color: c.textPrimary }]}>{restaurant.description}</Text>
             )}
 
             <View style={styles.metaRow}>
-              <Text style={styles.metaText}>
+              <Text style={[styles.metaText, { color: c.textTertiary }]}>
                 제안: {restaurant.suggestedBy.nickname}
               </Text>
-              <Text style={styles.metaText}>
+              <Text style={[styles.metaText, { color: c.textTertiary }]}>
                 {new Date(restaurant.createdAt).toLocaleDateString()}
               </Text>
             </View>
@@ -213,7 +215,7 @@ export default function RestaurantDetailScreen() {
 
           {/* 댓글 섹션 */}
           <View style={styles.commentSection}>
-            <Text style={styles.sectionTitle}>
+            <Text style={[styles.sectionTitle, { color: c.textPrimary }]}>
               댓글 {restaurant.commentCount}개
             </Text>
 
@@ -221,18 +223,19 @@ export default function RestaurantDetailScreen() {
               <Animated.View
                 key={comment.id}
                 entering={FadeIn.delay(index * 50).duration(300)}
-                style={styles.commentItem}
+                style={[styles.commentItem, { borderBottomColor: c.divider }]}
               >
                 <View style={styles.commentHeader}>
-                  <Text style={styles.commentAuthor}>{comment.user.nickname}</Text>
-                  <Text style={styles.commentDate}>
+                  <Text style={[styles.commentAuthor, { color: c.textPrimary }]}>{comment.user.nickname}</Text>
+                  <Text style={[styles.commentDate, { color: c.textTertiary }]}>
                     {new Date(comment.createdAt).toLocaleDateString()}
                     {comment.isEdited && ' (수정됨)'}
                   </Text>
                 </View>
                 <Text style={[
                   styles.commentContent,
-                  comment.isDeleted && styles.deletedComment,
+                  { color: c.textPrimary },
+                  comment.isDeleted && { color: c.textTertiary, fontStyle: 'italic' },
                 ]}>
                   {comment.content}
                 </Text>
@@ -241,8 +244,8 @@ export default function RestaurantDetailScreen() {
 
             {comments.length === 0 && (
               <View style={styles.noCommentsWrap}>
-                <Ionicons name="chatbubble-outline" size={32} color="#ddd" />
-                <Text style={styles.noComments}>
+                <Ionicons name="chatbubble-outline" size={32} color={c.textDisabled} />
+                <Text style={[styles.noComments, { color: c.textSecondary }]}>
                   아직 댓글이 없습니다. 첫 댓글을 남겨보세요!
                 </Text>
               </View>
@@ -251,17 +254,18 @@ export default function RestaurantDetailScreen() {
         </ScrollView>
 
         {/* 댓글 입력 - 하단 고정 */}
-        <View style={styles.commentInputFixed}>
+        <View style={[styles.commentInputFixed, { backgroundColor: c.surface, borderTopColor: c.divider }]}>
           <TextInput
-            style={styles.commentInput}
+            style={[styles.commentInput, { borderColor: c.border, backgroundColor: c.inputBg, color: c.textPrimary }]}
             placeholder="댓글을 입력하세요"
+            placeholderTextColor={c.textDisabled}
             value={newComment}
             onChangeText={setNewComment}
             multiline
             maxLength={1000}
           />
           <TouchableOpacity
-            style={[styles.submitButton, (!newComment.trim() || submitting) && styles.submitButtonDisabled]}
+            style={[styles.submitButton, (!newComment.trim() || submitting) && { backgroundColor: c.primaryLight, opacity: 0.5 }]}
             onPress={handleSubmitComment}
             disabled={submitting || !newComment.trim()}
           >
@@ -278,37 +282,36 @@ export default function RestaurantDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1 },
   scrollView: { flex: 1 },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' },
-  mainImage: { width: '100%', height: 250, backgroundColor: '#FFF5F0' },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  mainImage: { width: '100%', height: 250 },
   imagePlaceholder: { justifyContent: 'center', alignItems: 'center' },
-  infoSection: { padding: 20, borderBottomWidth: 8, borderBottomColor: '#f5f5f5' },
+  infoSection: { padding: 20, borderBottomWidth: 8 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
   titleRow: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  name: { fontSize: 22, fontWeight: 'bold', color: '#333' },
+  name: { fontSize: 22, fontWeight: 'bold' },
   category: {
-    backgroundColor: '#f0f0f0', paddingHorizontal: 10, paddingVertical: 4,
-    borderRadius: 12, fontSize: 13, color: '#666',
+    paddingHorizontal: 10, paddingVertical: 4,
+    borderRadius: 12, fontSize: 13,
   },
   actions: { flexDirection: 'row', gap: 12 },
   actionButton: { alignItems: 'center' },
-  actionCount: { fontSize: 12, color: '#666', marginTop: 2 },
+  actionCount: { fontSize: 12, marginTop: 2 },
   addressRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 16 },
-  address: { fontSize: 14, color: '#666', flex: 1 },
-  description: { fontSize: 15, color: '#444', lineHeight: 22, marginBottom: 16 },
+  address: { fontSize: 14, flex: 1 },
+  description: { fontSize: 15, lineHeight: 22, marginBottom: 16 },
   metaRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  metaText: { fontSize: 13, color: '#999' },
+  metaText: { fontSize: 13 },
   commentSection: { padding: 20 },
-  sectionTitle: { fontSize: 18, fontWeight: '600', color: '#333', marginBottom: 16 },
-  commentItem: { paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
+  sectionTitle: { fontSize: 18, fontWeight: '600', marginBottom: 16 },
+  commentItem: { paddingVertical: 14, borderBottomWidth: 1 },
   commentHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  commentAuthor: { fontSize: 14, fontWeight: '600', color: '#333' },
-  commentDate: { fontSize: 12, color: '#999' },
-  commentContent: { fontSize: 14, color: '#444', lineHeight: 20 },
-  deletedComment: { color: '#999', fontStyle: 'italic' },
+  commentAuthor: { fontSize: 14, fontWeight: '600' },
+  commentDate: { fontSize: 12 },
+  commentContent: { fontSize: 14, lineHeight: 20 },
   noCommentsWrap: { alignItems: 'center', paddingVertical: 30, gap: 8 },
-  noComments: { textAlign: 'center', color: '#999' },
+  noComments: { textAlign: 'center' },
   commentInputFixed: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -316,20 +319,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     paddingBottom: Platform.OS === 'ios' ? 30 : 10,
-    backgroundColor: '#fff',
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
   },
   commentInput: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#eee',
     borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 8,
     fontSize: 14,
     maxHeight: 80,
-    backgroundColor: '#fafafa',
   },
   submitButton: {
     backgroundColor: '#FF6B35',
@@ -339,5 +338,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  submitButtonDisabled: { backgroundColor: '#ffcdb8' },
 });

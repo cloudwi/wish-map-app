@@ -1,20 +1,27 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Toast from 'react-native-toast-message';
 import { toastConfig } from '../components/ToastConfig';
+import { themes } from '../constants/theme';
 
 export default function RootLayout() {
+  const scheme = useColorScheme();
+  const isDark = scheme === 'dark';
+  const c = isDark ? themes.dark : themes.light;
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <StatusBar style="dark" />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
       <Stack
         screenOptions={{
-          headerStyle: { backgroundColor: '#fff' },
-          headerTintColor: '#333',
+          headerStyle: { backgroundColor: c.headerBg },
+          headerTintColor: c.textPrimary,
           headerTitleStyle: { fontWeight: '700', fontSize: 17 },
           headerShadowVisible: false,
           headerBackTitle: '',
+          contentStyle: { backgroundColor: c.background },
         }}
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />

@@ -1,9 +1,12 @@
 import { View, StyleSheet } from 'react-native';
 import Skeleton from './Skeleton';
+import { useTheme } from '../hooks/useTheme';
 
 export default function RestaurantCardSkeleton() {
+  const c = useTheme();
+
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, { backgroundColor: c.cardBg }]}>
       <Skeleton width={90} height={90} borderRadius={8} />
       <View style={styles.content}>
         <Skeleton width="60%" height={16} borderRadius={4} />
@@ -20,7 +23,6 @@ export default function RestaurantCardSkeleton() {
 const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
     borderRadius: 12,
     padding: 12,
     marginHorizontal: 16,

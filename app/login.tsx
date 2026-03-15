@@ -11,6 +11,7 @@ import { login as kakaoLogin } from '@react-native-seoul/kakao-login';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import NaverLogin from '@react-native-seoul/naver-login';
 import { useAuthStore } from '../stores/authStore';
+import { useTheme } from '../hooks/useTheme';
 import { AuthProvider } from '../types';
 import { showError } from '../utils/toast';
 
@@ -26,6 +27,7 @@ GoogleSignin.configure({
 });
 
 export default function LoginScreen() {
+  const c = useTheme();
   const { login } = useAuthStore();
   const [loading, setLoading] = useState<AuthProvider | null>(null);
 
@@ -116,20 +118,20 @@ export default function LoginScreen() {
       <Stack.Screen
         options={{
           title: '로그인',
-          headerStyle: { backgroundColor: '#fff' },
-          headerTintColor: '#333',
+          headerStyle: { backgroundColor: c.headerBg },
+          headerTintColor: c.textPrimary,
           headerShadowVisible: false,
         }}
       />
 
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: c.surface }]}>
         {/* 로고 */}
         <Animated.View entering={FadeInUp.duration(500)} style={styles.logoContainer}>
-          <View style={styles.logoPlaceholder}>
-            <Ionicons name="map" size={60} color="#FF6B35" />
+          <View style={[styles.logoPlaceholder, { backgroundColor: c.primaryBg }]}>
+            <Ionicons name="map" size={60} color={c.primary} />
           </View>
-          <Text style={styles.appName}>위시맵</Text>
-          <Text style={styles.tagline}>우리 동네 맛집 지도</Text>
+          <Text style={[styles.appName, { color: c.primary }]}>위시맵</Text>
+          <Text style={[styles.tagline, { color: c.textSecondary }]}>우리 동네 맛집 지도</Text>
         </Animated.View>
 
         {/* 소셜 로그인 버튼 */}
@@ -156,17 +158,17 @@ export default function LoginScreen() {
 
           {/* 구글 */}
           <TouchableOpacity
-            style={[styles.socialButton, styles.googleButton, isDisabled && loading !== 'GOOGLE' && styles.dimmed]}
+            style={[styles.socialButton, styles.googleButton, { borderColor: c.border }, isDisabled && loading !== 'GOOGLE' && styles.dimmed]}
             onPress={handleGoogle}
             disabled={isDisabled}
             activeOpacity={0.85}
           >
             {loading === 'GOOGLE' ? (
-              <ActivityIndicator color="#666" />
+              <ActivityIndicator color={c.textSecondary} />
             ) : (
               <>
                 <Ionicons name="logo-google" size={20} color="#DB4437" />
-                <Text style={styles.googleButtonText}>Google로 시작하기</Text>
+                <Text style={[styles.googleButtonText, { color: c.textSecondary }]}>Google로 시작하기</Text>
               </>
             )}
           </TouchableOpacity>
@@ -203,14 +205,14 @@ export default function LoginScreen() {
         {/* 건너뛰기 */}
         <Animated.View entering={FadeInDown.delay(400).duration(400)}>
           <TouchableOpacity style={styles.skipButton} onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)')}>
-            <Text style={styles.skipButtonText}>로그인 없이 둘러보기</Text>
+            <Text style={[styles.skipButtonText, { color: c.textSecondary }]}>로그인 없이 둘러보기</Text>
           </TouchableOpacity>
         </Animated.View>
 
         {/* 약관 */}
-        <Text style={styles.terms}>
-          로그인 시 <Text style={styles.link}>이용약관</Text> 및{' '}
-          <Text style={styles.link}>개인정보처리방침</Text>에 동의하게 됩니다.
+        <Text style={[styles.terms, { color: c.textTertiary }]}>
+          로그인 시 <Text style={{ color: c.primary }}>이용약관</Text> 및{' '}
+          <Text style={{ color: c.primary }}>개인정보처리방침</Text>에 동의하게 됩니다.
         </Text>
       </View>
     </>
@@ -218,15 +220,15 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', padding: 30 },
+  container: { flex: 1, padding: 30 },
   logoContainer: { alignItems: 'center', marginTop: 40, marginBottom: 50 },
   logoPlaceholder: {
     width: 100, height: 100, borderRadius: 50,
-    backgroundColor: '#FFF5F0', justifyContent: 'center', alignItems: 'center', marginBottom: 16,
+    justifyContent: 'center', alignItems: 'center', marginBottom: 16,
     shadowColor: '#FF6B35', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12,
   },
-  appName: { fontSize: 28, fontWeight: 'bold', color: '#FF6B35', marginBottom: 8 },
-  tagline: { fontSize: 16, color: '#888' },
+  appName: { fontSize: 28, fontWeight: 'bold', marginBottom: 8 },
+  tagline: { fontSize: 16 },
   buttonContainer: { gap: 12 },
   socialButton: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
@@ -236,17 +238,16 @@ const styles = StyleSheet.create({
   dimmed: { opacity: 0.5 },
   kakaoButton: { backgroundColor: '#FEE500' },
   kakaoButtonText: { fontSize: 16, fontWeight: '600', color: '#000' },
-  googleButton: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#ddd' },
-  googleButtonText: { fontSize: 16, fontWeight: '600', color: '#666' },
+  googleButton: { backgroundColor: 'transparent', borderWidth: 1 },
+  googleButtonText: { fontSize: 16, fontWeight: '600' },
   naverButton: { backgroundColor: '#03C75A' },
   naverIcon: { fontSize: 18, fontWeight: 'bold', color: '#fff' },
   naverButtonText: { fontSize: 16, fontWeight: '600', color: '#fff' },
   appleButton: { width: '100%', height: 50 },
   skipButton: { marginTop: 20, alignItems: 'center', paddingVertical: 10 },
-  skipButtonText: { fontSize: 14, color: '#888' },
+  skipButtonText: { fontSize: 14 },
   terms: {
     position: 'absolute', bottom: 40, left: 30, right: 30,
-    textAlign: 'center', fontSize: 12, color: '#aaa', lineHeight: 18,
+    textAlign: 'center', fontSize: 12, lineHeight: 18,
   },
-  link: { color: '#FF6B35' },
 });

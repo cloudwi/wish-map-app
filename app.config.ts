@@ -53,7 +53,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         resizeMode: 'contain',
         backgroundColor: '#ffffff',
         dark: {
-          backgroundColor: '#000000',
+          backgroundColor: '#1A1A1A',
         },
       },
     ],

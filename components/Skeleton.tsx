@@ -7,6 +7,7 @@ import Animated, {
   withTiming,
   interpolate,
 } from 'react-native-reanimated';
+import { useTheme } from '../hooks/useTheme';
 
 interface Props {
   width: number | `${number}%`;
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export default function Skeleton({ width, height, borderRadius = 4, style }: Props) {
+  const c = useTheme();
   const pulse = useSharedValue(0);
 
   useEffect(() => {
@@ -29,7 +31,7 @@ export default function Skeleton({ width, height, borderRadius = 4, style }: Pro
   return (
     <Animated.View
       style={[
-        styles.base,
+        { backgroundColor: c.skeletonBg },
         { width, height, borderRadius },
         animatedStyle,
         style,
@@ -37,7 +39,3 @@ export default function Skeleton({ width, height, borderRadius = 4, style }: Pro
     />
   );
 }
-
-const styles = StyleSheet.create({
-  base: { backgroundColor: '#e0e0e0' },
-});

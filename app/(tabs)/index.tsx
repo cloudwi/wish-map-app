@@ -13,19 +13,20 @@ import NaverMap from '../../components/NaverMap';
 import { RestaurantCard } from '../../components/RestaurantCard';
 import { PlaceDetailSheet } from '../../components/PlaceDetailSheet';
 import { useSearch } from '../../hooks/useSearch';
+import { useTheme } from '../../hooks/useTheme';
 import { lightTap, mediumTap } from '../../utils/haptics';
 import { showError } from '../../utils/toast';
 
 const INITIAL_BOUNDS: MapBounds = { minLat: 37.4, maxLat: 37.7, minLng: 126.8, maxLng: 127.2 };
 
 export default function MapScreen() {
+  const c = useTheme();
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Restaurant | null>(null);
   const [locating, setLocating] = useState(false);
   const [showResearchBtn, setShowResearchBtn] = useState(false);
 
-  // 검색
   const { searchQuery, searchResults, searching, handleSearch, clearSearch } = useSearch();
   const [searchFocused, setSearchFocused] = useState(false);
   const [selectedPlace, setSelectedPlace] = useState<PlaceResult | null>(null);
@@ -70,7 +71,6 @@ export default function MapScreen() {
     })();
   }, [fetchRestaurants]);
 
-  // 지도 이동 시 자동 조회 대신 "재검색" 버튼 표시
   const handleBoundsChange = useCallback((bounds: MapBounds) => {
     currentBoundsRef.current = bounds;
     setShowResearchBtn(true);
@@ -171,43 +171,42 @@ export default function MapScreen() {
 
       {/* 검색바 */}
       <View style={styles.searchContainer}>
-        <View style={[styles.searchBar, searchFocused && styles.searchBarFocused]}>
-          <Ionicons name="search-outline" size={18} color="#999" />
+        <View style={[styles.searchBar, { backgroundColor: c.surface, shadowColor: '#000' }, searchFocused && { shadowOpacity: 0.2, shadowRadius: 12 }]}>
+          <Ionicons name="search-outline" size={18} color={c.textTertiary} />
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: c.textPrimary }]}
             placeholder="맛집 검색"
-            placeholderTextColor="#bbb"
+            placeholderTextColor={c.textDisabled}
             value={searchQuery}
             onChangeText={handleSearch}
             onFocus={() => setSearchFocused(true)}
             onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
             returnKeyType="search"
           />
-          {searching && <ActivityIndicator size="small" color="#FF6B35" />}
+          {searching && <ActivityIndicator size="small" color={c.primary} />}
           {searchQuery.length > 0 && !searching && (
             <TouchableOpacity onPress={clearSearch} style={styles.clearBtn}>
-              <Ionicons name="close-circle" size={18} color="#ccc" />
+              <Ionicons name="close-circle" size={18} color={c.textDisabled} />
             </TouchableOpacity>
           )}
         </View>
 
-        {/* 검색 결과 드롭다운 */}
         {showResults && (
-          <Animated.View entering={FadeIn.duration(150)} style={styles.searchResults}>
+          <Animated.View entering={FadeIn.duration(150)} style={[styles.searchResults, { backgroundColor: c.surface }]}>
             <FlatList
               data={searchResults}
               keyExtractor={(item) => item.id}
               keyboardShouldPersistTaps="handled"
               renderItem={({ item, index }) => (
                 <TouchableOpacity
-                  style={[styles.resultItem, index === searchResults.length - 1 && styles.resultItemLast]}
+                  style={[styles.resultItem, { borderBottomColor: c.divider }, index === searchResults.length - 1 && styles.resultItemLast]}
                   onPress={() => handleSelectPlace(item)}
                   activeOpacity={0.6}
                 >
-                  <Ionicons name="location-outline" size={18} color="#FF6B35" />
+                  <Ionicons name="location-outline" size={18} color={c.primary} />
                   <View style={styles.resultContent}>
-                    <Text style={styles.resultName} numberOfLines={1}>{item.name}</Text>
-                    <Text style={styles.resultAddress} numberOfLines={1}>
+                    <Text style={[styles.resultName, { color: c.textPrimary }]} numberOfLines={1}>{item.name}</Text>
+                    <Text style={[styles.resultAddress, { color: c.textSecondary }]} numberOfLines={1}>
                       {item.roadAddress || item.address}
                     </Text>
                   </View>
@@ -218,7 +217,6 @@ export default function MapScreen() {
         )}
       </View>
 
-      {/* 현재 지도에서 재검색 버튼 */}
       {showResearchBtn && (
         <Animated.View entering={FadeInDown.duration(200)} style={styles.researchContainer}>
           <TouchableOpacity
@@ -235,7 +233,7 @@ export default function MapScreen() {
       {/* 오른쪽: 내 위치 버튼 */}
       <View style={styles.rightButtons}>
         <TouchableOpacity
-          style={styles.mapBtn}
+          style={[styles.mapBtn, { backgroundColor: c.surface }]}
           onPress={goToMyLocation}
           activeOpacity={0.8}
           disabled={locating}
@@ -243,14 +241,14 @@ export default function MapScreen() {
           <Ionicons
             name={locating ? 'locate' : 'locate-outline'}
             size={22}
-            color={locating ? '#FF6B35' : '#555'}
+            color={locating ? c.primary : c.textSecondary}
           />
         </TouchableOpacity>
       </View>
 
       {loading && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#FF6B35" />
+        <View style={[styles.loadingOverlay, { backgroundColor: c.loadingOverlay }]}>
+          <ActivityIndicator size="large" color={c.primary} />
         </View>
       )}
 
@@ -258,8 +256,8 @@ export default function MapScreen() {
         ref={bottomSheetRef}
         index={0}
         snapPoints={snapPoints}
-        backgroundStyle={styles.sheetBg}
-        handleIndicatorStyle={styles.sheetHandle}
+        backgroundStyle={[styles.sheetBg, { backgroundColor: c.sheetBg }]}
+        handleIndicatorStyle={{ backgroundColor: c.textDisabled, width: 40 }}
         enablePanDownToClose={false}
       >
         {selectedPlace ? (
@@ -274,19 +272,19 @@ export default function MapScreen() {
             <View style={styles.previewHeader}>
               <View style={{ flex: 1 }}>
                 <View style={styles.previewTitleRow}>
-                  <Text style={styles.previewName} numberOfLines={1}>{selected.name}</Text>
+                  <Text style={[styles.previewName, { color: c.textPrimary }]} numberOfLines={1}>{selected.name}</Text>
                   {selected.category && (
-                    <Text style={styles.previewCategory}>{selected.category}</Text>
+                    <Text style={[styles.previewCategory, { backgroundColor: c.categoryBadgeBg, color: c.categoryBadgeText }]}>{selected.category}</Text>
                   )}
                 </View>
-                <Text style={styles.previewAddress} numberOfLines={1}>{selected.address}</Text>
-                <Text style={styles.previewLikes}>❤️ {selected.likeCount}</Text>
+                <Text style={[styles.previewAddress, { color: c.textSecondary }]} numberOfLines={1}>{selected.address}</Text>
+                <Text style={[styles.previewLikes, { color: c.primary }]}>❤️ {selected.likeCount}</Text>
               </View>
               <TouchableOpacity
-                style={styles.previewClose}
+                style={[styles.previewClose, { backgroundColor: c.closeButtonBg }]}
                 onPress={() => { setSelected(null); bottomSheetRef.current?.snapToIndex(0); }}
               >
-                <Ionicons name="close" size={20} color="#999" />
+                <Ionicons name="close" size={20} color={c.textSecondary} />
               </TouchableOpacity>
             </View>
             <TouchableOpacity
@@ -299,7 +297,7 @@ export default function MapScreen() {
             </TouchableOpacity>
 
             <View style={styles.listHeader}>
-              <Text style={styles.listTitle}>주변 맛집 {restaurants.length}개</Text>
+              <Text style={[styles.listTitle, { color: c.textPrimary }]}>주변 맛집 {restaurants.length}개</Text>
             </View>
             <BottomSheetFlatList
               data={restaurants.filter(r => r.id !== selected.id)}
@@ -311,8 +309,8 @@ export default function MapScreen() {
         ) : (
           <View style={styles.listWrap}>
             <View style={styles.listHeader}>
-              <Ionicons name="restaurant" size={18} color="#FF6B35" />
-              <Text style={styles.listTitle}>주변 맛집 {restaurants.length}개</Text>
+              <Ionicons name="restaurant" size={18} color={c.primary} />
+              <Text style={[styles.listTitle, { color: c.textPrimary }]}>주변 맛집 {restaurants.length}개</Text>
             </View>
             <BottomSheetFlatList
               data={restaurants}
@@ -320,7 +318,7 @@ export default function MapScreen() {
               renderItem={renderListItem}
               contentContainerStyle={styles.listContent}
               ListEmptyComponent={
-                <Text style={styles.emptyText}>
+                <Text style={[styles.emptyText, { color: c.textSecondary }]}>
                   {loading ? '맛집을 불러오는 중...' : '이 지역에 등록된 맛집이 없습니다'}
                 </Text>
               }
@@ -334,7 +332,6 @@ export default function MapScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  // 검색
   searchContainer: {
     position: 'absolute',
     top: 8,
@@ -345,26 +342,19 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
     borderRadius: 12,
     paddingHorizontal: 14,
     height: 46,
     gap: 10,
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.12,
     shadowRadius: 8,
     elevation: 4,
   },
-  searchBarFocused: {
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-  },
-  searchInput: { flex: 1, fontSize: 15, color: '#333', paddingVertical: 0 },
+  searchInput: { flex: 1, fontSize: 15, paddingVertical: 0 },
   clearBtn: { padding: 8 },
   searchResults: {
     marginTop: 6,
-    backgroundColor: '#fff',
     borderRadius: 12,
     maxHeight: 320,
     shadowColor: '#000',
@@ -381,13 +371,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     gap: 12,
     borderBottomWidth: 0.5,
-    borderBottomColor: '#f0f0f0',
   },
   resultItemLast: { borderBottomWidth: 0 },
   resultContent: { flex: 1 },
-  resultName: { fontSize: 15, fontWeight: '600', color: '#333', marginBottom: 2 },
-  resultAddress: { fontSize: 13, color: '#999' },
-  // 재검색 버튼
+  resultName: { fontSize: 15, fontWeight: '600', marginBottom: 2 },
+  resultAddress: { fontSize: 13 },
   researchContainer: {
     position: 'absolute',
     top: 62,
@@ -413,7 +401,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
   },
-  // 오른쪽 버튼 그룹
   rightButtons: {
     position: 'absolute',
     right: 16,
@@ -425,7 +412,6 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#fff',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -436,13 +422,10 @@ const styles = StyleSheet.create({
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255,255,255,0.8)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  // 바텀시트
   sheetBg: {
-    backgroundColor: '#fff',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     shadowColor: '#000',
@@ -451,20 +434,19 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
   },
-  sheetHandle: { backgroundColor: '#ddd', width: 40 },
   preview: { flex: 1, paddingHorizontal: 16 },
   previewHeader: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12 },
   previewTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
-  previewName: { fontSize: 18, fontWeight: '700', color: '#333', flex: 1 },
+  previewName: { fontSize: 18, fontWeight: '700', flex: 1 },
   previewCategory: {
-    backgroundColor: '#f0f0f0', paddingHorizontal: 8, paddingVertical: 3,
-    borderRadius: 10, fontSize: 12, color: '#666',
+    paddingHorizontal: 8, paddingVertical: 3,
+    borderRadius: 10, fontSize: 12,
   },
-  previewAddress: { fontSize: 13, color: '#888', marginBottom: 4 },
-  previewLikes: { fontSize: 13, color: '#FF6B35' },
+  previewAddress: { fontSize: 13, marginBottom: 4 },
+  previewLikes: { fontSize: 13 },
   previewClose: {
     width: 32, height: 32, borderRadius: 16,
-    backgroundColor: '#f5f5f5', justifyContent: 'center', alignItems: 'center',
+    justifyContent: 'center', alignItems: 'center',
   },
   detailBtn: {
     flexDirection: 'row',
@@ -485,7 +467,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 10,
   },
-  listTitle: { fontSize: 15, fontWeight: '600', color: '#333' },
+  listTitle: { fontSize: 15, fontWeight: '600' },
   listContent: { paddingHorizontal: 16, paddingBottom: 120 },
-  emptyText: { textAlign: 'center', color: '#999', paddingVertical: 30, fontSize: 14 },
+  emptyText: { textAlign: 'center', paddingVertical: 30, fontSize: 14 },
 });

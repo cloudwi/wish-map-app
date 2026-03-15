@@ -6,12 +6,14 @@ import { restaurantApi } from '../../api/restaurant';
 import { categoryApi, Category } from '../../api/category';
 import { RestaurantCard } from '../../components/RestaurantCard';
 import RestaurantCardSkeleton from '../../components/RestaurantCardSkeleton';
+import { useTheme } from '../../hooks/useTheme';
 import { lightTap } from '../../utils/haptics';
 const KOREA_BOUNDS = { minLat: 33, maxLat: 38.5, minLng: 124, maxLng: 132 };
 
 type SortBy = 'latest' | 'likes';
 
 export default function ListScreen() {
+  const c = useTheme();
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [categories, setCategories] = useState<string[]>(['전체']);
   const [loading, setLoading] = useState(true);
@@ -74,7 +76,7 @@ export default function ListScreen() {
 
   if (loading && restaurants.length === 0) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: c.background }]}>
         <View style={styles.skeletonWrap}>
           {Array.from({ length: 5 }).map((_, i) => (
             <RestaurantCardSkeleton key={i} />
@@ -85,21 +87,21 @@ export default function ListScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: c.background }]}>
       {/* 검색 */}
-      <View style={styles.searchWrap}>
-        <Ionicons name="search-outline" size={18} color="#999" style={styles.searchIcon} />
+      <View style={[styles.searchWrap, { backgroundColor: c.searchBg }]}>
+        <Ionicons name="search-outline" size={18} color={c.textTertiary} style={styles.searchIcon} />
         <TextInput
-          style={styles.searchInput}
+          style={[styles.searchInput, { color: c.textPrimary }]}
           placeholder="맛집 이름이나 주소 검색"
-          placeholderTextColor="#bbb"
+          placeholderTextColor={c.textDisabled}
           value={searchQuery}
           onChangeText={setSearchQuery}
           returnKeyType="search"
         />
         {searchQuery.length > 0 && (
           <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearBtn}>
-            <Ionicons name="close-circle" size={18} color="#ccc" />
+            <Ionicons name="close-circle" size={18} color={c.textDisabled} />
           </TouchableOpacity>
         )}
       </View>
@@ -114,10 +116,10 @@ export default function ListScreen() {
         contentContainerStyle={styles.categoryContent}
         renderItem={({ item }) => (
           <TouchableOpacity
-            style={[styles.categoryBtn, selectedCategory === item && styles.categoryBtnActive]}
+            style={[styles.categoryBtn, { backgroundColor: c.chipBg }, selectedCategory === item && { backgroundColor: c.chipActiveBg }]}
             onPress={() => { lightTap(); setSelectedCategory(item); }}
           >
-            <Text style={[styles.categoryText, selectedCategory === item && styles.categoryTextActive]}>
+            <Text style={[styles.categoryText, { color: c.chipText }, selectedCategory === item && { color: c.chipActiveText, fontWeight: '600' }]}>
               {item}
             </Text>
           </TouchableOpacity>
@@ -126,15 +128,15 @@ export default function ListScreen() {
 
       {/* 정렬 */}
       <View style={styles.sortRow}>
-        <Text style={styles.resultCount}>{filteredRestaurants.length}개</Text>
+        <Text style={[styles.resultCount, { color: c.textSecondary }]}>{filteredRestaurants.length}개</Text>
         <View style={styles.sortBtns}>
           {(['latest', 'likes'] as const).map((s) => (
             <TouchableOpacity
               key={s}
-              style={[styles.sortBtn, sortBy === s && styles.sortBtnActive]}
+              style={[styles.sortBtn, sortBy === s && { backgroundColor: c.chipBg }]}
               onPress={() => { lightTap(); setSortBy(s); }}
             >
-              <Text style={[styles.sortText, sortBy === s && styles.sortTextActive]}>
+              <Text style={[styles.sortText, { color: c.textDisabled }, sortBy === s && { color: c.textPrimary, fontWeight: '600' }]}>
                 {s === 'latest' ? '최신순' : '좋아요순'}
               </Text>
             </TouchableOpacity>
@@ -155,9 +157,9 @@ export default function ListScreen() {
         onEndReachedThreshold={0.5}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Ionicons name="search-outline" size={48} color="#ddd" />
-            <Text style={styles.emptyTitle}>맛집을 찾을 수 없습니다</Text>
-            <Text style={styles.emptyDesc}>다른 검색어나 카테고리를 시도해보세요</Text>
+            <Ionicons name="search-outline" size={48} color={c.textDisabled} />
+            <Text style={[styles.emptyTitle, { color: c.textSecondary }]}>맛집을 찾을 수 없습니다</Text>
+            <Text style={[styles.emptyDesc, { color: c.textDisabled }]}>다른 검색어나 카테고리를 시도해보세요</Text>
           </View>
         }
         ListFooterComponent={hasMore ? <ActivityIndicator style={styles.footer} color="#FF6B35" /> : null}
@@ -167,12 +169,11 @@ export default function ListScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  container: { flex: 1 },
   skeletonWrap: { paddingTop: 16 },
   searchWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f0f0f0',
     marginHorizontal: 16,
     marginTop: 12,
     marginBottom: 4,
@@ -181,17 +182,15 @@ const styles = StyleSheet.create({
     height: 44,
   },
   searchIcon: { marginRight: 10 },
-  searchInput: { flex: 1, fontSize: 15, color: '#333', paddingVertical: 0 },
+  searchInput: { flex: 1, fontSize: 15, paddingVertical: 0 },
   clearBtn: { padding: 8 },
   categoryList: { backgroundColor: 'transparent', maxHeight: 56 },
   categoryContent: { paddingHorizontal: 14, paddingVertical: 10, gap: 6 },
   categoryBtn: {
     paddingHorizontal: 16, paddingVertical: 9,
-    borderRadius: 18, backgroundColor: '#f0f0f0', marginRight: 6,
+    borderRadius: 18, marginRight: 6,
   },
-  categoryBtnActive: { backgroundColor: '#333' },
-  categoryText: { fontSize: 14, color: '#888' },
-  categoryTextActive: { color: '#fff', fontWeight: '600' },
+  categoryText: { fontSize: 14 },
   sortRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -199,15 +198,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 6,
   },
-  resultCount: { fontSize: 13, color: '#999' },
+  resultCount: { fontSize: 13 },
   sortBtns: { flexDirection: 'row', gap: 4 },
   sortBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16 },
-  sortBtnActive: { backgroundColor: '#f0f0f0' },
-  sortText: { fontSize: 13, color: '#bbb' },
-  sortTextActive: { color: '#333', fontWeight: '600' },
+  sortText: { fontSize: 13 },
   listContent: { padding: 15, paddingTop: 4, paddingBottom: 100 },
   empty: { padding: 60, alignItems: 'center', gap: 8 },
-  emptyTitle: { fontSize: 16, fontWeight: '600', color: '#999' },
-  emptyDesc: { fontSize: 13, color: '#bbb' },
+  emptyTitle: { fontSize: 16, fontWeight: '600' },
+  emptyDesc: { fontSize: 13 },
   footer: { paddingVertical: 20 },
 });

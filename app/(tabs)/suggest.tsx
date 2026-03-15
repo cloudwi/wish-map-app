@@ -8,12 +8,14 @@ import { PlaceResult } from '../../api/search';
 import { CreateRestaurantRequest } from '../../types';
 import { AuthRequired } from '../../components/AuthRequired';
 import { useSearch } from '../../hooks/useSearch';
+import { useTheme } from '../../hooks/useTheme';
 import { showSuccess, showError, showInfo } from '../../utils/toast';
 import { lightTap, successTap } from '../../utils/haptics';
 
 const CATEGORIES = ['한식', '중식', '일식', '양식', '카페', '술집', '기타'];
 
 export default function SuggestScreen() {
+  const c = useTheme();
   const { isAuthenticated } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const { searchQuery, setSearchQuery, searchResults, setSearchResults, searching, handleSearch: onSearch, clearSearch } = useSearch({ debounceDelay: 300 });
@@ -43,7 +45,6 @@ export default function SuggestScreen() {
     setSearchQuery(place.name);
     setSearchResults([]);
 
-    // 카카오 카테고리 → 앱 카테고리 자동 매핑
     if (!category) {
       const catMap: Record<string, string> = {
         '카페': '카페',
@@ -93,7 +94,7 @@ export default function SuggestScreen() {
     <>
       <Stack.Screen options={{ title: '맛집 제안', headerBackTitle: '' }} />
       <KeyboardAvoidingView
-        style={styles.container}
+        style={[styles.container, { backgroundColor: c.surface }]}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView
@@ -101,51 +102,50 @@ export default function SuggestScreen() {
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
         >
-          <Text style={styles.subtitle}>
+          <Text style={[styles.subtitle, { color: c.textSecondary }]}>
             맛집을 검색해서 제안해주세요!
           </Text>
 
           {/* 장소 검색 */}
           <View style={styles.group}>
-            <Text style={styles.label}>장소 검색 <Text style={styles.required}>*</Text></Text>
-            <View style={[styles.searchWrap, focusedField === 'search' && styles.searchWrapFocused]}>
-              <Ionicons name="search-outline" size={18} color="#999" />
+            <Text style={[styles.label, { color: c.textPrimary }]}>장소 검색 <Text style={{ color: c.primary }}>*</Text></Text>
+            <View style={[styles.searchWrap, { backgroundColor: c.inputBg, borderColor: 'transparent' }, focusedField === 'search' && { borderColor: c.primary, backgroundColor: c.surface }]}>
+              <Ionicons name="search-outline" size={18} color={c.textTertiary} />
               <TextInput
-                style={styles.searchInput}
+                style={[styles.searchInput, { color: c.textPrimary }]}
                 placeholder="가게 이름이나 주소로 검색"
-                placeholderTextColor="#bbb"
+                placeholderTextColor={c.textDisabled}
                 value={searchQuery}
                 onChangeText={handleSearch}
                 returnKeyType="search"
                 onFocus={() => setFocusedField('search')}
                 onBlur={() => setFocusedField(null)}
               />
-              {searching && <ActivityIndicator size="small" color="#FF6B35" />}
+              {searching && <ActivityIndicator size="small" color={c.primary} />}
               {searchQuery.length > 0 && !searching && (
                 <TouchableOpacity onPress={() => { clearSearch(); setSelectedPlace(null); }} style={styles.clearBtn}>
-                  <Ionicons name="close-circle" size={18} color="#ccc" />
+                  <Ionicons name="close-circle" size={18} color={c.textDisabled} />
                 </TouchableOpacity>
               )}
             </View>
 
-            {/* 검색 결과 */}
             {searchResults.length > 0 && (
-              <View style={styles.resultsList}>
+              <View style={[styles.resultsList, { backgroundColor: c.surface, borderColor: c.border }]}>
                 {searchResults.map((place) => (
                   <TouchableOpacity
                     key={place.id}
-                    style={styles.resultItem}
+                    style={[styles.resultItem, { borderBottomColor: c.divider }]}
                     onPress={() => handleSelectPlace(place)}
                     activeOpacity={0.6}
                   >
-                    <Ionicons name="location-outline" size={18} color="#FF6B35" style={styles.resultIcon} />
+                    <Ionicons name="location-outline" size={18} color={c.primary} style={styles.resultIcon} />
                     <View style={styles.resultContent}>
-                      <Text style={styles.resultName} numberOfLines={1}>{place.name}</Text>
-                      <Text style={styles.resultAddress} numberOfLines={1}>
+                      <Text style={[styles.resultName, { color: c.textPrimary }]} numberOfLines={1}>{place.name}</Text>
+                      <Text style={[styles.resultAddress, { color: c.textSecondary }]} numberOfLines={1}>
                         {place.roadAddress || place.address}
                       </Text>
                       {place.category ? (
-                        <Text style={styles.resultCategory}>{place.category}</Text>
+                        <Text style={[styles.resultCategory, { color: c.textTertiary }]}>{place.category}</Text>
                       ) : null}
                     </View>
                   </TouchableOpacity>
@@ -156,15 +156,15 @@ export default function SuggestScreen() {
 
           {/* 선택된 장소 */}
           {selectedPlace && (
-            <View style={styles.selectedCard}>
+            <View style={[styles.selectedCard, { backgroundColor: c.selectedCardBg, borderColor: c.selectedCardBorder }]}>
               <View style={styles.selectedIconWrap}>
-                <Ionicons name="checkmark-circle" size={22} color="#4CAF50" />
+                <Ionicons name="checkmark-circle" size={22} color={c.success} />
               </View>
               <View style={styles.selectedContent}>
-                <Text style={styles.selectedName}>{selectedPlace.name}</Text>
-                <Text style={styles.selectedAddress}>{selectedPlace.roadAddress || selectedPlace.address}</Text>
+                <Text style={[styles.selectedName, { color: c.textPrimary }]}>{selectedPlace.name}</Text>
+                <Text style={[styles.selectedAddress, { color: c.textSecondary }]}>{selectedPlace.roadAddress || selectedPlace.address}</Text>
                 {selectedPlace.phone ? (
-                  <Text style={styles.selectedPhone}>{selectedPlace.phone}</Text>
+                  <Text style={[styles.selectedPhone, { color: c.textTertiary }]}>{selectedPlace.phone}</Text>
                 ) : null}
               </View>
             </View>
@@ -172,15 +172,15 @@ export default function SuggestScreen() {
 
           {/* 카테고리 */}
           <View style={styles.group}>
-            <Text style={styles.label}>카테고리</Text>
+            <Text style={[styles.label, { color: c.textPrimary }]}>카테고리</Text>
             <View style={styles.chips}>
               {CATEGORIES.map((cat) => (
                 <TouchableOpacity
                   key={cat}
-                  style={[styles.chip, category === cat && styles.chipActive]}
+                  style={[styles.chip, { backgroundColor: c.chipBg }, category === cat && { backgroundColor: c.chipActiveBg }]}
                   onPress={() => { lightTap(); setCategory(category === cat ? '' : cat); }}
                 >
-                  <Text style={[styles.chipText, category === cat && styles.chipTextActive]}>
+                  <Text style={[styles.chipText, { color: c.chipText }, category === cat && { color: c.chipActiveText, fontWeight: '600' }]}>
                     {cat}
                   </Text>
                 </TouchableOpacity>
@@ -188,16 +188,16 @@ export default function SuggestScreen() {
             </View>
           </View>
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: c.divider }]} />
 
           {/* 설명 */}
           <View style={styles.group}>
-            <Text style={styles.label}>추천 이유</Text>
+            <Text style={[styles.label, { color: c.textPrimary }]}>추천 이유</Text>
             <TextInput
               ref={descRef}
-              style={[styles.input, styles.textarea, focusedField === 'desc' && styles.inputFocused]}
+              style={[styles.input, styles.textarea, { borderColor: c.border, backgroundColor: c.inputBg, color: c.textPrimary }, focusedField === 'desc' && { borderColor: c.primary, backgroundColor: c.surface }]}
               placeholder="이 맛집을 추천하는 이유를 적어주세요"
-              placeholderTextColor="#bbb"
+              placeholderTextColor={c.textDisabled}
               value={description}
               onChangeText={setDescription}
               multiline
@@ -207,11 +207,11 @@ export default function SuggestScreen() {
               onFocus={() => setFocusedField('desc')}
               onBlur={() => setFocusedField(null)}
             />
-            <Text style={styles.charCount}>{description.length}/2000</Text>
+            <Text style={[styles.charCount, { color: c.textDisabled }]}>{description.length}/2000</Text>
           </View>
 
           <TouchableOpacity
-            style={[styles.submitBtn, (loading || !selectedPlace) && styles.submitBtnDisabled]}
+            style={[styles.submitBtn, (loading || !selectedPlace) && { backgroundColor: c.textDisabled }]}
             onPress={handleSubmit}
             disabled={loading || !selectedPlace}
             activeOpacity={0.8}
@@ -227,33 +227,27 @@ export default function SuggestScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1 },
   scroll: { flex: 1 },
   content: { padding: 20 },
-  subtitle: { fontSize: 15, color: '#666', marginBottom: 24, lineHeight: 22 },
+  subtitle: { fontSize: 15, marginBottom: 24, lineHeight: 22 },
   group: { marginBottom: 24 },
-  label: { fontSize: 15, fontWeight: '600', color: '#333', marginBottom: 8 },
-  required: { color: '#FF6B35' },
+  label: { fontSize: 15, fontWeight: '600', marginBottom: 8 },
   searchWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
     borderRadius: 12,
     paddingHorizontal: 14,
     height: 48,
     gap: 10,
     borderWidth: 1.5,
-    borderColor: 'transparent',
   },
-  searchWrapFocused: { borderColor: '#FF6B35', backgroundColor: '#fff' },
-  searchInput: { flex: 1, fontSize: 15, color: '#333', paddingVertical: 0 },
+  searchInput: { flex: 1, fontSize: 15, paddingVertical: 0 },
   clearBtn: { padding: 8 },
   resultsList: {
     marginTop: 8,
-    backgroundColor: '#fff',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#eee',
     maxHeight: 300,
     overflow: 'hidden',
   },
@@ -263,46 +257,39 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 14,
     borderBottomWidth: 0.5,
-    borderBottomColor: '#f0f0f0',
   },
   resultIcon: { marginTop: 2, marginRight: 10 },
   resultContent: { flex: 1 },
-  resultName: { fontSize: 15, fontWeight: '600', color: '#333', marginBottom: 3 },
-  resultAddress: { fontSize: 13, color: '#888' },
-  resultCategory: { fontSize: 12, color: '#aaa', marginTop: 2 },
+  resultName: { fontSize: 15, fontWeight: '600', marginBottom: 3 },
+  resultAddress: { fontSize: 13 },
+  resultCategory: { fontSize: 12, marginTop: 2 },
   selectedCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F0FFF5',
     borderRadius: 12,
     padding: 16,
     marginBottom: 24,
     gap: 12,
     borderWidth: 1,
-    borderColor: '#D4EDDA',
   },
   selectedIconWrap: { marginTop: 1 },
   selectedContent: { flex: 1 },
-  selectedName: { fontSize: 16, fontWeight: '700', color: '#333', marginBottom: 2 },
-  selectedAddress: { fontSize: 13, color: '#666' },
-  selectedPhone: { fontSize: 12, color: '#999', marginTop: 2 },
+  selectedName: { fontSize: 16, fontWeight: '700', marginBottom: 2 },
+  selectedAddress: { fontSize: 13 },
+  selectedPhone: { fontSize: 12, marginTop: 2 },
   input: {
-    borderWidth: 1.5, borderColor: '#eee', borderRadius: 12,
-    paddingHorizontal: 15, paddingVertical: 12, fontSize: 15, backgroundColor: '#fafafa',
+    borderWidth: 1.5, borderRadius: 12,
+    paddingHorizontal: 15, paddingVertical: 12, fontSize: 15,
   },
-  inputFocused: { borderColor: '#FF6B35', backgroundColor: '#fff' },
   textarea: { height: 120, paddingTop: 14 },
-  charCount: { fontSize: 11, color: '#bbb', textAlign: 'right', marginTop: 4 },
+  charCount: { fontSize: 11, textAlign: 'right', marginTop: 4 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { paddingHorizontal: 16, paddingVertical: 9, borderRadius: 18, backgroundColor: '#f0f0f0' },
-  chipActive: { backgroundColor: '#333' },
-  chipText: { fontSize: 14, color: '#888' },
-  chipTextActive: { color: '#fff', fontWeight: '600' },
-  divider: { height: 1, backgroundColor: '#f0f0f0', marginBottom: 24 },
+  chip: { paddingHorizontal: 16, paddingVertical: 9, borderRadius: 18 },
+  chipText: { fontSize: 14 },
+  divider: { height: 1, marginBottom: 24 },
   submitBtn: {
     backgroundColor: '#FF6B35', borderRadius: 12,
     paddingVertical: 16, alignItems: 'center', marginTop: 8, marginBottom: 40,
   },
-  submitBtnDisabled: { backgroundColor: '#ddd' },
   submitBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 });
