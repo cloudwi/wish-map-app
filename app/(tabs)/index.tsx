@@ -26,6 +26,7 @@ export default function MapScreen() {
   const [selected, setSelected] = useState<Restaurant | null>(null);
   const [locating, setLocating] = useState(false);
   const [showResearchBtn, setShowResearchBtn] = useState(false);
+  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
 
   const { searchQuery, searchResults, searching, handleSearch, clearSearch } = useSearch();
   const [searchFocused, setSearchFocused] = useState(false);
@@ -56,6 +57,7 @@ export default function MapScreen() {
         if (status === 'granted') {
           const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
           const { latitude, longitude } = location.coords;
+          setUserLocation({ latitude, longitude });
           mapRef.current?.animateCameraTo({ latitude, longitude, zoom: 15 });
           const bounds: MapBounds = {
             minLat: latitude - 0.01,
@@ -135,6 +137,7 @@ export default function MapScreen() {
         return;
       }
       const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      setUserLocation({ latitude: location.coords.latitude, longitude: location.coords.longitude });
       mapRef.current?.animateCameraTo({
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
@@ -167,6 +170,7 @@ export default function MapScreen() {
         restaurants={restaurants}
         onMarkerClick={handleMarkerClick}
         onBoundsChange={handleBoundsChange}
+        userLocation={userLocation}
       />
 
       {/* 검색바 */}

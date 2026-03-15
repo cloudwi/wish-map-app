@@ -14,6 +14,7 @@ interface Props {
   restaurants: Restaurant[];
   onMarkerClick: (restaurant: Restaurant) => void;
   onBoundsChange: (bounds: MapBounds) => void;
+  userLocation?: { latitude: number; longitude: number } | null;
   initialLat?: number;
   initialLng?: number;
   initialZoom?: number;
@@ -23,6 +24,7 @@ const NaverMap = forwardRef<NaverMapViewRef, Props>(({
   restaurants,
   onMarkerClick,
   onBoundsChange,
+  userLocation,
   initialLat = 37.5665,
   initialLng = 126.9780,
   initialZoom = 14,
@@ -53,6 +55,10 @@ const NaverMap = forwardRef<NaverMapViewRef, Props>(({
       isShowZoomControls
       isShowCompass
       isShowLocationButton={false}
+      locationOverlay={userLocation ? {
+        isVisible: true,
+        position: userLocation,
+      } : undefined}
     >
       {restaurants.map((r) => (
         <NaverMapMarkerOverlay
