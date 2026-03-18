@@ -186,19 +186,17 @@ export default function FriendsScreen() {
   );
 
   const renderFriend = ({ item }: { item: FriendResponse }) => (
-    <TouchableOpacity
-      style={[styles.userRow, { borderBottomColor: c.divider }]}
-      onLongPress={() => handleRemove(item.id, item.user.nickname)}
-      activeOpacity={0.9}
-    >
+    <View style={[styles.userRow, { borderBottomColor: c.divider }]}>
       <View style={[styles.avatar, { backgroundColor: c.primaryBg }]}>
         {item.user.profileImage
           ? <Image source={{ uri: item.user.profileImage }} style={styles.avatarImg} />
           : <Ionicons name="person" size={20} color={c.primary} />}
       </View>
       <Text style={[styles.nickname, { color: c.textPrimary }]}>{item.user.nickname}</Text>
-      <Ionicons name="ellipsis-horizontal" size={16} color={c.textTertiary} />
-    </TouchableOpacity>
+      <TouchableOpacity onPress={() => handleRemove(item.id, item.user.nickname)} hitSlop={8} style={{ padding: 8 }}>
+        <Ionicons name="ellipsis-horizontal" size={16} color={c.textTertiary} />
+      </TouchableOpacity>
+    </View>
   );
 
   return (
