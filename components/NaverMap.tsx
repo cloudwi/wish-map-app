@@ -68,6 +68,7 @@ const NaverMap = forwardRef<NaverMapViewRef, Props>(({
     >
       {restaurants.map((r) => {
         const isSelected = selectedId === r.id;
+        const hasVisits = r.visitCount > 0;
         return (
           <NaverMapMarkerOverlay
             key={r.id}
@@ -75,9 +76,15 @@ const NaverMap = forwardRef<NaverMapViewRef, Props>(({
             longitude={r.lng}
             width={isSelected ? 32 : 24}
             height={isSelected ? 44 : 34}
-            caption={isSelected ? { text: r.name, color: '#FF6B35', textSize: 13 } : undefined}
-            subCaption={isSelected && r.visitCount > 0 ? { text: `${r.visitCount}명 방문`, color: '#FF6B35' } : undefined}
-            tintColor={r.visitCount > 0 ? '#FF6B35' : undefined}
+            caption={
+              isSelected
+                ? { text: r.name, color: '#FF6B35', textSize: 13 }
+                : hasVisits
+                  ? { text: `${r.visitCount}`, color: '#fff', textSize: 10, haloColor: '#FF6B35' }
+                  : undefined
+            }
+            subCaption={isSelected && hasVisits ? { text: `${r.visitCount}명 방문`, color: '#FF6B35' } : undefined}
+            tintColor={hasVisits ? '#FF6B35' : undefined}
             zIndex={isSelected ? 100 : 0}
             onTap={() => onMarkerClick(r)}
           />

@@ -81,6 +81,20 @@ export const restaurantApi = {
     return response.data;
   },
 
+  // 맛집 제보 (방문인증과 별도 - 리뷰/태그/사진 제출)
+  suggest: async (data: {
+    name: string;
+    lat: number;
+    lng: number;
+    naverPlaceId?: string;
+    category?: string;
+    comment?: string;
+    imageUrls?: string[];
+  }): Promise<{ restaurantId: number; isNew: boolean }> => {
+    const response = await apiClient.post<{ restaurantId: number; isNew: boolean }>('/restaurants/suggest', data);
+    return response.data;
+  },
+
   // --- 컬렉션 ---
 
   // 내 컬렉션 목록

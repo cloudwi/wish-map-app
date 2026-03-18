@@ -42,7 +42,7 @@ export default function RootLayout() {
         <Stack.Screen name="legal/privacy" options={{ title: '개인정보 처리방침' }} />
         <Stack.Screen name="notifications/index" options={{ title: '알림' }} />
         <Stack.Screen name="friends" options={{ title: '친구' }} />
-        <Stack.Screen name="visit-review" options={{ title: '맛집 제보' }} />
+        <Stack.Screen name="visit-review" options={{ title: '리뷰 작성' }} />
         <Stack.Screen name="group-manage" options={{ headerShown: false }} />
       </Stack>
       <Toast config={toastConfig} topOffset={60} />

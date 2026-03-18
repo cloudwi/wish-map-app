@@ -13,14 +13,14 @@ import { showError } from '../utils/toast';
 import { getErrorMessage } from '../utils/getErrorMessage';
 
 const TAGS = [
-  { label: '맛있어요', emoji: '😋' },
-  { label: '분위기 좋아요', emoji: '✨' },
-  { label: '가성비 좋아요', emoji: '💰' },
-  { label: '친절해요', emoji: '😊' },
-  { label: '재방문 의사', emoji: '🔄' },
-  { label: '혼밥 가능', emoji: '🧑' },
-  { label: '데이트 추천', emoji: '💕' },
-  { label: '주차 가능', emoji: '🅿️' },
+  { label: '또 갈 집', emoji: '🔥' },
+  { label: '숨은 맛집', emoji: '🗺️' },
+  { label: '점심 맛집', emoji: '🍱' },
+  { label: '회식 추천', emoji: '🍻' },
+  { label: '혼밥 성지', emoji: '🎧' },
+  { label: '줄 서는 집', emoji: '⏰' },
+  { label: '가성비 갑', emoji: '👛' },
+  { label: '뷰 맛집', emoji: '🌇' },
 ];
 
 export default function VisitReviewScreen() {
@@ -85,27 +85,22 @@ export default function VisitReviewScreen() {
       setLoading(true);
       mediumTap();
 
-      const Location = require('expo-location') as typeof import('expo-location');
-      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-
-      await restaurantApi.quickVisit({
+      await restaurantApi.suggest({
         name: params.placeName,
         lat: Number(params.placeLat),
         lng: Number(params.placeLng),
         naverPlaceId: params.placeId || undefined,
         category: params.placeCategory || undefined,
-        userLat: loc.coords.latitude,
-        userLng: loc.coords.longitude,
         comment: buildReviewText(),
       });
 
       successTap();
       router.back();
       setTimeout(() => {
-        Alert.alert('맛집 제보 완료!', '제보가 등록되었습니다.');
+        Alert.alert('리뷰 등록 완료!', '리뷰가 등록되었습니다.');
       }, 300);
     } catch (error: unknown) {
-      showError('제보 실패', getErrorMessage(error, '맛집 제보 중 오류가 발생했습니다.'));
+      showError('리뷰 실패', getErrorMessage(error, '리뷰 등록 중 오류가 발생했습니다.'));
     } finally {
       setLoading(false);
     }
@@ -211,14 +206,14 @@ export default function VisitReviewScreen() {
           <ActivityIndicator size="small" color="#fff" />
         ) : (
           <>
-            <Ionicons name="megaphone" size={20} color="#fff" />
-            <Text style={styles.submitText}>제보하기</Text>
+            <Ionicons name="create" size={20} color="#fff" />
+            <Text style={styles.submitText}>리뷰 등록</Text>
           </>
         )}
       </TouchableOpacity>
 
       <Text style={[styles.hint, { color: c.textDisabled }]}>
-        태그, 리뷰, 사진으로 맛집을 제보해주세요
+        태그, 한줄평, 사진으로 리뷰를 남겨주세요
       </Text>
     </ScrollView>
   );

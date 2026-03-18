@@ -1,4 +1,4 @@
-import { StyleSheet, View, Text, FlatList, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, Text, FlatList, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, router } from 'expo-router';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
@@ -12,7 +12,14 @@ export default function NotificationsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: c.background }]}>
-      <Stack.Screen options={{ title: '알림' }} />
+      <Stack.Screen options={{
+        title: '알림',
+        headerLeft: () => (
+          <TouchableOpacity onPress={() => router.back()} hitSlop={8} style={{ padding: 4 }}>
+            <Ionicons name={Platform.OS === 'ios' ? 'chevron-back' : 'arrow-back'} size={24} color={c.textPrimary} />
+          </TouchableOpacity>
+        ),
+      }} />
       <FlatList
         data={MOCK_NOTIFICATIONS}
         keyExtractor={(item) => item.id}

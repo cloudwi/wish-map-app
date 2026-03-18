@@ -244,8 +244,8 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone }
               <ActivityIndicator size="small" color={c.primary} />
             ) : (
               <>
-                <Ionicons name="megaphone-outline" size={17} color={c.primary} />
-                <Text style={[styles.reportBtnText, { color: c.primary }]}>맛집 제보</Text>
+                <Ionicons name="create-outline" size={17} color={c.primary} />
+                <Text style={[styles.reportBtnText, { color: c.primary }]}>리뷰</Text>
               </>
             )}
           </TouchableOpacity>
