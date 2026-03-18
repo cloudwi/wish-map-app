@@ -46,7 +46,7 @@ export default function LoginScreen() {
       setLoading('KAKAO');
       const result = await kakaoLogin();
       await login('KAKAO', result.accessToken);
-      router.replace('/(tabs)');
+      router.canGoBack() ? router.back() : router.replace('/(tabs)');
     } catch (e: any) {
       if (e.code !== 'E_CANCELLED_OPERATION') {
         showError('로그인 실패', e.message || '카카오 로그인 중 오류가 발생했습니다.');
@@ -64,7 +64,7 @@ export default function LoginScreen() {
       const idToken = response.data?.idToken;
       if (!idToken) throw new Error('구글 토큰 발급 실패');
       await login('GOOGLE', idToken);
-      router.replace('/(tabs)');
+      router.canGoBack() ? router.back() : router.replace('/(tabs)');
     } catch (e: any) {
       if (e.code !== 'SIGN_IN_CANCELLED') {
         showError('로그인 실패', e.message || '구글 로그인 중 오류가 발생했습니다.');
@@ -82,7 +82,7 @@ export default function LoginScreen() {
         throw new Error('네이버 로그인에 실패했습니다.');
       }
       await login('NAVER', result.successResponse.accessToken);
-      router.replace('/(tabs)');
+      router.canGoBack() ? router.back() : router.replace('/(tabs)');
     } catch (e: any) {
       showError('로그인 실패', e.message || '네이버 로그인 중 오류가 발생했습니다.');
     } finally {
@@ -101,7 +101,7 @@ export default function LoginScreen() {
       });
       if (!credential.identityToken) throw new Error('Apple identity token 없음');
       await login('APPLE', credential.identityToken);
-      router.replace('/(tabs)');
+      router.canGoBack() ? router.back() : router.replace('/(tabs)');
     } catch (e: any) {
       if (e.code !== 'ERR_REQUEST_CANCELED') {
         showError('로그인 실패', e.message || 'Apple 로그인 중 오류가 발생했습니다.');
