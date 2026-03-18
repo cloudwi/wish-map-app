@@ -205,7 +205,7 @@ export default function MapScreen() {
           <TextInput
             style={[styles.searchInput, { color: c.textPrimary }]}
             placeholder="장소 검색"
-            placeholderTextColor={c.textDisabled}
+            placeholderTextColor={c.textTertiary}
             value={searchQuery}
             onChangeText={handleSearch}
             onFocus={() => setSearchFocused(true)}
