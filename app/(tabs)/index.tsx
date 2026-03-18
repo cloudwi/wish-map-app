@@ -18,7 +18,8 @@ import { useTheme } from '../../hooks/useTheme';
 import { useGroupStore } from '../../stores/groupStore';
 import { useAuthStore } from '../../stores/authStore';
 import { lightTap, mediumTap } from '../../utils/haptics';
-import { showError } from '../../utils/toast';
+import { showError, showSuccess } from '../../utils/toast';
+import { getErrorMessage } from '../../utils/getErrorMessage';
 
 const INITIAL_BOUNDS: MapBounds = { minLat: 37.4, maxLat: 37.7, minLng: 126.8, maxLng: 127.2 };
 
@@ -372,15 +373,64 @@ export default function MapScreen() {
                 <Ionicons name="close" size={20} color={c.textSecondary} />
               </TouchableOpacity>
             </View>
-            <TouchableOpacity
-              style={[styles.detailBtn, { backgroundColor: c.primary }]}
-              onPress={() => { lightTap(); router.push(`/restaurant/${selected.id}`); }}
-              activeOpacity={0.8}
-            >
-
-              <Text style={styles.detailBtnText}>상세보기</Text>
-              <Ionicons name="chevron-forward" size={16} color="#fff" />
-            </TouchableOpacity>
+            <View style={styles.previewActions}>
+              <TouchableOpacity
+                style={[styles.previewVisitBtn, { backgroundColor: c.primary }]}
+                onPress={() => {
+                  lightTap();
+                  if (!isAuthenticated) { router.push('/login'); return; }
+                  (async () => {
+                    try {
+                      const Location = require('expo-location') as typeof LocationType;
+                      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+                      await restaurantApi.quickVisit({
+                        name: selected.name,
+                        lat: selected.lat,
+                        lng: selected.lng,
+                        userLat: loc.coords.latitude,
+                        userLng: loc.coords.longitude,
+                      });
+                      mediumTap();
+                      showSuccess('방문 인증 완료!', '방문이 기록되었습니다.');
+                      fetchRestaurants(currentBoundsRef.current);
+                    } catch (e: unknown) {
+                      showError('방문 인증 실패', getErrorMessage(e, '방문 인증 중 오류가 발생했습니다.'));
+                    }
+                  })();
+                }}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="footsteps-outline" size={16} color="#fff" />
+                <Text style={styles.previewActionText}>방문 인증</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.previewReviewBtn, { borderColor: c.primary }]}
+                onPress={() => {
+                  lightTap();
+                  if (!isAuthenticated) { router.push('/login'); return; }
+                  router.push({
+                    pathname: '/visit-review',
+                    params: {
+                      placeName: selected.name,
+                      placeLat: String(selected.lat),
+                      placeLng: String(selected.lng),
+                      placeCategory: selected.category || '',
+                    },
+                  });
+                }}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="create-outline" size={16} color={c.primary} />
+                <Text style={[styles.previewReviewText, { color: c.primary }]}>리뷰</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.previewDetailBtn, { backgroundColor: c.cardBg, borderColor: c.border, borderWidth: 1 }]}
+                onPress={() => { lightTap(); router.push(`/restaurant/${selected.id}`); }}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="chevron-forward" size={16} color={c.textSecondary} />
+              </TouchableOpacity>
+            </View>
 
             <View style={styles.listHeader}>
               <Text style={[styles.listTitle, { color: c.textPrimary }]}>주변 맛집 {restaurants.length}개</Text>
@@ -532,16 +582,38 @@ const styles = StyleSheet.create({
     width: 32, height: 32, borderRadius: 16,
     justifyContent: 'center', alignItems: 'center',
   },
-  detailBtn: {
+  previewActions: {
     flexDirection: 'row',
-    borderRadius: 10,
-    paddingVertical: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 4,
+    gap: 8,
     marginBottom: 16,
   },
-  detailBtnText: { color: '#fff', fontSize: 15, fontWeight: '600' },
+  previewVisitBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    borderRadius: 10,
+    paddingVertical: 11,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 5,
+  },
+  previewReviewBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    borderRadius: 10,
+    paddingVertical: 11,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 5,
+    borderWidth: 1.5,
+  },
+  previewDetailBtn: {
+    width: 40,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  previewActionText: { color: '#fff', fontSize: 14, fontWeight: '600' },
+  previewReviewText: { fontSize: 14, fontWeight: '600' },
   listWrap: { flex: 1 },
   listHeader: {
     flexDirection: 'row',
