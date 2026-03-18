@@ -95,9 +95,10 @@ const NaverMap = forwardRef<NaverMapViewRef, Props>(({
           key={`place-${selectedPlace.id}`}
           latitude={selectedPlace.lat}
           longitude={selectedPlace.lng}
-          width={26}
-          height={34}
-          caption={{ text: selectedPlace.name, color: '#333', textSize: 13, haloColor: '#fff' }}
+          width={30}
+          height={40}
+          tintColor="#4A90D9"
+          caption={{ text: selectedPlace.name, color: '#4A90D9', textSize: 13, haloColor: '#fff' }}
           zIndex={200}
         />
       )}

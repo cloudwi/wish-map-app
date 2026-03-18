@@ -351,6 +351,7 @@ export default function MapScreen() {
             onClose={closePlaceDetail}
             onOpenNaverMap={openNaverMap}
             onCallPhone={callPhone}
+            onVisitSuccess={() => fetchRestaurants(currentBoundsRef.current)}
           />
         ) : selected ? (
           <Animated.View entering={FadeIn.duration(200)} style={styles.preview}>

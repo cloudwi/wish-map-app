@@ -32,9 +32,10 @@ interface PlaceDetailSheetProps {
   onClose: () => void;
   onOpenNaverMap: (place: PlaceResult) => void;
   onCallPhone: (phone: string) => void;
+  onVisitSuccess?: () => void;
 }
 
-export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone }: PlaceDetailSheetProps) {
+export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, onVisitSuccess }: PlaceDetailSheetProps) {
   const c = useTheme();
   const insets = useSafeAreaInsets();
   const { isAuthenticated } = useAuthStore();
@@ -90,6 +91,7 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone }
       if (place.id) {
         restaurantApi.getPlaceStats(place.id).then(setStats).catch(() => {});
       }
+      onVisitSuccess?.();
     } catch (error: unknown) {
       showError('방문 인증 실패', getErrorMessage(error, '방문 인증 중 오류가 발생했습니다.'));
     } finally {
