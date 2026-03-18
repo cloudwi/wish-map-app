@@ -201,10 +201,10 @@ export default function MapScreen() {
       {/* 검색바 */}
       <View style={[styles.searchContainer, { top: insets.top + 8 }]}>
         <View style={[styles.searchBar, { backgroundColor: c.surface, shadowColor: '#000' }, searchFocused && { shadowOpacity: 0.2, shadowRadius: 12 }]}>
-          <Ionicons name="search-outline" size={18} color={c.textTertiary} />
+          <Ionicons name="search-outline" size={20} color={c.textTertiary} />
           <TextInput
             style={[styles.searchInput, { color: c.textPrimary }]}
-            placeholder="맛집 검색"
+            placeholder="장소 검색"
             placeholderTextColor={c.textDisabled}
             value={searchQuery}
             onChangeText={handleSearch}
@@ -429,14 +429,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 12,
     paddingHorizontal: 14,
-    height: 46,
+    height: 48,
     gap: 10,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.12,
     shadowRadius: 8,
     elevation: 4,
   },
-  searchInput: { flex: 1, fontSize: 15, paddingVertical: 0 },
+  searchInput: { flex: 1, fontSize: 16, fontWeight: '500', paddingVertical: 0 },
   clearBtn: { padding: 8 },
   searchResults: {
     marginTop: 6,
