@@ -8,22 +8,6 @@ import { RestaurantCard } from '../components/RestaurantCard';
 import RestaurantCardSkeleton from '../components/RestaurantCardSkeleton';
 import { useTheme } from '../hooks/useTheme';
 
-type RestaurantStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
-
-const STATUS_LABELS: Record<RestaurantStatus, { text: string; color: string }> = {
-  PENDING:  { text: '승인 대기', color: '#FFA500' },
-  APPROVED: { text: '승인됨',   color: '#4CAF50' },
-  REJECTED: { text: '거절됨',   color: '#F44336' },
-};
-
-function StatusBadge({ status }: { status: RestaurantStatus }) {
-  const { text, color } = STATUS_LABELS[status];
-  return (
-    <View style={[styles.badge, { backgroundColor: color }]}>
-      <Text style={styles.badgeText}>{text}</Text>
-    </View>
-  );
-}
 
 export default function MySuggestionsScreen() {
   const c = useTheme();
@@ -58,7 +42,6 @@ export default function MySuggestionsScreen() {
             <RestaurantCard
               item={item}
               index={index}
-              badge={<StatusBadge status={item.status} />}
             />
           )}
           contentContainerStyle={styles.listContent}

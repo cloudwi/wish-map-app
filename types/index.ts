@@ -28,7 +28,6 @@ export interface Restaurant {
   thumbnailImage: string | null;
   likeCount: number;
   visitCount: number;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED';
 }
 
 export interface RestaurantDetail extends Restaurant {

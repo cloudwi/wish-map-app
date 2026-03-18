@@ -1,9 +1,10 @@
 import { useState, useCallback, useEffect } from 'react';
 import {
   StyleSheet, View, Text, FlatList, TouchableOpacity,
-  TextInput, Image, ActivityIndicator, Alert,
+  TextInput, Image, ActivityIndicator, Alert, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Stack, router } from 'expo-router';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../hooks/useTheme';
@@ -202,6 +203,14 @@ export default function FriendsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: c.background }]}>
+      <Stack.Screen options={{
+        title: '친구',
+        headerLeft: () => (
+          <TouchableOpacity onPress={() => router.back()} hitSlop={8} style={{ padding: 4 }}>
+            <Ionicons name={Platform.OS === 'ios' ? 'chevron-back' : 'arrow-back'} size={24} color={c.textPrimary} />
+          </TouchableOpacity>
+        ),
+      }} />
       {/* 검색 */}
       <View style={[styles.searchWrap, { backgroundColor: c.searchBg }]}>
         <Ionicons name="search-outline" size={17} color={c.textTertiary} />
