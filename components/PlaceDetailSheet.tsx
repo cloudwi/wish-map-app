@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { PlaceResult } from '../api/search';
+import { PlaceResult, searchPlaceImage } from '../api/search';
 import { restaurantApi, PlaceStatsResponse } from '../api/restaurant';
 import { useAuthStore } from '../stores/authStore';
 import { useTheme } from '../hooks/useTheme';
@@ -56,6 +56,12 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
   const [visitLoading, setVisitLoading] = useState(false);
   const [reportLoading, setReportLoading] = useState(false);
   const [visitedToday, setVisitedToday] = useState(false);
+  const [thumbnail, setThumbnail] = useState<string | null>(null);
+
+  useEffect(() => {
+    setThumbnail(null);
+    searchPlaceImage(place.name + ' 맛집').then(setThumbnail);
+  }, [place.name]);
 
   const getUserLocation = async () => {
     const Location = require('expo-location') as typeof import('expo-location');
@@ -140,8 +146,15 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
       entering={FadeIn.duration(200)}
       style={[styles.container, { paddingBottom: insets.bottom + TAB_BAR_HEIGHT }]}
     >
-      {/* 장소명 + 닫기 */}
+      {/* 썸네일 + 장소명 + 닫기 */}
       <View style={styles.header}>
+        {thumbnail ? (
+          <Image source={{ uri: thumbnail }} style={styles.thumbnail} />
+        ) : (
+          <View style={[styles.thumbnailPlaceholder, { backgroundColor: c.searchBg }]}>
+            <Ionicons name="restaurant-outline" size={22} color={c.textDisabled} />
+          </View>
+        )}
         <View style={styles.headerInfo}>
           <Text style={[styles.placeName, { color: c.textPrimary }]} numberOfLines={1}>{place.name}</Text>
           {place.category ? (
@@ -278,6 +291,18 @@ const styles = StyleSheet.create({
   },
 
   // Header
+  thumbnail: {
+    width: 52,
+    height: 52,
+    borderRadius: 10,
+  },
+  thumbnailPlaceholder: {
+    width: 52,
+    height: 52,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

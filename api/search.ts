@@ -24,6 +24,19 @@ export interface NaverPlaceItem {
   mapy: string;
 }
 
+// 이미지 검색
+export async function searchPlaceImage(query: string): Promise<string | null> {
+  try {
+    const { data } = await apiClient.get('/search/images', {
+      params: { query, display: 1 },
+    });
+    const item = data.items?.[0];
+    return item?.thumbnail || item?.link || null;
+  } catch {
+    return null;
+  }
+}
+
 // HTML 태그 제거
 function stripHtml(str: string): string {
   return str.replace(/<[^>]*>/g, '');
