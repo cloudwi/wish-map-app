@@ -24,7 +24,7 @@ export interface NaverPlaceItem {
   mapy: string;
 }
 
-// 이미지 검색
+// 이미지 검색 (1장)
 export async function searchPlaceImage(query: string): Promise<string | null> {
   try {
     const { data } = await apiClient.get('/search/images', {
@@ -34,6 +34,18 @@ export async function searchPlaceImage(query: string): Promise<string | null> {
     return item?.thumbnail || item?.link || null;
   } catch {
     return null;
+  }
+}
+
+// 이미지 검색 (여러 장)
+export async function searchPlaceImages(query: string, count = 5): Promise<string[]> {
+  try {
+    const { data } = await apiClient.get('/search/images', {
+      params: { query, display: count },
+    });
+    return (data.items || []).map((item: any) => item.link || item.thumbnail).filter(Boolean);
+  } catch {
+    return [];
   }
 }
 

@@ -1,4 +1,4 @@
-import { StyleSheet, View, Text, ScrollView, Image, TouchableOpacity, ActivityIndicator, TextInput, KeyboardAvoidingView, Platform, RefreshControl, Linking } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, Image, TouchableOpacity, ActivityIndicator, TextInput, KeyboardAvoidingView, Platform, RefreshControl, Linking, Dimensions } from 'react-native';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocalSearchParams, Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,6 +7,7 @@ import { RestaurantDetail, Comment } from '../../types';
 import { TaggedContent } from '../../components/TaggedContent';
 import { restaurantApi } from '../../api/restaurant';
 import { commentApi } from '../../api/comment';
+import { searchPlaceImages } from '../../api/search';
 import { useAuthStore } from '../../stores/authStore';
 import { useTheme } from '../../hooks/useTheme';
 import { showError, showInfo } from '../../utils/toast';
@@ -26,6 +27,7 @@ export default function RestaurantDetailScreen() {
   const [newComment, setNewComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [visitLoading, setVisitLoading] = useState(false);
+  const [searchImages, setSearchImages] = useState<string[]>([]);
 
 
   const fetchData = useCallback(async () => {
@@ -36,6 +38,9 @@ export default function RestaurantDetailScreen() {
       ]);
       setRestaurant(restaurantData);
       setComments(commentsData.content);
+      if (!restaurantData.thumbnailImage && restaurantData.images.length === 0) {
+        searchPlaceImages(restaurantData.name + ' 맛집', 3).then(setSearchImages);
+      }
     } catch (error) {
       console.error('Failed to fetch data:', error);
     } finally {
@@ -174,16 +179,24 @@ export default function RestaurantDetailScreen() {
           }
         >
           {/* 이미지 */}
-          {restaurant.thumbnailImage || restaurant.images[0] ? (
-            <Image
-              source={{ uri: restaurant.thumbnailImage || restaurant.images[0] }}
-              style={[styles.mainImage, { backgroundColor: c.imagePlaceholderBg }]}
-            />
-          ) : (
-            <View style={[styles.mainImage, styles.imagePlaceholder, { backgroundColor: c.imagePlaceholderBg }]}>
-              <Ionicons name="restaurant-outline" size={48} color="#d4c4bc" />
-            </View>
-          )}
+          {(() => {
+            const allImages = restaurant.images.length > 0
+              ? restaurant.images
+              : restaurant.thumbnailImage
+                ? [restaurant.thumbnailImage]
+                : searchImages;
+            return allImages.length > 0 ? (
+              <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false}>
+                {allImages.map((uri, i) => (
+                  <Image key={i} source={{ uri }} style={[styles.mainImage, { backgroundColor: c.imagePlaceholderBg }]} />
+                ))}
+              </ScrollView>
+            ) : (
+              <View style={[styles.mainImage, styles.imagePlaceholder, { backgroundColor: c.imagePlaceholderBg }]}>
+                <Ionicons name="restaurant-outline" size={48} color="#d4c4bc" />
+              </View>
+            );
+          })()}
 
           {/* 기본 정보 */}
           <Animated.View entering={FadeIn.duration(400)} style={[styles.infoSection, { borderBottomColor: c.background }]}>
@@ -327,7 +340,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollView: { flex: 1 },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  mainImage: { width: '100%', height: 250 },
+  mainImage: { width: Dimensions.get('window').width, height: 250 },
   imagePlaceholder: { justifyContent: 'center', alignItems: 'center' },
   infoSection: { padding: 20, borderBottomWidth: 8 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },

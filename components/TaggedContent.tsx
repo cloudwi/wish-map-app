@@ -1,20 +1,16 @@
 import { StyleSheet, View, Text } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
 
-const TAG_COLORS: Record<string, string> = {
-  '또 갈 집': '#FF6B35',
-  '숨은 맛집': '#8B5CF6',
-  '점심 맛집': '#F59E0B',
-  '회식 추천': '#EF4444',
-  '혼밥 성지': '#6366F1',
-  '줄 서는 집': '#EC4899',
-  '가성비 갑': '#10B981',
-  '뷰 맛집': '#0EA5E9',
-};
-
-function getTagColor(tag: string): string {
-  return TAG_COLORS[tag] || '#6B7280';
-}
+const KNOWN_TAGS: { label: string; color: string }[] = [
+  { label: '또 갈 집', color: '#FF6B35' },
+  { label: '숨은 맛집', color: '#8B5CF6' },
+  { label: '점심 맛집', color: '#F59E0B' },
+  { label: '회식 추천', color: '#EF4444' },
+  { label: '혼밥 성지', color: '#6366F1' },
+  { label: '줄 서는 집', color: '#EC4899' },
+  { label: '가성비 갑', color: '#10B981' },
+  { label: '뷰 맛집', color: '#0EA5E9' },
+];
 
 interface Props {
   content: string;
@@ -23,27 +19,38 @@ interface Props {
 export function TaggedContent({ content }: Props) {
   const c = useTheme();
 
-  // #태그 파싱
-  const tagRegex = /#([^\s#]+)/g;
-  const tags: string[] = [];
-  let match;
-  while ((match = tagRegex.exec(content)) !== null) {
-    tags.push(match[1]);
+  // 알려진 태그를 content에서 찾기
+  const foundTags: { label: string; color: string }[] = [];
+  let remaining = content;
+
+  for (const tag of KNOWN_TAGS) {
+    const pattern = `#${tag.label}`;
+    if (remaining.includes(pattern)) {
+      foundTags.push(tag);
+      remaining = remaining.replace(pattern, '');
+    }
   }
 
-  // 태그 제거한 텍스트
-  const text = content.replace(/#[^\s#]+/g, '').trim();
+  // 남은 # 태그도 처리 (알려지지 않은 태그)
+  const unknownTagRegex = /#([^\s#]+)/g;
+  let match;
+  while ((match = unknownTagRegex.exec(remaining)) !== null) {
+    foundTags.push({ label: match[1], color: '#6B7280' });
+    remaining = remaining.replace(match[0], '');
+  }
 
-  if (tags.length === 0) {
+  const text = remaining.trim();
+
+  if (foundTags.length === 0) {
     return <Text style={[styles.text, { color: c.textPrimary }]}>{content}</Text>;
   }
 
   return (
     <View style={styles.container}>
       <View style={styles.tagRow}>
-        {tags.map((tag, i) => (
-          <View key={i} style={[styles.badge, { backgroundColor: getTagColor(tag) + '20' }]}>
-            <Text style={[styles.badgeText, { color: getTagColor(tag) }]}>{tag}</Text>
+        {foundTags.map((tag, i) => (
+          <View key={i} style={[styles.badge, { backgroundColor: tag.color + '20' }]}>
+            <Text style={[styles.badgeText, { color: tag.color }]}>{tag.label}</Text>
           </View>
         ))}
       </View>
