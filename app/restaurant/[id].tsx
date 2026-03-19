@@ -3,7 +3,6 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocalSearchParams, Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn } from 'react-native-reanimated';
-import BottomSheet from '@gorhom/bottom-sheet';
 import { RestaurantDetail, Comment } from '../../types';
 import { TaggedContent } from '../../components/TaggedContent';
 import { restaurantApi } from '../../api/restaurant';
@@ -14,7 +13,6 @@ import { showError, showInfo } from '../../utils/toast';
 import { mediumTap, lightTap, successTap } from '../../utils/haptics';
 import RestaurantCardSkeleton from '../../components/RestaurantCardSkeleton';
 import Skeleton from '../../components/Skeleton';
-import { CollectionSheet } from '../../components/CollectionSheet';
 
 export default function RestaurantDetailScreen() {
   const c = useTheme();
@@ -29,7 +27,6 @@ export default function RestaurantDetailScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [visitLoading, setVisitLoading] = useState(false);
 
-  const collectionSheetRef = useRef<BottomSheet>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -69,18 +66,6 @@ export default function RestaurantDetailScreen() {
     }
   };
 
-  const handleLike = () => {
-    if (!isAuthenticated) {
-      router.push('/login');
-      return;
-    }
-    mediumTap();
-    collectionSheetRef.current?.snapToIndex(0);
-  };
-
-  const handleCollectionComplete = (isLiked: boolean, likeCount: number) => {
-    setRestaurant(prev => prev ? { ...prev, isLiked, likeCount } : null);
-  };
 
   const handleSubmitComment = async () => {
     if (!isAuthenticated) {
@@ -210,14 +195,7 @@ export default function RestaurantDetailScreen() {
                 )}
               </View>
               <View style={styles.actions}>
-                <TouchableOpacity onPress={handleLike} style={styles.actionButton}>
-                  <Ionicons
-                    name={restaurant.isLiked ? 'heart' : 'heart-outline'}
-                    size={26}
-                    color={restaurant.isLiked ? c.primary : c.textSecondary}
-                  />
-                  <Text style={[styles.actionCount, { color: c.textSecondary }]}>{restaurant.likeCount}</Text>
-                </TouchableOpacity>
+                <Text style={[styles.visitCountBadge, { color: c.textSecondary }]}>👣 {restaurant.visitCount}회</Text>
               </View>
             </View>
 
@@ -341,12 +319,6 @@ export default function RestaurantDetailScreen() {
         </View>
       </KeyboardAvoidingView>
 
-      {/* 컬렉션 바텀시트 */}
-      <CollectionSheet
-        bottomSheetRef={collectionSheetRef}
-        restaurantId={Number(id)}
-        onComplete={handleCollectionComplete}
-      />
     </>
   );
 }
@@ -365,7 +337,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10, paddingVertical: 4,
     borderRadius: 12, fontSize: 13,
   },
-  actions: { flexDirection: 'row', gap: 12 },
+  actions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  visitCountBadge: { fontSize: 14, fontWeight: '600' },
   actionButton: { alignItems: 'center' },
   actionCount: { fontSize: 12, marginTop: 2 },
   naverMapButton: {
