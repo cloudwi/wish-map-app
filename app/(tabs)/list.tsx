@@ -11,7 +11,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { lightTap } from '../../utils/haptics';
 const KOREA_BOUNDS = { minLat: 33, maxLat: 38.5, minLng: 124, maxLng: 132 };
 
-type SortBy = 'latest' | 'likes';
+type SortBy = 'latest' | 'visits';
 
 export default function ListScreen() {
   const c = useTheme();
@@ -68,8 +68,8 @@ export default function ListScreen() {
       );
     }
 
-    if (sortBy === 'likes') {
-      result = [...result].sort((a, b) => b.likeCount - a.likeCount);
+    if (sortBy === 'visits') {
+      result = [...result].sort((a, b) => b.visitCount - a.visitCount);
     }
 
     return result;
@@ -132,14 +132,14 @@ export default function ListScreen() {
       <View style={styles.sortRow}>
         <Text style={[styles.resultCount, { color: c.textSecondary }]}>{filteredRestaurants.length}개</Text>
         <View style={styles.sortBtns}>
-          {(['latest', 'likes'] as const).map((s) => (
+          {(['latest', 'visits'] as const).map((s) => (
             <TouchableOpacity
               key={s}
               style={[styles.sortBtn, sortBy === s && { backgroundColor: c.chipBg }]}
               onPress={() => { lightTap(); setSortBy(s); }}
             >
               <Text style={[styles.sortText, { color: c.textDisabled }, sortBy === s && { color: c.textPrimary, fontWeight: '600' }]}>
-                {s === 'latest' ? '최신순' : '좋아요순'}
+                {s === 'latest' ? '최신순' : '방문순'}
               </Text>
             </TouchableOpacity>
           ))}
