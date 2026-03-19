@@ -45,8 +45,8 @@ export default function MapScreen() {
   const mapRef = useRef<NaverMapViewRef>(null);
   const currentBoundsRef = useRef<MapBounds>(INITIAL_BOUNDS);
   const currentCameraRef = useRef<{ latitude: number; longitude: number; zoom: number }>({ latitude: 37.5665, longitude: 126.9780, zoom: 14 });
-  const defaultSnapPoints = useMemo(() => ['18%', '55%', '75%', '90%'], []);
-  const placeSnapPoints = useMemo(() => ['18%', '44%'], []);
+  const defaultSnapPoints = useMemo(() => ['28%', '55%', '75%', '90%'], []);
+  const placeSnapPoints = useMemo(() => ['28%', '50%'], []);
   const snapPoints = selectedPlace ? placeSnapPoints : defaultSnapPoints;
 
   useEffect(() => {
