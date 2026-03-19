@@ -45,7 +45,9 @@ export default function MapScreen() {
   const mapRef = useRef<NaverMapViewRef>(null);
   const currentBoundsRef = useRef<MapBounds>(INITIAL_BOUNDS);
   const currentCameraRef = useRef<{ latitude: number; longitude: number; zoom: number }>({ latitude: 37.5665, longitude: 126.9780, zoom: 14 });
-  const snapPoints = useMemo(() => ['18%', '55%', '75%', '90%'], []);
+  const defaultSnapPoints = useMemo(() => ['18%', '55%', '75%', '90%'], []);
+  const placeSnapPoints = useMemo(() => ['18%', '44%'], []);
+  const snapPoints = selectedPlace ? placeSnapPoints : defaultSnapPoints;
 
   useEffect(() => {
     if (isAuthenticated) fetchGroups();
@@ -122,7 +124,7 @@ export default function MapScreen() {
       longitude: place.lng,
       zoom: 16,
     });
-    bottomSheetRef.current?.snapToIndex(2);
+    bottomSheetRef.current?.snapToIndex(1);
   };
 
   const closePlaceDetail = () => {
@@ -205,7 +207,7 @@ export default function MapScreen() {
       } catch {}
     }
     setSelectedPlace(place);
-    bottomSheetRef.current?.snapToIndex(1);
+    bottomSheetRef.current?.snapToIndex(2);
   }, []);
 
   const renderListItem = useCallback(({ item, index }: { item: Restaurant; index: number }) => (

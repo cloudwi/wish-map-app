@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, ActivityIndicator, Image, ScrollView } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import Animated, { FadeIn } from 'react-native-reanimated';
@@ -11,8 +11,8 @@ import { useTheme } from '../hooks/useTheme';
 import { lightTap, successTap } from '../utils/haptics';
 import { showError, showSuccess } from '../utils/toast';
 import { getErrorMessage } from '../utils/getErrorMessage';
-import { formatRelativeDate } from '../utils/formatDate';
 import { TaggedContent } from './TaggedContent';
+
 
 const VISIT_DISTANCE_LIMIT = 100; // meters
 
@@ -42,16 +42,20 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
   const { isAuthenticated } = useAuthStore();
   const [stats, setStats] = useState<PlaceStatsResponse | null | undefined>(undefined);
 
+  // TODO: 테스트용 목데이터 — 나중에 제거
   useEffect(() => {
-    if (!place.id) {
-      setStats(null);
-      return;
-    }
-    setStats(undefined);
-    restaurantApi.getPlaceStats(place.id).then((data) => {
-      setStats(data);
-      if (data?.visitedToday) setVisitedToday(true);
-    }).catch(() => setStats(null));
+    setStats({
+      restaurantId: 1,
+      visitCount: 12,
+      avgRating: null,
+      visitedToday: false,
+      recentReviews: [{
+        nickname: '깔끔한토끼700',
+        profileImage: null,
+        content: '#또 갈 집 #숨은 맛집 #점심 맛집 #회식 추천 #혼밥 성지 #줄 서는 집 #가성비 갑 #뷰 맛집 여기 진짜 점심마다 줄 서는 집인데 웨이팅 해도 갈 가치가 있어요! 사장님도 친절하시고 반찬도 리필 잘 해주시고 특히 된장찌개가 진짜 집밥 느낌이라 매일 가고 싶은 곳',
+        createdAt: '2026-03-19T10:30:00',
+      }],
+    });
   }, [place.id]);
 
   const [visitLoading, setVisitLoading] = useState(false);
@@ -147,7 +151,6 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
       entering={FadeIn.duration(200)}
       style={[styles.container, { paddingBottom: insets.bottom + TAB_BAR_HEIGHT }]}
     >
-      <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
       {/* 썸네일 + 장소명 + 닫기 */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -195,8 +198,8 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
             onPress={() => onOpenNaverMap(place)}
             activeOpacity={0.75}
           >
-            <Ionicons name="map-outline" size={12} color={c.success} />
-            <Text style={[styles.actionPillText, { color: c.success }]}>지도</Text>
+            <Ionicons name="map-outline" size={15} color={c.success} />
+            <Text style={[styles.actionPillText, { color: c.success }]}>네이버 지도</Text>
           </TouchableOpacity>
           {place.phone ? (
             <TouchableOpacity
@@ -212,47 +215,32 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
       </View>
 
       {/* 리뷰 섹션 */}
-      <View style={[styles.statsSection, { borderTopColor: c.divider }]}>
-        {stats === undefined ? (
-          <ActivityIndicator size="small" color={c.textDisabled} />
-        ) : stats === null || stats.visitCount === 0 ? (
-          <Text style={[styles.statsEmpty, { color: c.textDisabled }]}>
-            아직 방문 기록이 없어요. 첫 번째가 되어보세요! 🎉
-          </Text>
-        ) : stats.recentReviews.length === 0 ? (
-          <Text style={[styles.statsEmpty, { color: c.textDisabled }]}>
-            아직 리뷰가 없어요. 첫 리뷰를 남겨보세요!
-          </Text>
-        ) : (
-          <View style={styles.reviewList}>
-            <View style={styles.reviewItem}>
-              <View style={styles.reviewHeader}>
-                <Text style={[styles.reviewNickname, { color: c.textSecondary }]} numberOfLines={1}>
-                  👤 {stats.recentReviews[0].nickname}
-                </Text>
-                {stats.recentReviews[0].createdAt && (
-                  <Text style={[styles.reviewDate, { color: c.textTertiary }]}>
-                    {formatRelativeDate(stats.recentReviews[0].createdAt)}
-                  </Text>
-                )}
-              </View>
-              <TaggedContent content={stats.recentReviews[0].content} />
-            </View>
-            {stats.recentReviews.length > 1 && (
-              <TouchableOpacity
-                onPress={() => { lightTap(); router.push(`/restaurant/${stats.restaurantId}`); }}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.moreReviews, { color: c.textTertiary }]}>
-                  리뷰 {stats.recentReviews.length}개 더보기 &gt;
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
+      <View style={[styles.reviewSection, { borderTopColor: c.divider }]}>
+        {stats && stats.recentReviews.length > 0 ? (
+          <>
+            <TaggedContent content={stats.recentReviews[0].content} />
+            <TouchableOpacity
+              style={styles.reviewMoreBtn}
+              onPress={() => { lightTap(); router.push(`/restaurant/${stats.restaurantId}`); }}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.reviewMoreText, { color: c.textTertiary }]}>더보기</Text>
+              <Ionicons name="chevron-forward" size={14} color={c.textTertiary} />
+            </TouchableOpacity>
+          </>
+        ) : stats !== undefined ? (
+          <TouchableOpacity
+            style={styles.reviewMoreBtn}
+            onPress={handleReport}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.reviewMoreText, { color: c.textTertiary }]}>
+              첫 리뷰를 작성해보세요!
+            </Text>
+            <Ionicons name="chevron-forward" size={14} color={c.textTertiary} />
+          </TouchableOpacity>
+        ) : null}
       </View>
-
-      </ScrollView>
 
       {/* CTA 버튼 - 하단 고정 */}
       <View style={styles.ctas}>
@@ -302,10 +290,6 @@ const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 16,
   },
-  scrollContent: {
-    maxHeight: 220,
-  },
-
   // Header
   thumbnail: {
     width: 52,
@@ -391,69 +375,31 @@ const styles = StyleSheet.create({
   actionPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 12,
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 14,
   },
   actionPillText: {
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: '600',
   },
 
-  // Stats section
-  statsSection: {
+  // Review section
+  reviewSection: {
     paddingVertical: 8,
     borderTopWidth: 0.5,
-    minHeight: 30,
-    justifyContent: 'center',
+    gap: 6,
   },
-  statsEmpty: {
-    fontSize: 12,
-    textAlign: 'center',
-  },
-  statsSummary: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  statItem: {
+  reviewMoreBtn: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 4,
   },
-  statEmoji: {
-    fontSize: 13,
-  },
-  statValue: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  reviewList: {
-    gap: 8,
-  },
-  moreReviews: {
+  reviewMoreText: {
     fontSize: 12,
-    textAlign: 'center',
-    paddingTop: 4,
-  },
-  reviewItem: {
-    gap: 2,
-  },
-  reviewHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  reviewNickname: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  reviewDate: {
-    fontSize: 10,
-  },
-  reviewContent: {
-    fontSize: 12,
-    lineHeight: 17,
+    fontWeight: '500',
   },
 
   // CTA buttons

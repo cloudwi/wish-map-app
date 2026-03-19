@@ -90,7 +90,7 @@ export default function RestaurantDetailScreen() {
         commentCount: prev.commentCount + 1,
       } : null);
     } catch (error) {
-      showError('오류', '댓글 작성 중 오류가 발생했습니다.');
+      showError('오류', '리뷰 작성 중 오류가 발생했습니다.');
     } finally {
       setSubmitting(false);
     }
@@ -267,10 +267,10 @@ export default function RestaurantDetailScreen() {
             </View>
           </Animated.View>
 
-          {/* 댓글 섹션 */}
+          {/* 리뷰 섹션 */}
           <View style={styles.commentSection}>
             <Text style={[styles.sectionTitle, { color: c.textPrimary }]}>
-              댓글 {restaurant.commentCount}개
+              리뷰 {restaurant.commentCount}개
             </Text>
 
             {comments.map((comment, index) => (
@@ -300,18 +300,18 @@ export default function RestaurantDetailScreen() {
               <View style={styles.noCommentsWrap}>
                 <Ionicons name="chatbubble-outline" size={32} color={c.textDisabled} />
                 <Text style={[styles.noComments, { color: c.textSecondary }]}>
-                  아직 댓글이 없습니다. 첫 댓글을 남겨보세요!
+                  아직 리뷰이 없습니다. 첫 리뷰을 남겨보세요!
                 </Text>
               </View>
             )}
           </View>
         </ScrollView>
 
-        {/* 댓글 입력 - 하단 고정 */}
+        {/* 리뷰 입력 - 하단 고정 */}
         <View style={[styles.commentInputFixed, { backgroundColor: c.surface, borderTopColor: c.divider }]}>
           <TextInput
             style={[styles.commentInput, { borderColor: c.border, backgroundColor: c.inputBg, color: c.textPrimary }]}
-            placeholder="댓글을 입력하세요"
+            placeholder="리뷰을 입력하세요"
             placeholderTextColor={c.textDisabled}
             value={newComment}
             onChangeText={setNewComment}
