@@ -181,36 +181,34 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
         </TouchableOpacity>
       </View>
 
-      {/* 주소 */}
-      {address ? (
-        <View style={styles.infoSection}>
+      {/* 주소 + 액션 */}
+      <View style={styles.subInfo}>
+        {address ? (
           <View style={styles.infoRow}>
-            <Ionicons name="location-outline" size={13} color={c.textTertiary} />
-            <Text style={[styles.infoText, { color: c.textSecondary }]} numberOfLines={1}>{address}</Text>
+            <Ionicons name="location-outline" size={12} color={c.textTertiary} />
+            <Text style={[styles.infoText, { color: c.textTertiary }]} numberOfLines={1}>{address}</Text>
           </View>
-        </View>
-      ) : null}
-
-      {/* 외부 링크 액션 */}
-      <View style={[styles.actions, { borderTopColor: c.divider, borderBottomColor: c.divider }]}>
-        <TouchableOpacity
-          style={[styles.actionPill, { backgroundColor: c.successBg }]}
-          onPress={() => onOpenNaverMap(place)}
-          activeOpacity={0.75}
-        >
-          <Ionicons name="map-outline" size={14} color={c.success} />
-          <Text style={[styles.actionPillText, { color: c.success }]}>네이버 지도</Text>
-        </TouchableOpacity>
-        {place.phone ? (
+        ) : null}
+        <View style={styles.actions}>
           <TouchableOpacity
-            style={[styles.actionPill, { backgroundColor: c.infoBg }]}
-            onPress={() => onCallPhone(place.phone)}
+            style={[styles.actionPill, { backgroundColor: c.successBg }]}
+            onPress={() => onOpenNaverMap(place)}
             activeOpacity={0.75}
           >
-            <Ionicons name="call-outline" size={14} color={c.info} />
-            <Text style={[styles.actionPillText, { color: c.info }]}>전화</Text>
+            <Ionicons name="map-outline" size={12} color={c.success} />
+            <Text style={[styles.actionPillText, { color: c.success }]}>지도</Text>
           </TouchableOpacity>
-        ) : null}
+          {place.phone ? (
+            <TouchableOpacity
+              style={[styles.actionPill, { backgroundColor: c.infoBg }]}
+              onPress={() => onCallPhone(place.phone)}
+              activeOpacity={0.75}
+            >
+              <Ionicons name="call-outline" size={12} color={c.info} />
+              <Text style={[styles.actionPillText, { color: c.info }]}>전화</Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
       </View>
 
       {/* 리뷰 섹션 */}
@@ -331,7 +329,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    marginBottom: 10,
+    marginBottom: 8,
   },
   headerInfo: {
     flex: 1,
@@ -347,9 +345,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   placeName: {
-    fontSize: 19,
+    fontSize: 17,
     fontWeight: '700',
-    lineHeight: 24,
+    lineHeight: 22,
   },
   categoryBadge: {
     alignSelf: 'flex-start',
@@ -369,49 +367,45 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  // Info rows
-  infoSection: {
-    marginBottom: 12,
+  // Sub info (address + actions)
+  subInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-  },
-  infoText: {
-    fontSize: 12,
+    gap: 4,
     flex: 1,
   },
-
-  // Action pills
+  infoText: {
+    fontSize: 11,
+    flex: 1,
+  },
   actions: {
     flexDirection: 'row',
-    gap: 8,
-    paddingVertical: 12,
-    borderTopWidth: 0.5,
-    borderBottomWidth: 0.5,
-    marginBottom: 14,
+    gap: 6,
   },
   actionPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 11,
-    paddingVertical: 7,
-    borderRadius: 16,
-    alignSelf: 'flex-start',
+    gap: 3,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 12,
   },
   actionPillText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
   },
 
   // Stats section
   statsSection: {
-    paddingVertical: 12,
+    paddingVertical: 8,
     borderTopWidth: 0.5,
-    marginBottom: 14,
-    minHeight: 36,
+    minHeight: 30,
     justifyContent: 'center',
   },
   statsEmpty: {

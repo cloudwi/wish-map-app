@@ -1,4 +1,4 @@
-import { StyleSheet, View, Text } from 'react-native';
+import { StyleSheet, View, Text, ScrollView } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
 
 const KNOWN_TAGS: { label: string; color: string }[] = [
@@ -47,14 +47,14 @@ export function TaggedContent({ content }: Props) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.tagRow}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tagRow}>
         {foundTags.map((tag, i) => (
           <View key={i} style={[styles.badge, { backgroundColor: tag.color + '20' }]}>
             <Text style={[styles.badgeText, { color: tag.color }]}>{tag.label}</Text>
           </View>
         ))}
-      </View>
-      {text ? <Text style={[styles.text, { color: c.textPrimary }]}>{text}</Text> : null}
+      </ScrollView>
+      {text ? <Text style={[styles.text, { color: c.textPrimary }]} numberOfLines={2}>{text}</Text> : null}
     </View>
   );
 }
