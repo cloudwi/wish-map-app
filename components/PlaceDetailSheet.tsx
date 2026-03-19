@@ -221,24 +221,44 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
           </Text>
         ) : (
           <View style={styles.reviewList}>
-            {stats.recentReviews.map((review, i) => (
-              <View key={i} style={styles.reviewItem}>
-                <View style={styles.reviewHeader}>
-                  <Text style={[styles.reviewNickname, { color: c.textSecondary }]} numberOfLines={1}>
-                    👤 {review.nickname}
+            <View style={styles.reviewItem}>
+              <View style={styles.reviewHeader}>
+                <Text style={[styles.reviewNickname, { color: c.textSecondary }]} numberOfLines={1}>
+                  👤 {stats.recentReviews[0].nickname}
+                </Text>
+                {stats.recentReviews[0].createdAt && (
+                  <Text style={[styles.reviewDate, { color: c.textTertiary }]}>
+                    {formatRelativeDate(stats.recentReviews[0].createdAt)}
                   </Text>
-                  {review.createdAt && (
-                    <Text style={[styles.reviewDate, { color: c.textTertiary }]}>
-                      {formatRelativeDate(review.createdAt)}
-                    </Text>
-                  )}
-                </View>
-                <TaggedContent content={review.content} />
+                )}
               </View>
-            ))}
+              <TaggedContent content={stats.recentReviews[0].content} />
+            </View>
+            {stats.recentReviews.length > 1 && (
+              <TouchableOpacity
+                onPress={() => { lightTap(); router.push(`/restaurant/${stats.restaurantId}`); }}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.moreReviews, { color: c.textTertiary }]}>
+                  리뷰 {stats.recentReviews.length}개 더보기 &gt;
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
       </View>
+
+      {/* 상세 페이지 이동 */}
+      {stats && stats.restaurantId && (
+        <TouchableOpacity
+          style={[styles.detailLink, { borderColor: c.border }]}
+          onPress={() => { lightTap(); router.push(`/restaurant/${stats.restaurantId}`); }}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.detailLinkText, { color: c.textSecondary }]}>맛집 상세 보기</Text>
+          <Ionicons name="chevron-forward" size={16} color={c.textTertiary} />
+        </TouchableOpacity>
+      )}
       </ScrollView>
 
       {/* CTA 버튼 - 하단 고정 */}
@@ -415,6 +435,24 @@ const styles = StyleSheet.create({
   },
   reviewList: {
     gap: 8,
+  },
+  moreReviews: {
+    fontSize: 12,
+    textAlign: 'center',
+    paddingTop: 4,
+  },
+  detailLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: 10,
+    borderTopWidth: 0.5,
+    marginTop: 8,
+  },
+  detailLinkText: {
+    fontSize: 13,
+    fontWeight: '500',
   },
   reviewItem: {
     gap: 2,
