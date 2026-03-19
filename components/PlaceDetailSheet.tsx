@@ -52,6 +52,7 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
 
   const [visitLoading, setVisitLoading] = useState(false);
   const [reportLoading, setReportLoading] = useState(false);
+  const [visitedToday, setVisitedToday] = useState(false);
 
   const getUserLocation = async () => {
     const Location = require('expo-location') as typeof import('expo-location');
@@ -88,6 +89,7 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
       });
       successTap();
       showSuccess('방문 인증 완료!', '방문이 기록되었습니다.');
+      setVisitedToday(true);
       if (place.id) {
         restaurantApi.getPlaceStats(place.id).then(setStats).catch(() => {});
       }
@@ -222,13 +224,18 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
       <View style={styles.ctas}>
         <View style={styles.ctaRow}>
           <TouchableOpacity
-            style={[styles.visitBtn, { backgroundColor: c.primary }, visitLoading && { opacity: 0.6 }]}
+            style={[styles.visitBtn, { backgroundColor: visitedToday ? c.successBg : c.primary }, (visitLoading || visitedToday) && { opacity: visitedToday ? 1 : 0.6 }]}
             onPress={handleVisit}
             activeOpacity={0.8}
-            disabled={visitLoading || reportLoading}
+            disabled={visitLoading || reportLoading || visitedToday}
           >
             {visitLoading ? (
               <ActivityIndicator size="small" color="#fff" />
+            ) : visitedToday ? (
+              <>
+                <Ionicons name="checkmark-circle" size={17} color={c.success} />
+                <Text style={[styles.visitBtnText, { color: c.success }]}>오늘 완료</Text>
+              </>
             ) : (
               <>
                 <Ionicons name="footsteps-outline" size={17} color="#fff" />
