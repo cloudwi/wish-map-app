@@ -158,11 +158,16 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
         )}
         <View style={styles.headerInfo}>
           <Text style={[styles.placeName, { color: c.textPrimary }]} numberOfLines={1}>{place.name}</Text>
-          {place.category ? (
-            <View style={[styles.categoryBadge, { backgroundColor: c.categoryBadgeBg }]}>
-              <Text style={[styles.categoryText, { color: c.categoryBadgeText }]} numberOfLines={1}>{place.category}</Text>
-            </View>
-          ) : null}
+          <View style={styles.headerMeta}>
+            {place.category ? (
+              <View style={[styles.categoryBadge, { backgroundColor: c.categoryBadgeBg }]}>
+                <Text style={[styles.categoryText, { color: c.categoryBadgeText }]} numberOfLines={1}>{place.category}</Text>
+              </View>
+            ) : null}
+            {stats && stats.visitCount > 0 && (
+              <Text style={[styles.visitCountInline, { color: c.textSecondary }]}>👣 {stats.visitCount}회</Text>
+            )}
+          </View>
         </View>
         <TouchableOpacity style={[styles.closeBtn, { backgroundColor: c.closeButtonBg }]} onPress={onClose}>
           <Ionicons name="close" size={18} color={c.textSecondary} />
@@ -201,7 +206,7 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
         ) : null}
       </View>
 
-      {/* 통계 섹션 */}
+      {/* 리뷰 섹션 */}
       <View style={[styles.statsSection, { borderTopColor: c.divider }]}>
         {stats === undefined ? (
           <ActivityIndicator size="small" color={c.textDisabled} />
@@ -209,36 +214,30 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
           <Text style={[styles.statsEmpty, { color: c.textDisabled }]}>
             아직 방문 기록이 없어요. 첫 번째가 되어보세요! 🎉
           </Text>
+        ) : stats.recentReviews.length === 0 ? (
+          <Text style={[styles.statsEmpty, { color: c.textDisabled }]}>
+            아직 리뷰가 없어요. 첫 리뷰를 남겨보세요!
+          </Text>
         ) : (
-          <>
-            <View style={styles.statsSummary}>
-              <View style={styles.statItem}>
-                <Text style={styles.statEmoji}>👣</Text>
-                <Text style={[styles.statValue, { color: c.textPrimary }]}>방문 {stats.visitCount}회</Text>
-              </View>
-            </View>
-            {stats.recentReviews.length > 0 && (
-              <View style={[styles.reviewList, { borderTopColor: c.divider }]}>
-                {stats.recentReviews.map((review, i) => (
-                  <View key={i} style={styles.reviewItem}>
-                    <View style={styles.reviewHeader}>
-                      <Text style={[styles.reviewNickname, { color: c.textSecondary }]} numberOfLines={1}>
-                        👤 {review.nickname}
-                      </Text>
-                      {review.createdAt && (
-                        <Text style={[styles.reviewDate, { color: c.textTertiary }]}>
-                          {formatRelativeDate(review.createdAt)}
-                        </Text>
-                      )}
-                    </View>
-                    <Text style={[styles.reviewContent, { color: c.textPrimary }]} numberOfLines={2}>
-                      {review.content}
+          <View style={styles.reviewList}>
+            {stats.recentReviews.map((review, i) => (
+              <View key={i} style={styles.reviewItem}>
+                <View style={styles.reviewHeader}>
+                  <Text style={[styles.reviewNickname, { color: c.textSecondary }]} numberOfLines={1}>
+                    👤 {review.nickname}
+                  </Text>
+                  {review.createdAt && (
+                    <Text style={[styles.reviewDate, { color: c.textTertiary }]}>
+                      {formatRelativeDate(review.createdAt)}
                     </Text>
-                  </View>
-                ))}
+                  )}
+                </View>
+                <Text style={[styles.reviewContent, { color: c.textPrimary }]} numberOfLines={2}>
+                  {review.content}
+                </Text>
               </View>
-            )}
-          </>
+            ))}
+          </View>
         )}
       </View>
       </ScrollView>
@@ -316,7 +315,16 @@ const styles = StyleSheet.create({
   },
   headerInfo: {
     flex: 1,
-    gap: 5,
+    gap: 4,
+  },
+  headerMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  visitCountInline: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   placeName: {
     fontSize: 19,
@@ -407,9 +415,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   reviewList: {
-    marginTop: 10,
-    paddingTop: 10,
-    borderTopWidth: 0.5,
     gap: 8,
   },
   reviewItem: {
