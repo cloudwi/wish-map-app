@@ -42,20 +42,16 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
   const { isAuthenticated } = useAuthStore();
   const [stats, setStats] = useState<PlaceStatsResponse | null | undefined>(undefined);
 
-  // TODO: 테스트용 목데이터 — 나중에 제거
   useEffect(() => {
-    setStats({
-      restaurantId: 1,
-      visitCount: 12,
-      avgRating: null,
-      visitedToday: false,
-      recentReviews: [{
-        nickname: '깔끔한토끼700',
-        profileImage: null,
-        content: '#또 갈 집 #숨은 맛집 #점심 맛집 #회식 추천 #혼밥 성지 #줄 서는 집 #가성비 갑 #뷰 맛집 여기 진짜 점심마다 줄 서는 집인데 웨이팅 해도 갈 가치가 있어요! 사장님도 친절하시고 반찬도 리필 잘 해주시고 특히 된장찌개가 진짜 집밥 느낌이라 매일 가고 싶은 곳',
-        createdAt: '2026-03-19T10:30:00',
-      }],
-    });
+    if (!place.id) {
+      setStats(null);
+      return;
+    }
+    setStats(undefined);
+    restaurantApi.getPlaceStats(place.id).then((data) => {
+      setStats(data);
+      if (data?.visitedToday) setVisitedToday(true);
+    }).catch(() => setStats(null));
   }, [place.id]);
 
   const [visitLoading, setVisitLoading] = useState(false);
