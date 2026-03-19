@@ -290,10 +290,9 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 16,
-    flex: 1,
   },
   scrollContent: {
-    flex: 1,
+    maxHeight: 280,
   },
 
   // Header
