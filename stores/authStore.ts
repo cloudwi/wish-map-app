@@ -9,6 +9,7 @@ interface AuthState {
   isLoading: boolean;
   login: (provider: AuthProvider, accessToken: string, nickname?: string) => Promise<void>;
   logout: () => Promise<void>;
+  forceLogout: () => void;
   checkAuth: () => Promise<void>;
   setUser: (user: User | null) => void;
 }
@@ -38,6 +39,10 @@ export const useAuthStore = create<AuthState>((set) => ({
       await deleteItem('refreshToken');
       set({ user: null, isAuthenticated: false });
     }
+  },
+
+  forceLogout: () => {
+    set({ user: null, isAuthenticated: false });
   },
 
   checkAuth: async () => {

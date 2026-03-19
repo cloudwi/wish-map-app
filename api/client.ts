@@ -40,6 +40,18 @@ apiClient.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
+    // 403: 유저가 DB에 없는 경우 (DB 초기화 등) → 강제 로그아웃
+    if (error.response?.status === 403) {
+      const token = await getItem('accessToken');
+      if (token) {
+        await deleteItem('accessToken');
+        await deleteItem('refreshToken');
+        const { useAuthStore } = require('../stores/authStore');
+        useAuthStore.getState().forceLogout();
+      }
+      return Promise.reject(error);
+    }
+
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
