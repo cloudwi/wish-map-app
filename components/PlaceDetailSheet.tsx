@@ -145,7 +145,7 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
   return (
     <Animated.View
       entering={FadeIn.duration(200)}
-      style={[styles.container, { paddingBottom: insets.bottom + TAB_BAR_HEIGHT }]}
+      style={[styles.container, { paddingBottom: insets.bottom + TAB_BAR_HEIGHT + 20 }]}
     >
       {/* 썸네일 + 장소명 + 닫기 */}
       <View style={styles.header}>

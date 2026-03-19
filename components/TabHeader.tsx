@@ -38,7 +38,6 @@ function AuthenticatedActions() {
         onPress={() => { lightTap(); router.push('/notifications'); }}
       >
         <Ionicons name="notifications-outline" size={26} color={c.textPrimary} />
-        <View style={[styles.badge, { borderColor: c.headerBg, backgroundColor: c.primary }]} />
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.iconBtn}

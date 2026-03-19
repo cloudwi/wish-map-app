@@ -46,7 +46,7 @@ export default function MapScreen() {
   const currentBoundsRef = useRef<MapBounds>(INITIAL_BOUNDS);
   const currentCameraRef = useRef<{ latitude: number; longitude: number; zoom: number }>({ latitude: 37.5665, longitude: 126.9780, zoom: 14 });
   const defaultSnapPoints = useMemo(() => ['28%', '55%', '75%', '90%'], []);
-  const placeSnapPoints = useMemo(() => ['28%', '50%'], []);
+  const placeSnapPoints = useMemo(() => ['28%', '55%'], []);
   const snapPoints = selectedPlace ? placeSnapPoints : defaultSnapPoints;
 
   useEffect(() => {
