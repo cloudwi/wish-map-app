@@ -20,6 +20,7 @@ export interface PlaceStatsResponse {
   restaurantId: number;
   visitCount: number;
   avgRating: number | null;
+  visitedToday: boolean;
   recentReviews: ReviewSummary[];
 }
 

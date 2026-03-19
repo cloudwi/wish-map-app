@@ -47,7 +47,10 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
       return;
     }
     setStats(undefined);
-    restaurantApi.getPlaceStats(place.id).then(setStats).catch(() => setStats(null));
+    restaurantApi.getPlaceStats(place.id).then((data) => {
+      setStats(data);
+      if (data?.visitedToday) setVisitedToday(true);
+    }).catch(() => setStats(null));
   }, [place.id]);
 
   const [visitLoading, setVisitLoading] = useState(false);
