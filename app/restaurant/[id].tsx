@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import BottomSheet from '@gorhom/bottom-sheet';
 import { RestaurantDetail, Comment } from '../../types';
+import { TaggedContent } from '../../components/TaggedContent';
 import { restaurantApi } from '../../api/restaurant';
 import { commentApi } from '../../api/comment';
 import { useAuthStore } from '../../stores/authStore';
@@ -294,13 +295,13 @@ export default function RestaurantDetailScreen() {
                     {comment.isEdited && ' (수정됨)'}
                   </Text>
                 </View>
-                <Text style={[
-                  styles.commentContent,
-                  { color: c.textPrimary },
-                  comment.isDeleted && { color: c.textTertiary, fontStyle: 'italic' },
-                ]}>
-                  {comment.content}
-                </Text>
+                {comment.isDeleted ? (
+                  <Text style={[styles.commentContent, { color: c.textTertiary, fontStyle: 'italic' }]}>
+                    {comment.content}
+                  </Text>
+                ) : (
+                  <TaggedContent content={comment.content} />
+                )}
               </Animated.View>
             ))}
 

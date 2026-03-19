@@ -12,6 +12,7 @@ import { lightTap, successTap } from '../utils/haptics';
 import { showError, showSuccess } from '../utils/toast';
 import { getErrorMessage } from '../utils/getErrorMessage';
 import { formatRelativeDate } from '../utils/formatDate';
+import { TaggedContent } from './TaggedContent';
 
 const VISIT_DISTANCE_LIMIT = 100; // meters
 
@@ -232,9 +233,7 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
                     </Text>
                   )}
                 </View>
-                <Text style={[styles.reviewContent, { color: c.textPrimary }]} numberOfLines={2}>
-                  {review.content}
-                </Text>
+                <TaggedContent content={review.content} />
               </View>
             ))}
           </View>
