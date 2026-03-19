@@ -127,6 +127,7 @@ export default function MapScreen() {
 
   const closePlaceDetail = () => {
     setSelectedPlace(null);
+    setSelected(null);
     bottomSheetRef.current?.snapToIndex(0);
   };
 
@@ -174,10 +175,36 @@ export default function MapScreen() {
     }
   }, []);
 
-  const handleMarkerClick = useCallback((restaurant: Restaurant) => {
+  const handleMarkerClick = useCallback(async (restaurant: Restaurant) => {
     lightTap();
     setSelected(restaurant);
-    setSelectedPlace(null);
+    // Restaurant를 PlaceResult로 변환하여 동일한 바텀시트 표시
+    const place: PlaceResult = {
+      id: restaurant.naverPlaceId || '',
+      name: restaurant.name,
+      address: '',
+      roadAddress: '',
+      lat: restaurant.lat,
+      lng: restaurant.lng,
+      category: restaurant.category || '',
+      phone: '',
+      link: '',
+    };
+    // naverPlaceId가 있으면 네이버 검색으로 주소/전화번호 보강
+    if (restaurant.naverPlaceId) {
+      try {
+        const { searchPlaces } = require('../../api/search');
+        const results = await searchPlaces(restaurant.name);
+        const match = results.find((r: PlaceResult) => `${r.id}` === restaurant.naverPlaceId);
+        if (match) {
+          place.address = match.address;
+          place.roadAddress = match.roadAddress;
+          place.phone = match.phone;
+          place.link = match.link;
+        }
+      } catch {}
+    }
+    setSelectedPlace(place);
     bottomSheetRef.current?.snapToIndex(1);
   }, []);
 
@@ -354,94 +381,6 @@ export default function MapScreen() {
             onCallPhone={callPhone}
             onVisitSuccess={() => fetchRestaurants(currentBoundsRef.current)}
           />
-        ) : selected ? (
-          <Animated.View entering={FadeIn.duration(200)} style={styles.preview}>
-            <View style={styles.previewHeader}>
-              <View style={{ flex: 1 }}>
-                <View style={styles.previewTitleRow}>
-                  <Text style={[styles.previewName, { color: c.textPrimary }]} numberOfLines={1}>{selected.name}</Text>
-                  {selected.category && (
-                    <Text style={[styles.previewCategory, { backgroundColor: c.categoryBadgeBg, color: c.categoryBadgeText }]}>{selected.category}</Text>
-                  )}
-                </View>
-                <Text style={[styles.previewLikes, { color: c.textSecondary }]}>👣 방문 {selected.visitCount}명</Text>
-              </View>
-              <TouchableOpacity
-                style={[styles.previewClose, { backgroundColor: c.closeButtonBg }]}
-                onPress={() => { setSelected(null); bottomSheetRef.current?.snapToIndex(0); }}
-              >
-                <Ionicons name="close" size={20} color={c.textSecondary} />
-              </TouchableOpacity>
-            </View>
-            <View style={styles.previewActions}>
-              <TouchableOpacity
-                style={[styles.previewVisitBtn, { backgroundColor: c.primary }]}
-                onPress={() => {
-                  lightTap();
-                  if (!isAuthenticated) { router.push('/login'); return; }
-                  (async () => {
-                    try {
-                      const Location = require('expo-location') as typeof LocationType;
-                      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-                      await restaurantApi.quickVisit({
-                        name: selected.name,
-                        lat: selected.lat,
-                        lng: selected.lng,
-                        userLat: loc.coords.latitude,
-                        userLng: loc.coords.longitude,
-                      });
-                      mediumTap();
-                      showSuccess('방문 인증 완료!', '방문이 기록되었습니다.');
-                      fetchRestaurants(currentBoundsRef.current);
-                    } catch (e: unknown) {
-                      showError('방문 인증 실패', getErrorMessage(e, '방문 인증 중 오류가 발생했습니다.'));
-                    }
-                  })();
-                }}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="footsteps-outline" size={16} color="#fff" />
-                <Text style={styles.previewActionText}>방문 인증</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.previewReviewBtn, { borderColor: c.primary }]}
-                onPress={() => {
-                  lightTap();
-                  if (!isAuthenticated) { router.push('/login'); return; }
-                  router.push({
-                    pathname: '/visit-review',
-                    params: {
-                      placeName: selected.name,
-                      placeLat: String(selected.lat),
-                      placeLng: String(selected.lng),
-                      placeCategory: selected.category || '',
-                    },
-                  });
-                }}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="create-outline" size={16} color={c.primary} />
-                <Text style={[styles.previewReviewText, { color: c.primary }]}>리뷰</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.previewDetailBtn, { backgroundColor: c.cardBg, borderColor: c.border, borderWidth: 1 }]}
-                onPress={() => { lightTap(); router.push(`/restaurant/${selected.id}`); }}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="chevron-forward" size={16} color={c.textSecondary} />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.listHeader}>
-              <Text style={[styles.listTitle, { color: c.textPrimary }]}>주변 맛집 {restaurants.length}개</Text>
-            </View>
-            <BottomSheetFlatList
-              data={restaurants.filter(r => r.id !== selected.id)}
-              keyExtractor={(item: Restaurant) => item.id.toString()}
-              renderItem={renderListItem}
-              contentContainerStyle={styles.listContent}
-            />
-          </Animated.View>
         ) : (
           <View style={styles.listWrap}>
             <View style={styles.listHeader}>

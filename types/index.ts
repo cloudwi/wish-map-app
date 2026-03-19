@@ -24,6 +24,7 @@ export interface Restaurant {
   name: string;
   lat: number;
   lng: number;
+  naverPlaceId: string | null;
   category: string | null;
   thumbnailImage: string | null;
   likeCount: number;
