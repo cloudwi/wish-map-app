@@ -66,7 +66,7 @@ const NaverMap = forwardRef<NaverMapViewRef, Props>(({
       isShowLocationButton={false}
       mapPadding={{ top: 120, bottom: 150 }}
     >
-      {restaurants.map((r) => {
+      {restaurants.filter((r) => !selectedPlace || (r.lat !== selectedPlace.lat || r.lng !== selectedPlace.lng)).map((r) => {
         const isSelected = selectedId === r.id;
         const hasVisits = r.visitCount > 0;
         return (
