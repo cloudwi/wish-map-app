@@ -42,7 +42,7 @@ export function TaggedContent({ content }: Props) {
   const text = remaining.trim();
 
   if (foundTags.length === 0) {
-    return <Text style={[styles.text, { color: c.textPrimary }]}>{content}</Text>;
+    return <Text style={[styles.text, { color: c.textPrimary }]} numberOfLines={2}>{content}</Text>;
   }
 
   return (

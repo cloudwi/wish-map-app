@@ -1,4 +1,4 @@
-import { StyleSheet, View, Text, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, TextInput } from 'react-native';
+import { StyleSheet, View, Text, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, TextInput, ScrollView } from 'react-native';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { MapListTabHeader } from '../../components/TabHeader';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,6 +8,7 @@ import { categoryApi, Category } from '../../api/category';
 import { RestaurantCard } from '../../components/RestaurantCard';
 import RestaurantCardSkeleton from '../../components/RestaurantCardSkeleton';
 import { useTheme } from '../../hooks/useTheme';
+import { useGroupStore } from '../../stores/groupStore';
 import { lightTap } from '../../utils/haptics';
 const KOREA_BOUNDS = { minLat: 33, maxLat: 38.5, minLng: 124, maxLng: 132 };
 
@@ -15,6 +16,7 @@ type SortBy = 'latest' | 'visits';
 
 export default function ListScreen() {
   const c = useTheme();
+  const { selectedGroupId } = useGroupStore();
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [categories, setCategories] = useState<string[]>(['전체']);
   const [loading, setLoading] = useState(true);
@@ -27,7 +29,7 @@ export default function ListScreen() {
 
   useEffect(() => {
     categoryApi.getCategories()
-      .then((data) => setCategories(['전체', ...data.map((c) => c.name)]))
+      .then((data) => setCategories(['전체', ...data.map((c) => c.name).filter(Boolean)]))
       .catch(() => {});
   }, []);
 
@@ -36,7 +38,10 @@ export default function ListScreen() {
       if (refresh) setRefreshing(true);
       else if (pageNum === 0) setLoading(true);
 
-      const response = await restaurantApi.getRestaurants(KOREA_BOUNDS, pageNum, 20);
+      const groupId = useGroupStore.getState().selectedGroupId;
+      const response = groupId
+        ? await restaurantApi.getGroupRestaurants(groupId, KOREA_BOUNDS)
+        : await restaurantApi.getRestaurants(KOREA_BOUNDS, pageNum, 20);
       setRestaurants(prev => pageNum === 0 ? response.content : [...prev, ...response.content]);
       setHasMore(!response.last);
       setPage(pageNum);
@@ -48,7 +53,7 @@ export default function ListScreen() {
     }
   }, []);
 
-  useEffect(() => { fetchRestaurants(0); }, [fetchRestaurants]);
+  useEffect(() => { fetchRestaurants(0); }, [fetchRestaurants, selectedGroupId]);
 
   const onRefresh = useCallback(() => fetchRestaurants(0, true), [fetchRestaurants]);
 
@@ -59,7 +64,7 @@ export default function ListScreen() {
   const filteredRestaurants = useMemo(() => {
     let result = selectedCategory === '전체'
       ? restaurants
-      : restaurants.filter(r => r.category === selectedCategory);
+      : restaurants.filter(r => r.category?.startsWith(selectedCategory));
 
     if (searchQuery.trim()) {
       const q = searchQuery.trim().toLowerCase();
@@ -109,15 +114,15 @@ export default function ListScreen() {
       </View>
 
       {/* 카테고리 필터 */}
-      <FlatList
+      <ScrollView
         horizontal
-        data={categories}
-        keyExtractor={(item) => item}
         showsHorizontalScrollIndicator={false}
         style={styles.categoryList}
         contentContainerStyle={styles.categoryContent}
-        renderItem={({ item }) => (
+      >
+        {categories.map((item) => (
           <TouchableOpacity
+            key={item}
             style={[styles.categoryBtn, { backgroundColor: c.chipBg }, selectedCategory === item && { backgroundColor: c.chipActiveBg }]}
             onPress={() => { lightTap(); setSelectedCategory(item); }}
           >
@@ -125,8 +130,8 @@ export default function ListScreen() {
               {item}
             </Text>
           </TouchableOpacity>
-        )}
-      />
+        ))}
+      </ScrollView>
 
       {/* 정렬 */}
       <View style={styles.sortRow}>
@@ -139,7 +144,7 @@ export default function ListScreen() {
               onPress={() => { lightTap(); setSortBy(s); }}
             >
               <Text style={[styles.sortText, { color: c.textDisabled }, sortBy === s && { color: c.textPrimary, fontWeight: '600' }]}>
-                {s === 'latest' ? '최신순' : '방문순'}
+                {s === 'latest' ? '최신순' : '방문자 순'}
               </Text>
             </TouchableOpacity>
           ))}
@@ -186,8 +191,8 @@ const styles = StyleSheet.create({
   searchIcon: { marginRight: 10 },
   searchInput: { flex: 1, fontSize: 15, paddingVertical: 0 },
   clearBtn: { padding: 8 },
-  categoryList: { backgroundColor: 'transparent', maxHeight: 56 },
-  categoryContent: { paddingHorizontal: 14, paddingVertical: 10, gap: 6 },
+  categoryList: { backgroundColor: 'transparent', flexGrow: 0, flexShrink: 0 },
+  categoryContent: { paddingHorizontal: 14, paddingVertical: 10, gap: 6, alignItems: 'center' },
   categoryBtn: {
     paddingHorizontal: 16, paddingVertical: 9,
     borderRadius: 18, marginRight: 6,

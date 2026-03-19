@@ -45,8 +45,8 @@ export default function MapScreen() {
   const mapRef = useRef<NaverMapViewRef>(null);
   const currentBoundsRef = useRef<MapBounds>(INITIAL_BOUNDS);
   const currentCameraRef = useRef<{ latitude: number; longitude: number; zoom: number }>({ latitude: 37.5665, longitude: 126.9780, zoom: 14 });
-  const defaultSnapPoints = useMemo(() => ['28%', '55%', '75%', '90%'], []);
-  const placeSnapPoints = useMemo(() => ['28%', '55%'], []);
+  const defaultSnapPoints = useMemo(() => ['28%', '55%', '75%'], []);
+  const placeSnapPoints = useMemo(() => ['28%', '38%'], []);
   const snapPoints = selectedPlace ? placeSnapPoints : defaultSnapPoints;
 
   useEffect(() => {
@@ -207,7 +207,7 @@ export default function MapScreen() {
       } catch {}
     }
     setSelectedPlace(place);
-    bottomSheetRef.current?.snapToIndex(2);
+    bottomSheetRef.current?.snapToIndex(1);
   }, []);
 
   const renderListItem = useCallback(({ item, index }: { item: Restaurant; index: number }) => (
@@ -231,11 +231,11 @@ export default function MapScreen() {
       {/* 검색바 */}
       <View style={[styles.searchContainer, { top: insets.top + 8 }]}>
         <View style={[styles.searchBar, { backgroundColor: c.surface, shadowColor: '#000' }, searchFocused && { shadowOpacity: 0.2, shadowRadius: 12 }]}>
-          <Ionicons name="search-outline" size={20} color={c.textTertiary} />
+          <Ionicons name="search-outline" size={20} color={c.textSecondary} />
           <TextInput
             style={[styles.searchInput, { color: c.textPrimary }]}
             placeholder="장소 검색"
-            placeholderTextColor={c.textTertiary}
+            placeholderTextColor={c.textSecondary}
             value={searchQuery}
             onChangeText={handleSearch}
             onFocus={() => setSearchFocused(true)}
@@ -370,6 +370,7 @@ export default function MapScreen() {
         ref={bottomSheetRef}
         index={0}
         snapPoints={snapPoints}
+        topInset={insets.top + 60}
         backgroundStyle={[styles.sheetBg, { backgroundColor: c.sheetBg }]}
         handleIndicatorStyle={{ backgroundColor: c.textDisabled, width: 40 }}
         enablePanDownToClose={false}

@@ -13,6 +13,7 @@
     },
     "preview": {
       "distribution": "store",
+      "autoIncrement": true,
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.wishmap.kr",
         "EXPO_PUBLIC_NAVER_MAP_CLIENT_ID": "o0vtdj20he",
