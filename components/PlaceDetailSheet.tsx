@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, ActivityIndicator, Image, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import Animated, { FadeIn } from 'react-native-reanimated';
@@ -146,6 +146,7 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
       entering={FadeIn.duration(200)}
       style={[styles.container, { paddingBottom: insets.bottom + TAB_BAR_HEIGHT }]}
     >
+      <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
       {/* 썸네일 + 장소명 + 닫기 */}
       <View style={styles.header}>
         {thumbnail ? (
@@ -240,8 +241,9 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
           </>
         )}
       </View>
+      </ScrollView>
 
-      {/* CTA 버튼 */}
+      {/* CTA 버튼 - 하단 고정 */}
       <View style={styles.ctas}>
         <View style={styles.ctaRow}>
           <TouchableOpacity
@@ -288,6 +290,10 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 16,
+    flex: 1,
+  },
+  scrollContent: {
+    flex: 1,
   },
 
   // Header
