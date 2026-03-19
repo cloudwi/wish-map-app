@@ -1,8 +1,10 @@
+import { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Image } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Restaurant } from '../types';
+import { searchPlaceImage } from '../api/search';
 import { useTheme } from '../hooks/useTheme';
 import { lightTap } from '../utils/haptics';
 
@@ -14,6 +16,13 @@ interface Props {
 
 export function RestaurantCard({ item, badge, index = 0 }: Props) {
   const c = useTheme();
+  const [imageUri, setImageUri] = useState<string | null>(item.thumbnailImage);
+
+  useEffect(() => {
+    if (!item.thumbnailImage) {
+      searchPlaceImage(item.name + ' 맛집').then(setImageUri);
+    }
+  }, [item.name, item.thumbnailImage]);
 
   return (
     <Animated.View entering={FadeInDown.delay(index * 60).duration(300).springify()}>
@@ -22,8 +31,8 @@ export function RestaurantCard({ item, badge, index = 0 }: Props) {
         onPress={() => { lightTap(); router.push(`/restaurant/${item.id}`); }}
         activeOpacity={0.8}
       >
-        {item.thumbnailImage ? (
-          <Image source={{ uri: item.thumbnailImage }} style={[styles.thumbnail, { backgroundColor: c.imagePlaceholderBg }]} />
+        {imageUri ? (
+          <Image source={{ uri: imageUri }} style={[styles.thumbnail, { backgroundColor: c.imagePlaceholderBg }]} />
         ) : (
           <View style={[styles.thumbnail, styles.thumbnailPlaceholder, { backgroundColor: c.imagePlaceholderBg }]}>
             <Ionicons name="restaurant-outline" size={26} color="#d4c4bc" />
@@ -38,7 +47,7 @@ export function RestaurantCard({ item, badge, index = 0 }: Props) {
             {item.category && (
               <Text style={[styles.category, { backgroundColor: c.categoryBadgeBg, color: c.categoryBadgeText }]}>{item.category}</Text>
             )}
-            <Text style={[styles.likes, { color: c.primary }]}>❤️ {item.likeCount}</Text>
+            <Text style={[styles.likes, { color: c.primary }]}>👣 {item.visitCount}회</Text>
           </View>
         </View>
       </TouchableOpacity>
