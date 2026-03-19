@@ -150,26 +150,32 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
       <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
       {/* 썸네일 + 장소명 + 닫기 */}
       <View style={styles.header}>
-        {thumbnail ? (
-          <Image source={{ uri: thumbnail }} style={styles.thumbnail} />
-        ) : (
-          <View style={[styles.thumbnailPlaceholder, { backgroundColor: c.searchBg }]}>
-            <Ionicons name="restaurant-outline" size={22} color={c.textDisabled} />
+        <TouchableOpacity
+          style={styles.headerTap}
+          activeOpacity={0.7}
+          onPress={() => { if (stats?.restaurantId) { lightTap(); router.push(`/restaurant/${stats.restaurantId}`); } }}
+        >
+          {thumbnail ? (
+            <Image source={{ uri: thumbnail }} style={styles.thumbnail} />
+          ) : (
+            <View style={[styles.thumbnailPlaceholder, { backgroundColor: c.searchBg }]}>
+              <Ionicons name="restaurant-outline" size={22} color={c.textDisabled} />
+            </View>
+          )}
+          <View style={styles.headerInfo}>
+            <Text style={[styles.placeName, { color: c.textPrimary }]} numberOfLines={1}>{place.name}</Text>
+            <View style={styles.headerMeta}>
+              {place.category ? (
+                <View style={[styles.categoryBadge, { backgroundColor: c.categoryBadgeBg }]}>
+                  <Text style={[styles.categoryText, { color: c.categoryBadgeText }]} numberOfLines={1}>{place.category}</Text>
+                </View>
+              ) : null}
+              {stats && stats.visitCount > 0 && (
+                <Text style={[styles.visitCountInline, { color: c.textSecondary }]}>👣 {stats.visitCount}회</Text>
+              )}
+            </View>
           </View>
-        )}
-        <View style={styles.headerInfo}>
-          <Text style={[styles.placeName, { color: c.textPrimary }]} numberOfLines={1}>{place.name}</Text>
-          <View style={styles.headerMeta}>
-            {place.category ? (
-              <View style={[styles.categoryBadge, { backgroundColor: c.categoryBadgeBg }]}>
-                <Text style={[styles.categoryText, { color: c.categoryBadgeText }]} numberOfLines={1}>{place.category}</Text>
-              </View>
-            ) : null}
-            {stats && stats.visitCount > 0 && (
-              <Text style={[styles.visitCountInline, { color: c.textSecondary }]}>👣 {stats.visitCount}회</Text>
-            )}
-          </View>
-        </View>
+        </TouchableOpacity>
         <TouchableOpacity style={[styles.closeBtn, { backgroundColor: c.closeButtonBg }]} onPress={onClose}>
           <Ionicons name="close" size={18} color={c.textSecondary} />
         </TouchableOpacity>
@@ -248,17 +254,6 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
         )}
       </View>
 
-      {/* 상세 페이지 이동 */}
-      {stats && stats.restaurantId && (
-        <TouchableOpacity
-          style={[styles.detailLink, { borderColor: c.border }]}
-          onPress={() => { lightTap(); router.push(`/restaurant/${stats.restaurantId}`); }}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.detailLinkText, { color: c.textSecondary }]}>맛집 상세 보기</Text>
-          <Ionicons name="chevron-forward" size={16} color={c.textTertiary} />
-        </TouchableOpacity>
-      )}
       </ScrollView>
 
       {/* CTA 버튼 - 하단 고정 */}
@@ -325,6 +320,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  headerTap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
   },
   header: {
     flexDirection: 'row',
@@ -440,19 +441,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: 'center',
     paddingTop: 4,
-  },
-  detailLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    paddingVertical: 10,
-    borderTopWidth: 0.5,
-    marginTop: 8,
-  },
-  detailLinkText: {
-    fontSize: 13,
-    fontWeight: '500',
   },
   reviewItem: {
     gap: 2,
