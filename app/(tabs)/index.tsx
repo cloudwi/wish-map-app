@@ -1,4 +1,4 @@
-import { StyleSheet, View, Text, TextInput, ActivityIndicator, TouchableOpacity, FlatList, Keyboard, Linking, ScrollView } from 'react-native';
+import { StyleSheet, View, Text, TextInput, ActivityIndicator, TouchableOpacity, FlatList, Keyboard, Linking, ScrollView, Dimensions } from 'react-native';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -45,8 +45,10 @@ export default function MapScreen() {
   const mapRef = useRef<NaverMapViewRef>(null);
   const currentBoundsRef = useRef<MapBounds>(INITIAL_BOUNDS);
   const currentCameraRef = useRef<{ latitude: number; longitude: number; zoom: number }>({ latitude: 37.5665, longitude: 126.9780, zoom: 14 });
-  const defaultSnapPoints = useMemo(() => ['28%', '55%', '75%'], []);
-  const placeSnapPoints = useMemo(() => ['28%', '55%'], []);
+  const screenHeight = Dimensions.get('window').height;
+  const maxSheetHeight = screenHeight - insets.top - 70;
+  const defaultSnapPoints = useMemo(() => [240, maxSheetHeight * 0.5, maxSheetHeight], [maxSheetHeight]);
+  const placeSnapPoints = useMemo(() => [240, maxSheetHeight * 0.45], [maxSheetHeight]);
   const snapPoints = selectedPlace ? placeSnapPoints : defaultSnapPoints;
 
   useEffect(() => {
@@ -370,7 +372,6 @@ export default function MapScreen() {
         ref={bottomSheetRef}
         index={0}
         snapPoints={snapPoints}
-        topInset={insets.top + 60}
         backgroundStyle={[styles.sheetBg, { backgroundColor: c.sheetBg }]}
         handleIndicatorStyle={{ backgroundColor: c.textDisabled, width: 40 }}
         enablePanDownToClose={false}
