@@ -95,7 +95,12 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
       }
       onVisitSuccess?.();
     } catch (error: unknown) {
-      showError('방문 인증 실패', getErrorMessage(error, '방문 인증 중 오류가 발생했습니다.'));
+      const msg = getErrorMessage(error, '방문 인증 중 오류가 발생했습니다.');
+      if (msg.includes('이미') && msg.includes('방문')) {
+        setVisitedToday(true);
+      } else {
+        showError('방문 인증 실패', msg);
+      }
     } finally {
       setVisitLoading(false);
     }
