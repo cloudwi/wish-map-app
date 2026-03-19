@@ -190,7 +190,7 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
             <View style={styles.statsSummary}>
               <View style={styles.statItem}>
                 <Text style={styles.statEmoji}>👣</Text>
-                <Text style={[styles.statValue, { color: c.textPrimary }]}>방문 {stats.visitCount}명</Text>
+                <Text style={[styles.statValue, { color: c.textPrimary }]}>방문 {stats.visitCount}회</Text>
               </View>
             </View>
             {stats.recentReviews.length > 0 && (

@@ -83,7 +83,7 @@ const NaverMap = forwardRef<NaverMapViewRef, Props>(({
                   ? { text: `${r.visitCount}`, color: '#fff', textSize: 10, haloColor: '#FF6B35' }
                   : undefined
             }
-            subCaption={isSelected && hasVisits ? { text: `${r.visitCount}명 방문`, color: '#FF6B35' } : undefined}
+            subCaption={isSelected && hasVisits ? { text: `${r.visitCount}회 방문`, color: '#FF6B35' } : undefined}
             image={{ symbol: hasVisits ? 'red' : 'gray' }}
             zIndex={isSelected ? 100 : 0}
             onTap={() => onMarkerClick(r)}
