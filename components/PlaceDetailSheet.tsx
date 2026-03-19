@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   scrollContent: {
-    maxHeight: 280,
+    maxHeight: 220,
   },
 
   // Header
@@ -465,6 +465,7 @@ const styles = StyleSheet.create({
   // CTA buttons
   ctas: {
     gap: 8,
+    paddingTop: 8,
   },
   ctaRow: {
     flexDirection: 'row',
