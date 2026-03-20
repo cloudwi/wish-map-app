@@ -196,22 +196,27 @@ export default function MapScreen() {
       phone: '',
       link: '',
     };
-    // naverPlaceId가 있으면 네이버 검색으로 주소/전화번호 보강
-    if (restaurant.naverPlaceId) {
-      try {
-        const { searchPlaces } = require('../../api/search');
-        const results = await searchPlaces(restaurant.name);
-        const match = results.find((r: PlaceResult) => `${r.id}` === restaurant.naverPlaceId);
-        if (match) {
-          place.address = match.address;
-          place.roadAddress = match.roadAddress;
-          place.phone = match.phone;
-          place.link = match.link;
-        }
-      } catch {}
-    }
+    // 네이버 검색으로 주소/전화번호 보강
+    try {
+      const { searchPlaces } = require('../../api/search');
+      const results = await searchPlaces(restaurant.name);
+      // 좌표가 가장 가까운 결과 매칭
+      const match = results.length > 0
+        ? results.reduce((closest: PlaceResult, r: PlaceResult) => {
+            const distR = Math.abs(r.lat - restaurant.lat) + Math.abs(r.lng - restaurant.lng);
+            const distC = Math.abs(closest.lat - restaurant.lat) + Math.abs(closest.lng - restaurant.lng);
+            return distR < distC ? r : closest;
+          })
+        : null;
+      if (match) {
+        place.address = match.address;
+        place.roadAddress = match.roadAddress;
+        place.phone = match.phone;
+        place.link = match.link;
+        if (!place.id && match.id) place.id = match.id;
+      }
+    } catch {}
     setSelectedPlace(place);
-    bottomSheetRef.current?.snapToIndex(1);
   }, []);
 
   const renderListItem = useCallback(({ item, index }: { item: Restaurant; index: number }) => (

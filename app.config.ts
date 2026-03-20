@@ -69,8 +69,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     [
       '@react-native-seoul/naver-login',
       {
-        consumerKey: process.env.NAVER_CONSUMER_KEY,
-        consumerSecret: process.env.NAVER_CONSUMER_SECRET,
+        consumerKey: process.env.EXPO_PUBLIC_NAVER_CONSUMER_KEY,
+        consumerSecret: process.env.EXPO_PUBLIC_NAVER_CONSUMER_SECRET,
         appName: '위시맵',
         urlScheme: 'wishmap',
       },

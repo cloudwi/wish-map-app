@@ -180,35 +180,34 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
         </TouchableOpacity>
       </View>
 
-      {/* 주소 + 액션 */}
+      {/* 주소 + 네이버 지도 */}
       <View style={styles.subInfo}>
         {address ? (
           <View style={styles.infoRow}>
-            <Ionicons name="location-outline" size={12} color={c.textTertiary} />
+            <Ionicons name="location-outline" size={13} color={c.textTertiary} />
             <Text style={[styles.infoText, { color: c.textTertiary }]} numberOfLines={1}>{address}</Text>
           </View>
         ) : null}
-        <View style={styles.actions}>
-          <TouchableOpacity
-            style={[styles.actionPill, { backgroundColor: c.successBg }]}
-            onPress={() => onOpenNaverMap(place)}
-            activeOpacity={0.75}
-          >
-            <Ionicons name="map-outline" size={15} color={c.success} />
-            <Text style={[styles.actionPillText, { color: c.success }]}>네이버 지도</Text>
-          </TouchableOpacity>
-          {place.phone ? (
-            <TouchableOpacity
-              style={[styles.actionPill, { backgroundColor: c.infoBg }]}
-              onPress={() => onCallPhone(place.phone)}
-              activeOpacity={0.75}
-            >
-              <Ionicons name="call-outline" size={12} color={c.info} />
-              <Text style={[styles.actionPillText, { color: c.info }]}>전화</Text>
-            </TouchableOpacity>
-          ) : null}
-        </View>
+        <TouchableOpacity
+          style={[styles.naverMapBtn, { borderColor: c.success }]}
+          onPress={() => onOpenNaverMap(place)}
+          activeOpacity={0.75}
+        >
+          <Ionicons name="map-outline" size={14} color={c.success} />
+          <Text style={[styles.naverMapBtnText, { color: c.success }]}>네이버 지도</Text>
+        </TouchableOpacity>
       </View>
+      {/* 전화 */}
+      {place.phone ? (
+        <TouchableOpacity
+          style={[styles.phonePill, { backgroundColor: c.infoBg }]}
+          onPress={() => onCallPhone(place.phone)}
+          activeOpacity={0.75}
+        >
+          <Ionicons name="call-outline" size={12} color={c.info} />
+          <Text style={[styles.actionPillText, { color: c.info }]}>전화 {place.phone}</Text>
+        </TouchableOpacity>
+      ) : null}
 
       {/* 리뷰 섹션 */}
       <View style={[styles.reviewSection, { borderTopColor: c.divider }]}>
@@ -364,17 +363,28 @@ const styles = StyleSheet.create({
     fontSize: 11,
     flex: 1,
   },
-  actions: {
-    flexDirection: 'row',
-    gap: 6,
-  },
-  actionPill: {
+  naverMapBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 14,
+    borderWidth: 1,
+  },
+  naverMapBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  phonePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 14,
+    marginBottom: 6,
   },
   actionPillText: {
     fontSize: 13,
