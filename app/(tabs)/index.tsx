@@ -420,6 +420,7 @@ export default function MapScreen() {
               onOpenNaverMap={openNaverMap}
               onCallPhone={callPhone}
               onVisitSuccess={() => fetchRestaurants(currentBoundsRef.current)}
+              weeklyChampion={selected?.weeklyChampion}
             />
           </BottomSheetView>
         </BottomSheet>

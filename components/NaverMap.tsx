@@ -77,21 +77,9 @@ const NaverMap = forwardRef<NaverMapViewRef, Props>(({
             longitude={r.lng}
             width={isSelected ? 32 : hasChampion ? 28 : 24}
             height={isSelected ? 44 : hasChampion ? 38 : 34}
-            caption={
-              isSelected
-                ? { text: r.name, color: '#FF6B35', textSize: 13 }
-                : hasChampion
-                  ? { text: `🏆 ${r.weeklyChampion}`, color: '#FFB800', textSize: 11, haloColor: '#fff' }
-                  : hasVisits
-                    ? { text: `${r.visitCount}`, color: '#fff', textSize: 10, haloColor: '#FF6B35' }
-                    : undefined
-            }
-            subCaption={
-              isSelected && hasVisits
-                ? { text: hasChampion ? `🏆 ${r.weeklyChampion}` : `${r.visitCount}회 방문`, color: '#FF6B35' }
-                : undefined
-            }
-            image={{ symbol: hasChampion ? 'yellow' : hasVisits ? 'red' : 'gray' }}
+            caption={undefined}
+            subCaption={undefined}
+            image={{ symbol: hasChampion ? 'red' : hasVisits ? 'red' : 'gray' }}
             zIndex={isSelected ? 100 : hasChampion ? 50 : 0}
             onTap={() => onMarkerClick(r)}
           />

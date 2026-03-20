@@ -34,9 +34,10 @@ interface PlaceDetailSheetProps {
   onOpenNaverMap: (place: PlaceResult) => void;
   onCallPhone: (phone: string) => void;
   onVisitSuccess?: () => void;
+  weeklyChampion?: string | null;
 }
 
-export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, onVisitSuccess }: PlaceDetailSheetProps) {
+export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, onVisitSuccess, weeklyChampion }: PlaceDetailSheetProps) {
   const c = useTheme();
   const insets = useSafeAreaInsets();
   const { isAuthenticated } = useAuthStore();
@@ -179,6 +180,15 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
           <Ionicons name="close" size={18} color={c.textSecondary} />
         </TouchableOpacity>
       </View>
+
+      {/* 방문왕 */}
+      {weeklyChampion && (
+        <View style={styles.championBanner}>
+          <Text style={styles.championEmoji}>🏆</Text>
+          <Text style={styles.championLabel}>방문왕</Text>
+          <Text style={styles.championName}>{weeklyChampion}</Text>
+        </View>
+      )}
 
       {/* 주소 + 네이버 지도 */}
       <View style={styles.subInfo}>
@@ -337,6 +347,31 @@ const styles = StyleSheet.create({
   categoryText: {
     fontSize: 11,
     fontWeight: '500',
+  },
+  championBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: '#FF6B35',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+    marginBottom: 8,
+    gap: 4,
+  },
+  championEmoji: {
+    fontSize: 12,
+  },
+  championLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.7)',
+  },
+  championName: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#fff',
+    letterSpacing: 0.3,
   },
   closeBtn: {
     width: 30,
