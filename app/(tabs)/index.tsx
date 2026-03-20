@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet';
+import BottomSheet, { BottomSheetFlatList, BottomSheetView } from '@gorhom/bottom-sheet';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import type * as LocationType from 'expo-location';
 import { type NaverMapViewRef } from '@mj-studio/react-native-naver-map';
@@ -42,14 +42,14 @@ export default function MapScreen() {
   const [showGroupPicker, setShowGroupPicker] = useState(false);
 
   const bottomSheetRef = useRef<BottomSheet>(null);
+  const detailSheetRef = useRef<BottomSheet>(null);
   const mapRef = useRef<NaverMapViewRef>(null);
   const currentBoundsRef = useRef<MapBounds>(INITIAL_BOUNDS);
   const currentCameraRef = useRef<{ latitude: number; longitude: number; zoom: number }>({ latitude: 37.5665, longitude: 126.9780, zoom: 14 });
   const screenHeight = Dimensions.get('window').height;
   const maxSheetHeight = screenHeight - insets.top - 70;
   const defaultSnapPoints = useMemo(() => [240, maxSheetHeight * 0.5, maxSheetHeight], [maxSheetHeight]);
-  const placeSnapPoints = useMemo(() => [240, maxSheetHeight * 0.45], [maxSheetHeight]);
-  const snapPoints = selectedPlace ? placeSnapPoints : defaultSnapPoints;
+  const snapPoints = defaultSnapPoints;
 
   useEffect(() => {
     if (isAuthenticated) fetchGroups();
@@ -126,10 +126,12 @@ export default function MapScreen() {
       longitude: place.lng,
       zoom: 16,
     });
-    bottomSheetRef.current?.snapToIndex(1);
+    bottomSheetRef.current?.snapToIndex(0);
+    setTimeout(() => detailSheetRef.current?.expand(), 100);
   };
 
   const closePlaceDetail = () => {
+    detailSheetRef.current?.close();
     setSelectedPlace(null);
     setSelected(null);
     bottomSheetRef.current?.snapToIndex(0);
@@ -377,34 +379,46 @@ export default function MapScreen() {
         enablePanDownToClose={false}
         containerStyle={{ zIndex: 10 }}
       >
-        {selectedPlace ? (
-          <PlaceDetailSheet
-            place={selectedPlace}
-            onClose={closePlaceDetail}
-            onOpenNaverMap={openNaverMap}
-            onCallPhone={callPhone}
-            onVisitSuccess={() => fetchRestaurants(currentBoundsRef.current)}
-          />
-        ) : (
-          <View style={styles.listWrap}>
-            <View style={styles.listHeader}>
-              <Ionicons name="restaurant" size={18} color={c.primary} />
-              <Text style={[styles.listTitle, { color: c.textPrimary }]}>주변 맛집 {restaurants.length}개</Text>
-            </View>
-            <BottomSheetFlatList
-              data={restaurants}
-              keyExtractor={(item: Restaurant) => item.id.toString()}
-              renderItem={renderListItem}
-              contentContainerStyle={styles.listContent}
-              ListEmptyComponent={
-                <Text style={[styles.emptyText, { color: c.textSecondary }]}>
-                  {loading ? '맛집을 불러오는 중...' : '이 지역에 등록된 맛집이 없습니다'}
-                </Text>
-              }
-            />
+        <View style={styles.listWrap}>
+          <View style={styles.listHeader}>
+            <Ionicons name="restaurant" size={18} color={c.primary} />
+            <Text style={[styles.listTitle, { color: c.textPrimary }]}>주변 맛집 {restaurants.length}개</Text>
           </View>
-        )}
+          <BottomSheetFlatList
+            data={restaurants}
+            keyExtractor={(item: Restaurant) => item.id.toString()}
+            renderItem={renderListItem}
+            contentContainerStyle={styles.listContent}
+            ListEmptyComponent={
+              <Text style={[styles.emptyText, { color: c.textSecondary }]}>
+                {loading ? '맛집을 불러오는 중...' : '이 지역에 등록된 맛집이 없습니다'}
+              </Text>
+            }
+          />
+        </View>
       </BottomSheet>
+
+      {selectedPlace && (
+        <BottomSheet
+          ref={detailSheetRef}
+          enableDynamicSizing
+          enablePanDownToClose
+          onClose={() => { setSelectedPlace(null); bottomSheetRef.current?.snapToIndex(0); }}
+          backgroundStyle={[styles.sheetBg, { backgroundColor: c.sheetBg }]}
+          handleIndicatorStyle={{ backgroundColor: c.textDisabled, width: 40 }}
+          containerStyle={{ zIndex: 20 }}
+        >
+          <BottomSheetView>
+            <PlaceDetailSheet
+              place={selectedPlace}
+              onClose={closePlaceDetail}
+              onOpenNaverMap={openNaverMap}
+              onCallPhone={callPhone}
+              onVisitSuccess={() => fetchRestaurants(currentBoundsRef.current)}
+            />
+          </BottomSheetView>
+        </BottomSheet>
+      )}
     </View>
   );
 }
