@@ -29,6 +29,7 @@ export interface Restaurant {
   thumbnailImage: string | null;
   likeCount: number;
   visitCount: number;
+  weeklyChampion: string | null;  // 이번 주 방문왕 닉네임
 }
 
 export interface RestaurantDetail extends Restaurant {
