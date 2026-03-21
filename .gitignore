@@ -5,6 +5,7 @@ node_modules/
 
 # Environment variables
 .env
+.env.*
 .env.local
 
 # Expo
@@ -48,4 +49,4 @@ app-example
 .idea/
 .idea/
 *.ipa
-
+eas.json
