@@ -47,8 +47,9 @@ export default function MapScreen() {
   const currentBoundsRef = useRef<MapBounds>(INITIAL_BOUNDS);
   const currentCameraRef = useRef<{ latitude: number; longitude: number; zoom: number }>({ latitude: 37.5665, longitude: 126.9780, zoom: 14 });
   const screenHeight = Dimensions.get('window').height;
-  const maxSheetHeight = screenHeight - insets.top - 70;
-  const defaultSnapPoints = useMemo(() => [240, maxSheetHeight * 0.5, maxSheetHeight], [maxSheetHeight]);
+  const searchBarHeight = insets.top + 56 + 50; // 상태바 + 검색바 + 그룹칩/재검색 버튼
+  const maxSheetHeight = screenHeight - searchBarHeight;
+  const defaultSnapPoints = useMemo(() => [240, maxSheetHeight], [maxSheetHeight]);
   const snapPoints = defaultSnapPoints;
 
   useEffect(() => {
@@ -85,9 +86,25 @@ export default function MapScreen() {
 
   const fetchRestaurants = useCallback(async (bounds: MapBounds) => {
     try {
-      const groupId = useGroupStore.getState().selectedGroupId;
+      const { selectedGroupId: groupId, groups: storeGroups } = useGroupStore.getState();
+
+      // 그룹 선택 + 반경 설정 시 → 반경 기반 bounds로 제한
+      let effectiveBounds = bounds;
+      if (groupId) {
+        const group = storeGroups.find(g => g.id === groupId);
+        if (group?.baseLat && group?.baseLng && group?.baseRadius) {
+          const radiusDeg = group.baseRadius / 111000; // 미터 → 위도 도 변환 (약 111km/도)
+          effectiveBounds = {
+            minLat: group.baseLat - radiusDeg,
+            maxLat: group.baseLat + radiusDeg,
+            minLng: group.baseLng - radiusDeg / Math.cos(group.baseLat * Math.PI / 180),
+            maxLng: group.baseLng + radiusDeg / Math.cos(group.baseLat * Math.PI / 180),
+          };
+        }
+      }
+
       const response = groupId
-        ? await restaurantApi.getGroupRestaurants(groupId, bounds)
+        ? await restaurantApi.getGroupRestaurants(groupId, effectiveBounds)
         : await restaurantApi.getRestaurants(bounds);
       setRestaurants(response.content);
       setShowResearchBtn(false);

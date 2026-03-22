@@ -16,20 +16,22 @@ export default function RootLayout() {
     useThemeStore.getState().loadMode();
   }, []);
 
-  // 푸시 알림 설정 (네이티브 빌드에서만 동작)
+  // 푸시 알림 설정 (네이티브 빌드에서만 동작, 시뮬레이터에서는 no-op)
   useEffect(() => {
-    import('../utils/notifications').then(async ({ setupNotificationHandler, registerForPushNotifications, addNotificationResponseListener }) => {
-      await setupNotificationHandler();
+    const { setupNotificationHandler, registerForPushNotifications, addNotificationResponseListener } = require('../utils/notifications');
+    setupNotificationHandler();
 
-      const { useAuthStore } = await import('../stores/authStore');
-      const { isAuthenticated } = useAuthStore.getState();
-      if (isAuthenticated) {
-        registerForPushNotifications();
-      }
+    const { useAuthStore } = require('../stores/authStore');
+    const { isAuthenticated } = useAuthStore.getState();
+    if (isAuthenticated) {
+      registerForPushNotifications();
+    }
 
-      const { router } = await import('expo-router');
-      addNotificationResponseListener(() => router.push('/notifications'));
-    }).catch(() => {});
+    const sub = addNotificationResponseListener(() => {
+      const { router } = require('expo-router');
+      router.push('/notifications');
+    });
+    return () => sub?.remove?.();
   }, []);
 
   const resolvedScheme = mode === 'system' ? systemScheme : mode;
