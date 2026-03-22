@@ -70,6 +70,6 @@ const styles = StyleSheet.create({
   badgeText: { fontSize: 11, color: '#fff', fontWeight: '600' },
   empty: { padding: 60, alignItems: 'center', gap: 12 },
   emptyTitle: { fontSize: 16, fontWeight: '600' },
-  suggestBtn: { backgroundColor: '#FF6B35', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 20 },
+  suggestBtn: { backgroundColor: '#E8590C', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8 },
   suggestBtnText: { color: '#fff', fontSize: 15, fontWeight: '600' },
 });

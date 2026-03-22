@@ -5,7 +5,6 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, router } from 'expo-router';
-import Animated, { FadeIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../hooks/useTheme';
 import { AuthRequired } from '../components/AuthRequired';
@@ -280,13 +279,13 @@ export default function FriendsScreen() {
               renderItem={renderFriend}
               contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 20 }]}
               ListEmptyComponent={
-                <Animated.View entering={FadeIn.duration(300)} style={styles.emptyWrap}>
+                <View style={styles.emptyWrap}>
                   <Ionicons name="people-outline" size={56} color={c.textDisabled} />
                   <Text style={[styles.emptyTitle, { color: c.textSecondary }]}>아직 친구가 없어요</Text>
                   <Text style={[styles.emptyDesc, { color: c.textTertiary }]}>
                     닉네임을 검색해서{'\n'}친구를 추가해보세요!
                   </Text>
-                </Animated.View>
+                </View>
               }
             />
           ) : (
@@ -317,7 +316,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 12,
     marginBottom: 4,
-    borderRadius: 12,
+    borderRadius: 8,
     paddingHorizontal: 14,
     height: 44,
     gap: 10,
@@ -364,7 +363,7 @@ const styles = StyleSheet.create({
   statusBadge: {
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: 10,
+    borderRadius: 6,
   },
   statusText: { fontSize: 12, fontWeight: '600' },
 
@@ -375,7 +374,7 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingHorizontal: 12,
     paddingVertical: 7,
-    borderRadius: 10,
+    borderRadius: 6,
   },
   addBtnText: { fontSize: 13, fontWeight: '600', color: '#fff' },
 
@@ -385,14 +384,14 @@ const styles = StyleSheet.create({
   rejectBtn: {
     paddingHorizontal: 12,
     paddingVertical: 7,
-    borderRadius: 10,
+    borderRadius: 6,
     borderWidth: 1,
   },
   rejectBtnText: { fontSize: 13, fontWeight: '600' },
   acceptBtn: {
     paddingHorizontal: 12,
     paddingVertical: 7,
-    borderRadius: 10,
+    borderRadius: 6,
   },
   acceptBtnText: { fontSize: 13, fontWeight: '600', color: '#fff' },
 
@@ -404,7 +403,7 @@ const styles = StyleSheet.create({
     paddingTop: 80,
     paddingBottom: 40,
   },
-  emptyTitle: { fontSize: 17, fontWeight: '700' },
+  emptyTitle: { fontSize: 17, fontWeight: '600' },
   emptyDesc: { fontSize: 14, textAlign: 'center', lineHeight: 20 },
   emptyText: { fontSize: 14 },
 });

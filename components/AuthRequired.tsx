@@ -16,7 +16,7 @@ export function AuthRequired({
 
   return (
     <View style={[styles.container, { backgroundColor: c.surface }]}>
-      <Ionicons name={icon} size={72} color={c.textDisabled} />
+      <Ionicons name={icon} size={48} color={c.textDisabled} />
       <Text style={[styles.title, { color: c.textPrimary }]}>로그인이 필요합니다</Text>
       <Text style={[styles.message, { color: c.textSecondary }]}>{message}</Text>
       <TouchableOpacity style={styles.button} onPress={() => router.push('/login')}>
@@ -46,10 +46,10 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   button: {
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#E8590C',
     paddingHorizontal: 40,
     paddingVertical: 14,
-    borderRadius: 25,
+    borderRadius: 8,
   },
   buttonText: {
     color: '#fff',

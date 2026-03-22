@@ -108,12 +108,12 @@ export default function CollectionsScreen() {
           contentContainerStyle={styles.listContent}
           renderItem={({ item }) => (
             <TouchableOpacity
-              style={[styles.groupCard, { backgroundColor: c.cardBg }]}
+              style={[styles.groupCard, { backgroundColor: c.cardBg, borderColor: c.border }]}
               onPress={() => handleSelectGroup(item)}
               activeOpacity={0.7}
             >
-              <View style={[styles.groupIcon, { backgroundColor: c.primaryBg }]}>
-                <Ionicons name="heart" size={22} color={c.primary} />
+              <View style={styles.groupIcon}>
+                <Ionicons name="heart" size={22} color={c.textSecondary} />
               </View>
               <View style={styles.groupContent}>
                 <Text style={[styles.groupName, { color: c.textPrimary }]}>{item.name}</Text>
@@ -150,19 +150,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 8,
     marginBottom: 10,
     gap: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
+    borderWidth: 0.5,
   },
   groupIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
   },

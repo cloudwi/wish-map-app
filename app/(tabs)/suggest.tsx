@@ -297,7 +297,7 @@ const styles = StyleSheet.create({
   chipText: { fontSize: 14 },
   divider: { height: 1, marginBottom: 24 },
   submitBtn: {
-    backgroundColor: '#FF6B35', borderRadius: 12,
+    backgroundColor: '#E8590C', borderRadius: 8,
     paddingVertical: 16, alignItems: 'center', marginTop: 8, marginBottom: 40,
   },
   submitBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },

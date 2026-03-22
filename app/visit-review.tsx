@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
   StyleSheet, View, Text, TouchableOpacity, TextInput,
   ScrollView, Image, ActivityIndicator, Alert,
+  KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -128,8 +129,16 @@ export default function VisitReviewScreen() {
     }
   };
 
+  const scrollRef = useRef<ScrollView>(null);
+
   return (
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
+    >
     <ScrollView
+      ref={scrollRef}
       style={[styles.container, { backgroundColor: c.background }]}
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
@@ -143,52 +152,6 @@ export default function VisitReviewScreen() {
             <Text style={[styles.placeCategory, { color: c.textTertiary }]}>{params.placeCategory}</Text>
           ) : null}
         </View>
-      </View>
-
-      {/* 태그 */}
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: c.textPrimary }]}>태그</Text>
-        <View style={styles.tagGrid}>
-          {TAGS.map((tag) => {
-            const isSelected = selectedTags.includes(tag);
-            return (
-              <TouchableOpacity
-                key={tag}
-                style={[
-                  styles.tagChip,
-                  { backgroundColor: c.chipBg, borderColor: c.border },
-                  isSelected && { backgroundColor: c.chipActiveBg, borderColor: c.chipActiveBg },
-                ]}
-                onPress={() => toggleTag(tag)}
-                activeOpacity={0.7}
-              >
-                <Text style={[
-                  styles.tagText,
-                  { color: c.textSecondary },
-                  isSelected && { color: c.chipActiveText, fontWeight: '600' },
-                ]}>
-                  {tag}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </View>
-
-      {/* 한줄 리뷰 */}
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: c.textPrimary }]}>한줄 리뷰</Text>
-        <TextInput
-          style={[styles.textInput, { borderColor: c.border, backgroundColor: c.inputBg, color: c.textPrimary }]}
-          placeholder="이 맛집은 어땠나요?"
-          placeholderTextColor={c.textDisabled}
-          value={comment}
-          onChangeText={setComment}
-          maxLength={200}
-          multiline
-          textAlignVertical="top"
-        />
-        <Text style={[styles.charCount, { color: c.textDisabled }]}>{comment.length}/200</Text>
       </View>
 
       {/* 사진 */}
@@ -222,6 +185,55 @@ export default function VisitReviewScreen() {
         )}
       </View>
 
+      {/* 태그 */}
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: c.textPrimary }]}>태그</Text>
+        <View style={styles.tagGrid}>
+          {TAGS.map((tag) => {
+            const isSelected = selectedTags.includes(tag);
+            return (
+              <TouchableOpacity
+                key={tag}
+                style={[
+                  styles.tagChip,
+                  { backgroundColor: c.chipBg, borderColor: c.border },
+                  isSelected && { backgroundColor: c.chipActiveBg, borderColor: c.chipActiveBg },
+                ]}
+                onPress={() => toggleTag(tag)}
+                activeOpacity={0.7}
+              >
+                <Text style={[
+                  styles.tagText,
+                  { color: c.textSecondary },
+                  isSelected && { color: c.chipActiveText, fontWeight: '600' },
+                ]}>
+                  {tag}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </View>
+
+      {/* 내용 */}
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: c.textPrimary }]}>내용</Text>
+        <TextInput
+          style={[styles.textInput, { borderColor: c.border, backgroundColor: c.inputBg, color: c.textPrimary }]}
+          placeholder="이 맛집은 어땠나요?"
+          placeholderTextColor={c.textDisabled}
+          value={comment}
+          onChangeText={setComment}
+          maxLength={200}
+          multiline
+          textAlignVertical="top"
+          onFocus={() => {
+            setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 300);
+          }}
+        />
+        <Text style={[styles.charCount, { color: c.textDisabled }]}>{comment.length}/200</Text>
+      </View>
+
       {/* 제출 버튼 */}
       <TouchableOpacity
         style={[
@@ -252,6 +264,7 @@ export default function VisitReviewScreen() {
         태그, 한줄평, 사진으로 리뷰를 남겨주세요
       </Text>
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 

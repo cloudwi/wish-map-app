@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import Animated, { FadeIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PlaceResult, searchPlaceImage } from '../api/search';
 import { restaurantApi, PlaceStatsResponse } from '../api/restaurant';
@@ -144,8 +143,7 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
   const address = place.roadAddress || place.address;
 
   return (
-    <Animated.View
-      entering={FadeIn.duration(200)}
+    <View
       style={[styles.container, { paddingBottom: insets.bottom + TAB_BAR_HEIGHT + 20 }]}
     >
       {/* 썸네일 + 장소명 + 닫기 */}
@@ -171,7 +169,7 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
                 </View>
               ) : null}
               {stats && stats.visitCount > 0 && (
-                <Text style={[styles.visitCountInline, { color: c.textSecondary }]}>👣 {stats.visitCount}회</Text>
+                <Text style={[styles.visitCountInline, { color: c.textSecondary }]}>방문 {stats.visitCount}회</Text>
               )}
             </View>
           </View>
@@ -183,11 +181,7 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
 
       {/* 방문왕 */}
       {weeklyChampion && (
-        <View style={styles.championBanner}>
-          <Text style={styles.championEmoji}>🏆</Text>
-          <Text style={styles.championLabel}>방문왕</Text>
-          <Text style={styles.championName}>{weeklyChampion}</Text>
-        </View>
+        <Text style={[styles.championText, { color: c.textSecondary }]}>방문왕 {weeklyChampion}</Text>
       )}
 
       {/* 주소 + 네이버 지도 */}
@@ -210,7 +204,7 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
       {/* 전화 */}
       {place.phone ? (
         <TouchableOpacity
-          style={[styles.phonePill, { backgroundColor: c.infoBg }]}
+          style={[styles.phonePill, { backgroundColor: c.gray100 }]}
           onPress={() => onCallPhone(place.phone)}
           activeOpacity={0.75}
         >
@@ -287,7 +281,7 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
           </TouchableOpacity>
         </View>
       </View>
-    </Animated.View>
+    </View>
   );
 }
 
@@ -335,43 +329,23 @@ const styles = StyleSheet.create({
   },
   placeName: {
     fontSize: 17,
-    fontWeight: '700',
+    fontWeight: '600',
     lineHeight: 22,
   },
   categoryBadge: {
     alignSelf: 'flex-start',
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 6,
+    borderRadius: 4,
   },
   categoryText: {
     fontSize: 11,
     fontWeight: '500',
   },
-  championBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    backgroundColor: '#FF6B35',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 14,
-    marginBottom: 8,
-    gap: 4,
-  },
-  championEmoji: {
+  championText: {
     fontSize: 12,
-  },
-  championLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.7)',
-  },
-  championName: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#fff',
-    letterSpacing: 0.3,
+    fontWeight: '500',
+    marginBottom: 8,
   },
   closeBtn: {
     width: 30,
@@ -404,7 +378,7 @@ const styles = StyleSheet.create({
     gap: 5,
     paddingHorizontal: 12,
     paddingVertical: 7,
-    borderRadius: 14,
+    borderRadius: 8,
     borderWidth: 1,
   },
   naverMapBtnText: {
@@ -418,7 +392,7 @@ const styles = StyleSheet.create({
     gap: 5,
     paddingHorizontal: 12,
     paddingVertical: 7,
-    borderRadius: 14,
+    borderRadius: 8,
     marginBottom: 6,
   },
   actionPillText: {
@@ -459,11 +433,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     paddingVertical: 13,
-    borderRadius: 12,
+    borderRadius: 8,
   },
   visitBtnText: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '600',
     color: '#fff',
   },
   reportBtn: {
@@ -473,11 +447,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     paddingVertical: 13,
-    borderRadius: 12,
-    borderWidth: 1.5,
+    borderRadius: 8,
+    borderWidth: 1,
   },
   reportBtnText: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '600',
   },
 });

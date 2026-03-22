@@ -23,7 +23,7 @@ export default function RestaurantCardSkeleton() {
 const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
-    borderRadius: 12,
+    borderRadius: 8,
     padding: 12,
     marginHorizontal: 16,
     marginVertical: 6,

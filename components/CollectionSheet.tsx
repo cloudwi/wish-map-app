@@ -166,8 +166,8 @@ export function CollectionSheet({ bottomSheetRef, restaurantId, onComplete }: Co
 
 const styles = StyleSheet.create({
   sheetBg: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
   },
   header: {
     paddingHorizontal: 20,
@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   content: {
     paddingHorizontal: 20,
@@ -227,8 +227,8 @@ const styles = StyleSheet.create({
     borderTopWidth: 0.5,
   },
   confirmBtn: {
-    backgroundColor: '#FF6B35',
-    borderRadius: 12,
+    backgroundColor: '#E8590C',
+    borderRadius: 8,
     paddingVertical: 14,
     alignItems: 'center',
   },

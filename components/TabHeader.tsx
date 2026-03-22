@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   right: {
     flexDirection: 'row',
@@ -135,12 +135,12 @@ const styles = StyleSheet.create({
   loginBtn: {
     paddingHorizontal: 14,
     paddingVertical: 7,
-    borderRadius: 16,
+    borderRadius: 8,
     marginRight: 8,
   },
   loginBtnText: {
     color: '#fff',
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '600',
   },
 });

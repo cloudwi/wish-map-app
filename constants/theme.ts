@@ -1,10 +1,10 @@
-// 위시맵 디자인 시스템 (토스 스타일)
+// 위시맵 디자인 시스템
 
 const lightColors = {
   // Primary
-  primary: '#FF6B35',
+  primary: '#E8590C',
   primaryLight: '#FF8F66',
-  primaryDark: '#E55A2B',
+  primaryDark: '#C4470A',
   primaryBg: '#FFF5F0',
   primaryPressed: '#D94E20',
 
@@ -32,7 +32,7 @@ const lightColors = {
   infoBg: '#F0F5FF',
 
   // Background
-  background: '#F5F5F5',
+  background: '#FAFAFA',
   surface: '#FFFFFF',
   surfaceSecondary: '#F9FAFB',
 
@@ -77,9 +77,9 @@ const lightColors = {
 
 const darkColors = {
   // Primary (same across themes)
-  primary: '#FF6B35',
+  primary: '#E8590C',
   primaryLight: '#FF8F66',
-  primaryDark: '#E55A2B',
+  primaryDark: '#C4470A',
   primaryBg: '#2A1A10',
   primaryPressed: '#D94E20',
 
@@ -161,9 +161,9 @@ export const themes = {
 export const colors = lightColors;
 
 export const typography = {
-  h1: { fontSize: 26, fontWeight: '800' as const, lineHeight: 34 },
-  h2: { fontSize: 22, fontWeight: '700' as const, lineHeight: 30 },
-  h3: { fontSize: 18, fontWeight: '700' as const, lineHeight: 26 },
+  h1: { fontSize: 26, fontWeight: '700' as const, lineHeight: 34 },
+  h2: { fontSize: 22, fontWeight: '600' as const, lineHeight: 30 },
+  h3: { fontSize: 18, fontWeight: '600' as const, lineHeight: 26 },
 
   body1: { fontSize: 16, fontWeight: '400' as const, lineHeight: 24 },
   body1Bold: { fontSize: 16, fontWeight: '600' as const, lineHeight: 24 },
@@ -189,10 +189,10 @@ export const spacing = {
 } as const;
 
 export const radius = {
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 20,
+  sm: 6,
+  md: 8,
+  lg: 10,
+  xl: 12,
   full: 9999,
 } as const;
 
@@ -200,22 +200,22 @@ export const shadow = {
   sm: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
+    shadowOpacity: 0.02,
     shadowRadius: 4,
     elevation: 1,
   },
   md: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.04,
     shadowRadius: 8,
-    elevation: 3,
+    elevation: 2,
   },
   lg: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
+    shadowOpacity: 0.05,
     shadowRadius: 12,
-    elevation: 6,
+    elevation: 4,
   },
 } as const;

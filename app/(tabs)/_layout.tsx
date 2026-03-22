@@ -16,7 +16,7 @@ export default function TabLayout() {
 
   return (
     <NativeTabs
-      tintColor="#FF6B35"
+      tintColor="#E8590C"
       backgroundColor={isIOS26 ? null : c.surface}
       blurEffect={isIOS26 ? undefined : 'none'}
       disableTransparentOnScrollEdge={!isIOS26}

@@ -1,4 +1,4 @@
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ActivityIndicator, TextInput, KeyboardAvoidingView, Platform, RefreshControl, Linking, Dimensions } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ActivityIndicator, TextInput, KeyboardAvoidingView, Platform, RefreshControl, Linking, Dimensions, Modal, Pressable } from 'react-native';
 import { Image } from 'expo-image';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocalSearchParams, Stack, router } from 'expo-router';
@@ -28,6 +28,7 @@ export default function RestaurantDetailScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [visitLoading, setVisitLoading] = useState(false);
   const [searchImages, setSearchImages] = useState<string[]>([]);
+  const [viewerImage, setViewerImage] = useState<string | null>(null);
 
 
   const fetchData = useCallback(async () => {
@@ -178,7 +179,7 @@ export default function RestaurantDetailScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[c.primary]} />
           }
         >
-          {/* 이미지 */}
+          {/* 메인 이미지 */}
           {(() => {
             const allImages = restaurant.images.length > 0
               ? restaurant.images
@@ -188,7 +189,7 @@ export default function RestaurantDetailScreen() {
             return allImages.length > 0 ? (
               <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false}>
                 {allImages.map((uri, i) => (
-                  <Image key={i} source={{ uri }} style={[styles.mainImage, { backgroundColor: c.imagePlaceholderBg }]} />
+                  <Image key={i} source={{ uri }} style={[styles.mainImage, { backgroundColor: c.imagePlaceholderBg }]} contentFit="cover" />
                 ))}
               </ScrollView>
             ) : (
@@ -212,45 +213,15 @@ export default function RestaurantDetailScreen() {
               </View>
             </View>
 
-            {/* 방문하기 (네이버 지도) */}
+            {/* 길찾기 링크 */}
             <TouchableOpacity
-              style={[styles.naverMapButton, { borderColor: c.border }]}
+              style={styles.naverMapLink}
               onPress={handleOpenNaverMap}
               activeOpacity={0.7}
             >
-              <Ionicons name="navigate-outline" size={18} color="#1EC800" />
-              <Text style={[styles.naverMapButtonText, { color: c.textPrimary }]}>방문하기</Text>
-              <Ionicons name="open-outline" size={14} color={c.textTertiary} />
-            </TouchableOpacity>
-
-            {/* 방문 인증 */}
-            <TouchableOpacity
-              style={[
-                styles.visitButton,
-                restaurant.isVisited
-                  ? { backgroundColor: c.categoryBadgeBg }
-                  : { backgroundColor: c.primary },
-              ]}
-              onPress={handleVisit}
-              disabled={restaurant.isVisited || visitLoading}
-            >
-              {visitLoading ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : restaurant.isVisited ? (
-                <>
-                  <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-                  <Text style={[styles.visitButtonText, { color: c.textSecondary }]}>
-                    오늘 방문 완료
-                  </Text>
-                </>
-              ) : (
-                <>
-                  <Ionicons name="footsteps-outline" size={20} color="#fff" />
-                  <Text style={[styles.visitButtonText, { color: '#fff' }]}>
-                    방문 인증하기 (100m 이내)
-                  </Text>
-                </>
-              )}
+              <Ionicons name="navigate-outline" size={16} color="#1EC800" />
+              <Text style={[styles.naverMapLinkText, { color: c.textSecondary }]}>길찾기</Text>
+              <Ionicons name="open-outline" size={12} color={c.textDisabled} />
             </TouchableOpacity>
 
             {restaurant.description && (
@@ -273,25 +244,52 @@ export default function RestaurantDetailScreen() {
               리뷰 {restaurant.commentCount}개
             </Text>
 
-            {comments.map((comment) => (
-              <View
-                key={comment.id}
-                style={[styles.commentItem, { borderBottomColor: c.divider }]}
-              >
+            {/* 리뷰 이미지 모아보기 */}
+            {(() => {
+              const allReviewImages = comments
+                .filter(r => r.images?.length > 0 && !r.isDeleted)
+                .flatMap(r => r.images);
+              if (allReviewImages.length === 0) return null;
+              return (
+                <View style={styles.reviewGallery}>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.reviewGalleryScroll}>
+                    {allReviewImages.map((img, idx) => (
+                      <TouchableOpacity key={idx} onPress={() => setViewerImage(img)} activeOpacity={0.9}>
+                        <Image source={{ uri: img }} style={styles.reviewGalleryImage} contentFit="cover" />
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              );
+            })()}
+
+            {comments.filter(r => !r.isDeleted).map((comment) => (
+              <View key={comment.id} style={[styles.commentItem, { borderBottomColor: c.divider }]}>
                 <View style={styles.commentHeader}>
-                  <Text style={[styles.commentAuthor, { color: c.textPrimary }]}>{comment.user.nickname}</Text>
+                  <View style={styles.commentAuthorRow}>
+                    <Text style={[styles.commentAuthor, { color: c.textPrimary }]}>{comment.user.nickname}</Text>
+                    {comment.userVisitCount > 0 && (
+                      <View style={[styles.visitBadge, { backgroundColor: c.chipBg }]}>
+                        <Text style={[styles.visitBadgeText, { color: c.textTertiary }]}>
+                          {comment.userVisitCount}번 방문
+                        </Text>
+                      </View>
+                    )}
+                  </View>
                   <Text style={[styles.commentDate, { color: c.textTertiary }]}>
                     {new Date(comment.createdAt).toLocaleDateString()}
-                    {comment.isEdited && ' (수정됨)'}
                   </Text>
                 </View>
-                {comment.isDeleted ? (
-                  <Text style={[styles.commentContent, { color: c.textTertiary, fontStyle: 'italic' }]}>
-                    {comment.content}
-                  </Text>
-                ) : (
-                  <TaggedContent content={comment.content} />
+                {comment.images?.length > 0 && (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.reviewImageRow}>
+                    {comment.images.map((img, idx) => (
+                      <TouchableOpacity key={idx} onPress={() => setViewerImage(img)} activeOpacity={0.9}>
+                        <Image source={{ uri: img }} style={styles.reviewImage} contentFit="cover" />
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
                 )}
+                {comment.content ? <TaggedContent content={comment.content} /> : null}
               </View>
             ))}
 
@@ -299,18 +297,46 @@ export default function RestaurantDetailScreen() {
               <View style={styles.noCommentsWrap}>
                 <Ionicons name="chatbubble-outline" size={32} color={c.textDisabled} />
                 <Text style={[styles.noComments, { color: c.textSecondary }]}>
-                  아직 리뷰이 없습니다. 첫 리뷰을 남겨보세요!
+                  아직 리뷰가 없습니다. 첫 리뷰를 남겨보세요!
                 </Text>
               </View>
             )}
           </View>
         </ScrollView>
 
-        {/* 리뷰 작성 버튼 - 하단 고정 */}
-        {isAuthenticated && (
-          <View style={[styles.commentInputFixed, { backgroundColor: c.surface, borderTopColor: c.divider }]}>
+        {/* 하단 고정: 방문인증 + 리뷰 작성 */}
+        {restaurant && (
+          <View style={[styles.bottomBar, { backgroundColor: c.surface, borderTopColor: c.divider }]}>
+            {/* 방문 인증 */}
             <TouchableOpacity
-              style={[styles.reviewButton, { backgroundColor: c.primary }]}
+              style={[
+                styles.bottomButton,
+                restaurant.isVisited
+                  ? { backgroundColor: c.chipBg }
+                  : { borderWidth: 1, borderColor: c.primary },
+              ]}
+              onPress={handleVisit}
+              disabled={restaurant.isVisited || visitLoading}
+              activeOpacity={0.8}
+            >
+              {visitLoading ? (
+                <ActivityIndicator size="small" color={c.primary} />
+              ) : restaurant.isVisited ? (
+                <>
+                  <Ionicons name="checkmark-circle" size={16} color="#4CAF50" />
+                  <Text style={[styles.bottomButtonText, { color: c.textSecondary }]}>인증 완료</Text>
+                </>
+              ) : (
+                <>
+                  <Ionicons name="footsteps-outline" size={16} color={c.primary} />
+                  <Text style={[styles.bottomButtonText, { color: c.primary }]}>방문 인증</Text>
+                </>
+              )}
+            </TouchableOpacity>
+
+            {/* 리뷰 작성 */}
+            <TouchableOpacity
+              style={[styles.bottomButton, styles.bottomButtonPrimary, { backgroundColor: c.primary }]}
               onPress={() => {
                 lightTap();
                 router.push({
@@ -326,106 +352,102 @@ export default function RestaurantDetailScreen() {
               }}
               activeOpacity={0.8}
             >
-              <Ionicons name="create-outline" size={18} color="#fff" />
-              <Text style={styles.reviewButtonText}>리뷰 작성</Text>
+              <Ionicons name="create-outline" size={16} color="#fff" />
+              <Text style={[styles.bottomButtonText, { color: '#fff' }]}>리뷰 작성</Text>
             </TouchableOpacity>
           </View>
         )}
       </KeyboardAvoidingView>
 
+      {/* 이미지 확대 뷰어 */}
+      <Modal visible={!!viewerImage} transparent animationType="fade" onRequestClose={() => setViewerImage(null)}>
+        <Pressable style={styles.viewerOverlay} onPress={() => setViewerImage(null)}>
+          <TouchableOpacity style={styles.viewerClose} onPress={() => setViewerImage(null)}>
+            <Ionicons name="close" size={28} color="#fff" />
+          </TouchableOpacity>
+          {viewerImage && (
+            <Image
+              source={{ uri: viewerImage }}
+              style={styles.viewerImage}
+              contentFit="contain"
+            />
+          )}
+        </Pressable>
+      </Modal>
     </>
   );
 }
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollView: { flex: 1 },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  mainImage: { width: Dimensions.get('window').width, height: 250 },
+
+  // 메인 이미지
+  mainImage: { width: SCREEN_WIDTH, height: 280 },
   imagePlaceholder: { justifyContent: 'center', alignItems: 'center' },
+
+  // 기본 정보
   infoSection: { padding: 20, borderBottomWidth: 8 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
-  titleRow: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  name: { fontSize: 22, fontWeight: '600' },
-  category: {
-    paddingHorizontal: 10, paddingVertical: 4,
-    borderRadius: 4, fontSize: 13,
-  },
+  header: { marginBottom: 16 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+  name: { fontSize: 24, fontWeight: '700', flex: 1 },
+  category: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, fontSize: 12 },
   actions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   visitCountBadge: { fontSize: 14, fontWeight: '600' },
   actionButton: { alignItems: 'center' },
   actionCount: { fontSize: 12, marginTop: 2 },
-  naverMapButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    marginBottom: 10,
+
+  // 길찾기 링크
+  naverMapLink: {
+    flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 12,
   },
-  naverMapButtonText: { fontSize: 15, fontWeight: '600' },
-  visitButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 12,
-    borderRadius: 8,
-    marginBottom: 16,
-  },
-  visitButtonText: { fontSize: 15, fontWeight: '600' },
+  naverMapLinkText: { fontSize: 13 },
   description: { fontSize: 15, lineHeight: 22, marginBottom: 16 },
   metaRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  metaText: { fontSize: 13 },
+  metaText: { fontSize: 12 },
+
+  // 리뷰 섹션
   commentSection: { padding: 20 },
-  sectionTitle: { fontSize: 18, fontWeight: '600', marginBottom: 16 },
-  commentItem: { paddingVertical: 14, borderBottomWidth: 1 },
-  commentHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
+  sectionTitle: { fontSize: 18, fontWeight: '700', marginBottom: 16 },
+  reviewGallery: { marginBottom: 20 },
+  reviewGalleryScroll: { gap: 6 },
+  reviewGalleryImage: { width: 100, height: 100, borderRadius: 8 },
+
+  // 리뷰 이미지
+  reviewImageRow: { marginBottom: 10 },
+  reviewImage: { width: 140, height: 140, borderRadius: 10, marginRight: 8 },
+
+  // 이미지 확대 뷰어
+  viewerOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center', alignItems: 'center' },
+  viewerClose: { position: 'absolute', top: 60, right: 20, zIndex: 10, padding: 8 },
+  viewerImage: { width: SCREEN_WIDTH, height: Dimensions.get('window').height * 0.7 },
+
+  // 리뷰 카드
+  commentItem: { paddingVertical: 16, borderBottomWidth: 0.5 },
+  commentHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  commentAuthorRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   commentAuthor: { fontSize: 14, fontWeight: '600' },
-  commentDate: { fontSize: 12 },
+  visitBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
+  visitBadgeText: { fontSize: 11, fontWeight: '500' },
+  commentDate: { fontSize: 11 },
   commentContent: { fontSize: 14, lineHeight: 20 },
-  noCommentsWrap: { alignItems: 'center', paddingVertical: 30, gap: 8 },
-  noComments: { textAlign: 'center' },
-  commentInputFixed: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    paddingBottom: Platform.OS === 'ios' ? 30 : 10,
-    borderTopWidth: 1,
+  noCommentsWrap: { alignItems: 'center', paddingVertical: 40, gap: 10 },
+  noComments: { textAlign: 'center', fontSize: 14 },
+
+  // 하단 고정 바
+  bottomBar: {
+    flexDirection: 'row', gap: 10,
+    paddingHorizontal: 16, paddingVertical: 12,
+    paddingBottom: Platform.OS === 'ios' ? 32 : 12,
+    borderTopWidth: 0.5,
   },
-  commentInput: {
-    flex: 1,
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    fontSize: 14,
-    maxHeight: 80,
+  bottomButton: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 6, paddingVertical: 14, borderRadius: 12,
   },
-  submitButton: {
-    backgroundColor: '#E8590C',
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  reviewButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    borderRadius: 8,
-  },
-  reviewButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#fff',
-  },
+  bottomButtonPrimary: { flex: 1.5 },
+  bottomButtonText: { fontSize: 14, fontWeight: '600' },
 });

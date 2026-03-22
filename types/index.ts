@@ -65,7 +65,9 @@ export interface CreateRestaurantRequest {
 export interface Comment {
   id: number;
   content: string;
+  images: string[];
   user: UserSummary;
+  userVisitCount: number;
   createdAt: string;
   updatedAt: string;
   isEdited: boolean;
