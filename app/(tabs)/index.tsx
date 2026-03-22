@@ -1,10 +1,10 @@
-import { StyleSheet, View, Text, TextInput, ActivityIndicator, TouchableOpacity, FlatList, Keyboard, Linking, ScrollView, Dimensions } from 'react-native';
+import { StyleSheet, View, Text, TextInput, ActivityIndicator, TouchableOpacity, FlatList, Keyboard, Linking, ScrollView, Dimensions, Platform } from 'react-native';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import BottomSheet, { BottomSheetFlatList, BottomSheetView } from '@gorhom/bottom-sheet';
-import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import type * as LocationType from 'expo-location';
 import { type NaverMapViewRef } from '@mj-studio/react-native-naver-map';
 import { Restaurant, MapBounds } from '../../types';
@@ -227,6 +227,8 @@ export default function MapScreen() {
 
   return (
     <View style={styles.container}>
+      {/* 지도 화면에서는 항상 밝은 상태바 (그라데이션 오버레이와 함께) */}
+      <StatusBar style="light" />
       <NaverMap
         ref={mapRef}
         restaurants={restaurants}
@@ -237,9 +239,15 @@ export default function MapScreen() {
         selectedId={selected?.id ?? null}
       />
 
+      {/* 상태바 영역 반투명 오버레이 (배터리/시간/와이파이 가독성 향상) */}
+      <View
+        style={[styles.statusBarOverlay, { height: insets.top }]}
+        pointerEvents="none"
+      />
+
       {/* 검색바 */}
       <View style={[styles.searchContainer, { top: insets.top + 8 }]}>
-        <View style={[styles.searchBar, { backgroundColor: c.surface, shadowColor: '#000' }, searchFocused && { shadowOpacity: 0.2, shadowRadius: 12 }]}>
+        <View style={[styles.searchBar, { backgroundColor: c.surface, shadowColor: '#000' }]}>
           <Ionicons name="search-outline" size={20} color={c.textSecondary} />
           <TextInput
             style={[styles.searchInput, { color: c.textPrimary }]}
@@ -261,7 +269,7 @@ export default function MapScreen() {
         </View>
 
         {showResults && (
-          <Animated.View entering={FadeIn.duration(150)} style={[styles.searchResults, { backgroundColor: c.surface }]}>
+          <View style={[styles.searchResults, { backgroundColor: c.surface }]}>
             <FlatList
               data={searchResults}
               keyExtractor={(item) => item.id}
@@ -282,7 +290,7 @@ export default function MapScreen() {
                 </TouchableOpacity>
               )}
             />
-          </Animated.View>
+          </View>
         )}
       </View>
 
@@ -319,16 +327,16 @@ export default function MapScreen() {
       )}
 
       {showResearchBtn && (
-        <Animated.View entering={FadeInDown.duration(200)} style={[styles.researchContainer, { top: insets.top + (groups.length > 0 ? 96 : 62) }]}>
+        <View style={[styles.researchContainer, { top: insets.top + (groups.length > 0 ? 96 : 62) }]}>
           <TouchableOpacity
-            style={[styles.researchBtn, { backgroundColor: c.primary, shadowColor: c.primary }]}
+            style={[styles.researchBtn, { backgroundColor: c.primary }]}
             onPress={handleResearch}
             activeOpacity={0.85}
           >
             <Ionicons name="refresh-outline" size={16} color="#fff" />
             <Text style={styles.researchText}>현재 지도에서 재검색</Text>
           </TouchableOpacity>
-        </Animated.View>
+        </View>
       )}
 
       {/* 오른쪽 버튼: 줌 + 내 위치 */}
@@ -386,7 +394,7 @@ export default function MapScreen() {
       >
         <View style={styles.listWrap}>
           <View style={styles.listHeader}>
-            <Ionicons name="restaurant" size={18} color={c.primary} />
+            <Ionicons name="restaurant" size={18} color={c.textSecondary} />
             <Text style={[styles.listTitle, { color: c.textPrimary }]}>주변 맛집 {restaurants.length}개</Text>
           </View>
           <BottomSheetFlatList
@@ -431,6 +439,14 @@ export default function MapScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  statusBarOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 5,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
   searchContainer: {
     position: 'absolute',
     top: 8,
@@ -441,26 +457,26 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 12,
+    borderRadius: 8,
     paddingHorizontal: 14,
     height: 48,
     gap: 10,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
   },
   searchInput: { flex: 1, fontSize: 16, fontWeight: '500', paddingVertical: 0 },
   clearBtn: { padding: 8 },
   searchResults: {
     marginTop: 6,
-    borderRadius: 12,
+    borderRadius: 8,
     maxHeight: 320,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
+    shadowOpacity: 0.06,
     shadowRadius: 12,
-    elevation: 6,
+    elevation: 4,
     overflow: 'hidden',
   },
   resultItem: {
@@ -487,11 +503,12 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderRadius: 20,
+    borderRadius: 8,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 4,
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   researchText: {
     color: '#fff',
@@ -509,14 +526,14 @@ const styles = StyleSheet.create({
   mapBtn: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 4,
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -524,21 +541,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sheetBg: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: 14,
+    borderTopRightRadius: 14,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.05,
     shadowRadius: 12,
-    elevation: 8,
+    elevation: 6,
   },
   preview: { flex: 1, paddingHorizontal: 16 },
   previewHeader: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12 },
   previewTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
-  previewName: { fontSize: 18, fontWeight: '700', flex: 1 },
+  previewName: { fontSize: 18, fontWeight: '600', flex: 1 },
   previewCategory: {
     paddingHorizontal: 8, paddingVertical: 3,
-    borderRadius: 10, fontSize: 12,
+    borderRadius: 4, fontSize: 12,
   },
   previewLikes: { fontSize: 13 },
   previewClose: {
@@ -553,7 +570,7 @@ const styles = StyleSheet.create({
   previewVisitBtn: {
     flex: 1,
     flexDirection: 'row',
-    borderRadius: 10,
+    borderRadius: 8,
     paddingVertical: 11,
     justifyContent: 'center',
     alignItems: 'center',
@@ -562,16 +579,16 @@ const styles = StyleSheet.create({
   previewReviewBtn: {
     flex: 1,
     flexDirection: 'row',
-    borderRadius: 10,
+    borderRadius: 8,
     paddingVertical: 11,
     justifyContent: 'center',
     alignItems: 'center',
     gap: 5,
-    borderWidth: 1.5,
+    borderWidth: 1,
   },
   previewDetailBtn: {
     width: 40,
-    borderRadius: 10,
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -600,7 +617,7 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingHorizontal: 12,
     paddingVertical: 7,
-    borderRadius: 20,
+    borderRadius: 8,
     borderWidth: 1,
   },
   groupChipText: {

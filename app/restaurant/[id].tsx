@@ -1,8 +1,8 @@
-import { StyleSheet, View, Text, ScrollView, Image, TouchableOpacity, ActivityIndicator, TextInput, KeyboardAvoidingView, Platform, RefreshControl, Linking, Dimensions } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ActivityIndicator, TextInput, KeyboardAvoidingView, Platform, RefreshControl, Linking, Dimensions } from 'react-native';
+import { Image } from 'expo-image';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocalSearchParams, Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeIn } from 'react-native-reanimated';
 import { RestaurantDetail, Comment } from '../../types';
 import { TaggedContent } from '../../components/TaggedContent';
 import { restaurantApi } from '../../api/restaurant';
@@ -175,7 +175,7 @@ export default function RestaurantDetailScreen() {
           style={styles.scrollView}
           contentContainerStyle={{ paddingBottom: 80 }}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#FF6B35']} />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[c.primary]} />
           }
         >
           {/* 이미지 */}
@@ -199,7 +199,7 @@ export default function RestaurantDetailScreen() {
           })()}
 
           {/* 기본 정보 */}
-          <Animated.View entering={FadeIn.duration(400)} style={[styles.infoSection, { borderBottomColor: c.background }]}>
+          <View style={[styles.infoSection, { borderBottomColor: c.background }]}>
             <View style={styles.header}>
               <View style={styles.titleRow}>
                 <Text style={[styles.name, { color: c.textPrimary }]}>{restaurant.name}</Text>
@@ -208,7 +208,7 @@ export default function RestaurantDetailScreen() {
                 )}
               </View>
               <View style={styles.actions}>
-                <Text style={[styles.visitCountBadge, { color: c.textSecondary }]}>👣 {restaurant.visitCount}회</Text>
+                <Text style={[styles.visitCountBadge, { color: c.textSecondary }]}>방문 {restaurant.visitCount}회</Text>
               </View>
             </View>
 
@@ -229,7 +229,7 @@ export default function RestaurantDetailScreen() {
                 styles.visitButton,
                 restaurant.isVisited
                   ? { backgroundColor: c.categoryBadgeBg }
-                  : { backgroundColor: '#FF6B35' },
+                  : { backgroundColor: c.primary },
               ]}
               onPress={handleVisit}
               disabled={restaurant.isVisited || visitLoading}
@@ -240,7 +240,7 @@ export default function RestaurantDetailScreen() {
                 <>
                   <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
                   <Text style={[styles.visitButtonText, { color: c.textSecondary }]}>
-                    오늘 방문 완료 ✓
+                    오늘 방문 완료
                   </Text>
                 </>
               ) : (
@@ -265,7 +265,7 @@ export default function RestaurantDetailScreen() {
                 {new Date(restaurant.createdAt).toLocaleDateString()}
               </Text>
             </View>
-          </Animated.View>
+          </View>
 
           {/* 리뷰 섹션 */}
           <View style={styles.commentSection}>
@@ -273,10 +273,9 @@ export default function RestaurantDetailScreen() {
               리뷰 {restaurant.commentCount}개
             </Text>
 
-            {comments.map((comment, index) => (
-              <Animated.View
+            {comments.map((comment) => (
+              <View
                 key={comment.id}
-                entering={FadeIn.delay(index * 50).duration(300)}
                 style={[styles.commentItem, { borderBottomColor: c.divider }]}
               >
                 <View style={styles.commentHeader}>
@@ -293,7 +292,7 @@ export default function RestaurantDetailScreen() {
                 ) : (
                   <TaggedContent content={comment.content} />
                 )}
-              </Animated.View>
+              </View>
             ))}
 
             {comments.length === 0 && (
@@ -307,29 +306,31 @@ export default function RestaurantDetailScreen() {
           </View>
         </ScrollView>
 
-        {/* 리뷰 입력 - 하단 고정 */}
-        <View style={[styles.commentInputFixed, { backgroundColor: c.surface, borderTopColor: c.divider }]}>
-          <TextInput
-            style={[styles.commentInput, { borderColor: c.border, backgroundColor: c.inputBg, color: c.textPrimary }]}
-            placeholder="리뷰을 입력하세요"
-            placeholderTextColor={c.textDisabled}
-            value={newComment}
-            onChangeText={setNewComment}
-            multiline
-            maxLength={1000}
-          />
-          <TouchableOpacity
-            style={[styles.submitButton, (!newComment.trim() || submitting) && { backgroundColor: c.primaryLight, opacity: 0.5 }]}
-            onPress={handleSubmitComment}
-            disabled={submitting || !newComment.trim()}
-          >
-            {submitting ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Ionicons name="send" size={18} color="#fff" />
-            )}
-          </TouchableOpacity>
-        </View>
+        {/* 리뷰 작성 버튼 - 하단 고정 */}
+        {isAuthenticated && (
+          <View style={[styles.commentInputFixed, { backgroundColor: c.surface, borderTopColor: c.divider }]}>
+            <TouchableOpacity
+              style={[styles.reviewButton, { backgroundColor: c.primary }]}
+              onPress={() => {
+                lightTap();
+                router.push({
+                  pathname: '/visit-review',
+                  params: {
+                    placeName: restaurant.name,
+                    placeLat: String(restaurant.lat),
+                    placeLng: String(restaurant.lng),
+                    placeId: restaurant.naverPlaceId || '',
+                    placeCategory: restaurant.category || '',
+                  },
+                });
+              }}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="create-outline" size={18} color="#fff" />
+              <Text style={styles.reviewButtonText}>리뷰 작성</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </KeyboardAvoidingView>
 
     </>
@@ -345,10 +346,10 @@ const styles = StyleSheet.create({
   infoSection: { padding: 20, borderBottomWidth: 8 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
   titleRow: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  name: { fontSize: 22, fontWeight: 'bold' },
+  name: { fontSize: 22, fontWeight: '600' },
   category: {
     paddingHorizontal: 10, paddingVertical: 4,
-    borderRadius: 12, fontSize: 13,
+    borderRadius: 4, fontSize: 13,
   },
   actions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   visitCountBadge: { fontSize: 14, fontWeight: '600' },
@@ -360,7 +361,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     paddingVertical: 12,
-    borderRadius: 12,
+    borderRadius: 8,
     borderWidth: 1,
     marginBottom: 10,
   },
@@ -371,7 +372,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     paddingVertical: 12,
-    borderRadius: 12,
+    borderRadius: 8,
     marginBottom: 16,
   },
   visitButtonText: { fontSize: 15, fontWeight: '600' },
@@ -399,18 +400,32 @@ const styles = StyleSheet.create({
   commentInput: {
     flex: 1,
     borderWidth: 1,
-    borderRadius: 20,
+    borderRadius: 8,
     paddingHorizontal: 14,
     paddingVertical: 8,
     fontSize: 14,
     maxHeight: 80,
   },
   submitButton: {
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#E8590C',
     width: 40,
     height: 40,
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  reviewButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 8,
+  },
+  reviewButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#fff',
   },
 });

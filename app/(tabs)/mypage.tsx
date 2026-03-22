@@ -1,20 +1,19 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Image, ScrollView, Alert, Switch, Linking, Platform } from 'react-native';
 import { MypageTabHeader } from '../../components/TabHeader';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
-import Animated, { FadeIn } from 'react-native-reanimated';
 import { useAuthStore } from '../../stores/authStore';
 import { AuthRequired } from '../../components/AuthRequired';
 import { useTheme } from '../../hooks/useTheme';
 import { useThemeStore } from '../../stores/themeStore';
 import { lightTap } from '../../utils/haptics';
+import { showSuccess, showError } from '../../utils/toast';
+import { getErrorMessage } from '../../utils/getErrorMessage';
 
 interface SettingRowProps {
   icon: keyof typeof Ionicons.glyphMap;
-  iconColor?: string;
-  iconBg?: string;
   label: string;
   subtitle?: string;
   onPress?: () => void;
@@ -23,10 +22,9 @@ interface SettingRowProps {
   isLast?: boolean;
 }
 
-function SettingRow({ icon, iconColor, iconBg, label, subtitle, onPress, rightElement, destructive, isLast }: SettingRowProps) {
+function SettingRow({ icon, label, subtitle, onPress, rightElement, destructive, isLast }: SettingRowProps) {
   const c = useTheme();
-  const bg = iconBg || (destructive ? c.errorBg : c.primaryBg);
-  const color = destructive ? c.error : (iconColor || c.primary);
+  const color = destructive ? c.error : c.textSecondary;
 
   return (
     <TouchableOpacity
@@ -35,9 +33,7 @@ function SettingRow({ icon, iconColor, iconBg, label, subtitle, onPress, rightEl
       disabled={!onPress && !rightElement}
       activeOpacity={0.6}
     >
-      <View style={[styles.iconWrap, { backgroundColor: bg }]}>
-        <Ionicons name={icon} size={18} color={color} />
-      </View>
+      <Ionicons name={icon} size={20} color={color} />
       <View style={styles.settingContent}>
         <Text style={[styles.settingLabel, { color: destructive ? c.error : c.textPrimary }]}>{label}</Text>
         {subtitle && <Text style={[styles.settingSubtitle, { color: c.textTertiary }]}>{subtitle}</Text>}
@@ -52,7 +48,7 @@ const SUPPORT_EMAIL = 'support@wishmap.app';
 
 export default function MyPageScreen() {
   const c = useTheme();
-  const { isAuthenticated, user, logout } = useAuthStore();
+  const { isAuthenticated, user, logout, updateNickname } = useAuthStore();
   const { mode: themeMode, setMode: setThemeMode } = useThemeStore();
   const [pushEnabled, setPushEnabled] = useState(false);
 
@@ -95,6 +91,30 @@ export default function MyPageScreen() {
     }
   };
 
+  const handleNicknameChange = () => {
+    lightTap();
+    Alert.prompt(
+      '닉네임 변경',
+      '새 닉네임을 입력해주세요 (2~10자)',
+      async (text) => {
+        const nickname = text?.trim();
+        if (!nickname) return;
+        if (nickname.length < 2 || nickname.length > 10) {
+          showError('닉네임 오류', '닉네임은 2~10자여야 합니다');
+          return;
+        }
+        try {
+          await updateNickname(nickname);
+          showSuccess('변경 완료', '닉네임이 변경되었습니다');
+        } catch (error: unknown) {
+          showError('변경 실패', getErrorMessage(error, '닉네임 변경 중 오류가 발생했습니다'));
+        }
+      },
+      'plain-text',
+      user?.nickname,
+    );
+  };
+
   const handleLogout = () => {
     Alert.alert('로그아웃', '정말 로그아웃 하시겠습니까?', [
       { text: '취소', style: 'cancel' },
@@ -121,22 +141,23 @@ export default function MyPageScreen() {
     <MypageTabHeader />
     <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
       {/* 프로필 카드 */}
-      <Animated.View entering={FadeIn.duration(400)}>
-        <View style={[styles.profileCard, { backgroundColor: c.cardBg }]}>
-          <View style={styles.profileTop}>
-            {user?.profileImage ? (
-              <Image source={{ uri: user.profileImage }} style={[styles.avatar, { backgroundColor: c.primaryBg }]} />
-            ) : (
-              <View style={[styles.avatar, styles.avatarPlaceholder, { backgroundColor: c.primaryBg }]}>
-                <Ionicons name="person" size={32} color={c.primary} />
-              </View>
-            )}
-            <View style={styles.profileInfo}>
-              <Text style={[styles.nickname, { color: c.textPrimary }]}>{user?.nickname}</Text>
+      <View style={[styles.profileCard, { backgroundColor: c.cardBg, borderColor: c.border }]}>
+        <View style={styles.profileTop}>
+          {user?.profileImage ? (
+            <Image source={{ uri: user.profileImage }} style={[styles.avatar, { backgroundColor: c.primaryBg }]} />
+          ) : (
+            <View style={[styles.avatar, styles.avatarPlaceholder, { backgroundColor: c.primaryBg }]}>
+              <Ionicons name="person" size={32} color={c.primary} />
             </View>
+          )}
+          <View style={styles.profileInfo}>
+            <TouchableOpacity style={styles.nicknameRow} onPress={handleNicknameChange} activeOpacity={0.6}>
+              <Text style={[styles.nickname, { color: c.textPrimary }]}>{user?.nickname}</Text>
+              <Ionicons name="pencil" size={14} color={c.textDisabled} />
+            </TouchableOpacity>
           </View>
         </View>
-      </Animated.View>
+      </View>
 
       {/* 나의 활동 */}
       <View style={styles.section}>
@@ -153,16 +174,12 @@ export default function MyPageScreen() {
         <View style={[styles.card, { backgroundColor: c.cardBg }]}>
           <SettingRow
             icon={themeMode === 'dark' ? 'moon' : themeMode === 'light' ? 'sunny' : 'phone-portrait-outline'}
-            iconColor="#7C6DD8"
-            iconBg={c.primaryBg}
             label="테마"
             subtitle={themeLabel}
             onPress={handleThemeToggle}
           />
           <SettingRow
             icon="notifications-outline"
-            iconColor="#E8944E"
-            iconBg={c.warningBg}
             label="푸시 알림"
             rightElement={
               <Switch
@@ -181,7 +198,7 @@ export default function MyPageScreen() {
       <View style={styles.section}>
         <Text style={[styles.sectionLabel, { color: c.textTertiary }]}>계정</Text>
         <View style={[styles.card, { backgroundColor: c.cardBg }]}>
-          <SettingRow icon="log-out-outline" iconColor="#E8944E" iconBg={c.warningBg} label="로그아웃" onPress={handleLogout} isLast />
+          <SettingRow icon="log-out-outline" label="로그아웃" onPress={handleLogout} isLast />
         </View>
       </View>
 
@@ -189,9 +206,9 @@ export default function MyPageScreen() {
       <View style={styles.section}>
         <Text style={[styles.sectionLabel, { color: c.textTertiary }]}>정보</Text>
         <View style={[styles.card, { backgroundColor: c.cardBg }]}>
-          <SettingRow icon="document-text-outline" iconColor="#5B8EC9" iconBg={c.infoBg} label="개인정보 처리방침" onPress={() => router.push('/legal/privacy')} />
-          <SettingRow icon="document-outline" iconColor="#5B8EC9" iconBg={c.infoBg} label="이용약관" onPress={() => router.push('/legal/terms')} />
-          <SettingRow icon="chatbubble-outline" iconColor="#4CAF82" iconBg={c.successBg} label="문의하기" onPress={handleContact} isLast />
+          <SettingRow icon="document-text-outline" label="개인정보 처리방침" onPress={() => router.push('/legal/privacy')} />
+          <SettingRow icon="document-outline" label="이용약관" onPress={() => router.push('/legal/terms')} />
+          <SettingRow icon="chatbubble-outline" label="문의하기" onPress={handleContact} isLast />
         </View>
       </View>
 
@@ -211,12 +228,8 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 16,
     padding: 20,
-    borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 3,
+    borderRadius: 10,
+    borderWidth: 0.5,
   },
   profileTop: {
     flexDirection: 'row',
@@ -230,7 +243,8 @@ const styles = StyleSheet.create({
   },
   avatarPlaceholder: { justifyContent: 'center', alignItems: 'center' },
   profileInfo: { flex: 1 },
-  nickname: { fontSize: 20, fontWeight: '800' },
+  nicknameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  nickname: { fontSize: 20, fontWeight: '600' },
   section: { marginTop: 24, paddingHorizontal: 16 },
   sectionLabel: {
     fontSize: 12,
@@ -240,13 +254,8 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   card: {
-    borderRadius: 16,
+    borderRadius: 10,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 1,
   },
   settingRow: {
     flexDirection: 'row',
@@ -255,13 +264,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     gap: 14,
     minHeight: 56,
-  },
-  iconWrap: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   settingContent: { flex: 1 },
   settingLabel: { fontSize: 15, fontWeight: '500' },

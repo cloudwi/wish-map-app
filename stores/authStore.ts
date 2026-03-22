@@ -12,6 +12,7 @@ interface AuthState {
   forceLogout: () => void;
   checkAuth: () => Promise<void>;
   setUser: (user: User | null) => void;
+  updateNickname: (nickname: string) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -69,4 +70,9 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   setUser: (user) => set({ user, isAuthenticated: !!user }),
+
+  updateNickname: async (nickname) => {
+    const updatedUser = await authApi.updateNickname(nickname);
+    set({ user: updatedUser });
+  },
 }));

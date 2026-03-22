@@ -24,8 +24,17 @@ export interface PlaceStatsResponse {
   recentReviews: ReviewSummary[];
 }
 
+export interface RestaurantListParams {
+  bounds?: MapBounds;
+  category?: string;
+  search?: string;
+  sort?: 'latest' | 'visits';
+  page?: number;
+  size?: number;
+}
+
 export const restaurantApi = {
-  // 지도 범위 내 맛집 목록
+  // 지도 범위 내 맛집 목록 (지도 탭용)
   getRestaurants: async (bounds: MapBounds, page = 0, size = 50): Promise<PageResponse<Restaurant>> => {
     const response = await apiClient.get<PageResponse<Restaurant>>('/restaurants', {
       params: {
@@ -35,6 +44,20 @@ export const restaurantApi = {
         maxLng: bounds.maxLng,
         page,
         size,
+      },
+    });
+    return response.data;
+  },
+
+  // 맛집 리스트 (리스트 탭용 - 서버사이드 필터/검색/정렬)
+  getRestaurantList: async (params: RestaurantListParams = {}): Promise<PageResponse<Restaurant>> => {
+    const response = await apiClient.get<PageResponse<Restaurant>>('/restaurants', {
+      params: {
+        category: params.category || undefined,
+        search: params.search || undefined,
+        sortBy: params.sort || 'latest',
+        page: params.page ?? 0,
+        size: params.size ?? 20,
       },
     });
     return response.data;

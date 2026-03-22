@@ -94,7 +94,7 @@ hooks/
 - 로그인 필요 시 router.push('/login')으로 이동 (토스트 아님)
 
 ## 디자인 시스템 (constants/theme.ts)
-- Primary: #FF6B35 (오렌지)
+- Primary: #E8590C (오렌지)
 - 다크모드 지원
 - 토스트: 타입별 배경색 (성공=초록, 에러=빨강, 정보=오렌지)
 
@@ -117,9 +117,20 @@ EXPO_PUBLIC_API_URL, EXPO_PUBLIC_NAVER_MAP_CLIENT_ID,
 EXPO_PUBLIC_NAVER_SEARCH_CLIENT_ID, EXPO_PUBLIC_NAVER_SEARCH_CLIENT_SECRET,
 각 OAuth 키 (KAKAO, GOOGLE, NAVER, APPLE)
 
+## 디자인 원칙
+- **해외 서비스 스타일의 단순한 UX/UI를 추구** (미니멀, 깔끔, 직관적)
+- 불필요한 장식 요소 최소화, 핵심 기능에 집중
+- 화면 전환 최소화, 인라인 인터랙션 선호
+- 컬러 팔레트 절제: Primary(오렌지) + 중립색 중심
+- 타이포그래피: 가독성 우선, 굵기/크기 변화로 위계 표현
+
 ## 컨벤션
 - 커밋: `feat:`, `fix:` 등 한국어 메시지
 - Co-Authored-By 포함하지 않음
 - UX 최우선: 불필요한 입력 제거, auto-advance, 시각적 피드백
 - 앱 전용 (웹 미지원)
 - 별점 시스템 사용하지 않음
+
+## 알려진 이슈 / TODO
+- **리뷰 이미지 업로드 미구현**: visit-review.tsx에서 이미지를 선택하지만 서버에 전송하지 않음. 이미지 업로드 엔드포인트 + 스토리지(S3 등) 구축 필요
+- **스플래시 다크 아이콘**: splash-icon-dark.png이 현재 라이트 버전 복사본. 다크 배경에 맞는 밝은 색상 아이콘으로 교체 필요

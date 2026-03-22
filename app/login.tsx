@@ -5,7 +5,6 @@ import {
 import { useState, useEffect } from 'react';
 import { router, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeInUp, FadeInDown } from 'react-native-reanimated';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { login as kakaoLogin } from '@react-native-seoul/kakao-login';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
@@ -46,7 +45,7 @@ export default function LoginScreen() {
       setLoading('KAKAO');
       const result = await kakaoLogin();
       await login('KAKAO', result.accessToken);
-      router.canGoBack() ? router.back() : router.replace('/(tabs)');
+      router.replace('/(tabs)');
     } catch (e: any) {
       if (e.code !== 'E_CANCELLED_OPERATION') {
         showError('로그인 실패', e.message || '카카오 로그인 중 오류가 발생했습니다.');
@@ -64,7 +63,7 @@ export default function LoginScreen() {
       const idToken = response.data?.idToken;
       if (!idToken) throw new Error('구글 토큰 발급 실패');
       await login('GOOGLE', idToken);
-      router.canGoBack() ? router.back() : router.replace('/(tabs)');
+      router.replace('/(tabs)');
     } catch (e: any) {
       if (e.code !== 'SIGN_IN_CANCELLED') {
         showError('로그인 실패', e.message || '구글 로그인 중 오류가 발생했습니다.');
@@ -82,7 +81,7 @@ export default function LoginScreen() {
         throw new Error('네이버 로그인에 실패했습니다.');
       }
       await login('NAVER', result.successResponse.accessToken);
-      router.canGoBack() ? router.back() : router.replace('/(tabs)');
+      router.replace('/(tabs)');
     } catch (e: any) {
       showError('로그인 실패', e.message || '네이버 로그인 중 오류가 발생했습니다.');
     } finally {
@@ -101,7 +100,7 @@ export default function LoginScreen() {
       });
       if (!credential.identityToken) throw new Error('Apple identity token 없음');
       await login('APPLE', credential.identityToken);
-      router.canGoBack() ? router.back() : router.replace('/(tabs)');
+      router.replace('/(tabs)');
     } catch (e: any) {
       if (e.code !== 'ERR_REQUEST_CANCELED') {
         showError('로그인 실패', e.message || 'Apple 로그인 중 오류가 발생했습니다.');
@@ -126,17 +125,17 @@ export default function LoginScreen() {
 
       <View style={[styles.container, { backgroundColor: c.surface }]}>
         {/* 로고 */}
-        <Animated.View entering={FadeInUp.duration(500)} style={styles.logoContainer}>
+        <View style={styles.logoContainer}>
           <Image
             source={require('../assets/images/logo.png')}
             style={styles.logoImage}
           />
           <Text style={[styles.appName, { color: c.primary }]}>위시맵</Text>
           <Text style={[styles.tagline, { color: c.textSecondary }]}>우리 동네 맛집 지도</Text>
-        </Animated.View>
+        </View>
 
         {/* 소셜 로그인 버튼 */}
-        <Animated.View entering={FadeInDown.delay(200).duration(500)} style={styles.buttonContainer}>
+        <View style={styles.buttonContainer}>
           {/* 카카오 */}
           <TouchableOpacity
             style={[styles.socialButton, styles.kakaoButton, isDisabled && loading !== 'KAKAO' && styles.dimmed]}
@@ -196,19 +195,19 @@ export default function LoginScreen() {
             <AppleAuthentication.AppleAuthenticationButton
               buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
               buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-              cornerRadius={12}
+              cornerRadius={8}
               style={[styles.appleButton, isDisabled && styles.dimmed]}
               onPress={handleApple}
             />
           )}
-        </Animated.View>
+        </View>
 
         {/* 건너뛰기 */}
-        <Animated.View entering={FadeInDown.delay(400).duration(400)}>
+        <View>
           <TouchableOpacity style={styles.skipButton} onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)')}>
             <Text style={[styles.skipButtonText, { color: c.textSecondary }]}>로그인 없이 둘러보기</Text>
           </TouchableOpacity>
-        </Animated.View>
+        </View>
 
         {/* 약관 */}
         <Text style={[styles.terms, { color: c.textTertiary }]}>
@@ -224,14 +223,14 @@ const styles = StyleSheet.create({
   container: { flex: 1, padding: 30 },
   logoContainer: { alignItems: 'center', marginTop: 40, marginBottom: 50 },
   logoImage: {
-    width: 100, height: 100, borderRadius: 24, marginBottom: 16,
+    width: 80, height: 80, borderRadius: 16, marginBottom: 16,
   },
-  appName: { fontSize: 28, fontWeight: 'bold', marginBottom: 8 },
+  appName: { fontSize: 24, fontWeight: '600', marginBottom: 8 },
   tagline: { fontSize: 16 },
   buttonContainer: { gap: 12 },
   socialButton: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    paddingVertical: 14, borderRadius: 12, gap: 10,
+    paddingVertical: 14, borderRadius: 8, gap: 10,
   },
   socialIcon: { width: 20, height: 20 },
   dimmed: { opacity: 0.5 },

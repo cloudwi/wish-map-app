@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Image } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Restaurant } from '../types';
 import { searchPlaceImage } from '../api/search';
 import { useTheme } from '../hooks/useTheme';
@@ -25,14 +25,20 @@ export function RestaurantCard({ item, badge, index = 0 }: Props) {
   }, [item.name, item.thumbnailImage]);
 
   return (
-    <Animated.View entering={FadeInDown.delay(index * 60).duration(300).springify()}>
+    <View>
       <TouchableOpacity
-        style={[styles.card, { backgroundColor: c.cardBg }]}
+        style={[styles.card, { backgroundColor: c.cardBg, borderColor: c.border }]}
         onPress={() => { lightTap(); router.push(`/restaurant/${item.id}`); }}
         activeOpacity={0.8}
       >
         {imageUri ? (
-          <Image source={{ uri: imageUri }} style={[styles.thumbnail, { backgroundColor: c.imagePlaceholderBg }]} />
+          <Image
+            source={{ uri: imageUri }}
+            style={[styles.thumbnail, { backgroundColor: c.imagePlaceholderBg }]}
+            contentFit="cover"
+            transition={200}
+            cachePolicy="memory-disk"
+          />
         ) : (
           <View style={[styles.thumbnail, styles.thumbnailPlaceholder, { backgroundColor: c.imagePlaceholderBg }]}>
             <Ionicons name="restaurant-outline" size={26} color="#d4c4bc" />
@@ -47,25 +53,21 @@ export function RestaurantCard({ item, badge, index = 0 }: Props) {
             {item.category && (
               <Text style={[styles.category, { backgroundColor: c.categoryBadgeBg, color: c.categoryBadgeText }]}>{item.category}</Text>
             )}
-            <Text style={[styles.likes, { color: c.primary }]}>👣 {item.visitCount}회</Text>
+            <Text style={[styles.likes, { color: c.primary }]}>방문 {item.visitCount}회</Text>
           </View>
         </View>
       </TouchableOpacity>
-    </Animated.View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
-    borderRadius: 12,
+    borderRadius: 8,
     overflow: 'hidden',
     marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    borderWidth: 0.5,
   },
   thumbnail: {
     width: 90,
@@ -99,7 +101,7 @@ const styles = StyleSheet.create({
   category: {
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 10,
+    borderRadius: 4,
     fontSize: 12,
   },
   likes: {
