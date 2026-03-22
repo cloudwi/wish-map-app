@@ -1,10 +1,13 @@
+import { useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../stores/authStore';
 import { useTheme } from '../hooks/useTheme';
 import { lightTap } from '../utils/haptics';
+import { friendApi } from '../api/friend';
+import { groupApi } from '../api/group';
 
 interface BaseTabHeaderProps {
   title: string;
@@ -30,6 +33,19 @@ function BaseTabHeader({ title, rightContent }: BaseTabHeaderProps) {
 
 function AuthenticatedActions() {
   const c = useTheme();
+  const [notifCount, setNotifCount] = useState(0);
+
+  useFocusEffect(useCallback(() => {
+    (async () => {
+      try {
+        const [fr, gi] = await Promise.all([
+          friendApi.getPendingRequests(),
+          groupApi.getInvites(),
+        ]);
+        setNotifCount(fr.length + gi.length);
+      } catch {}
+    })();
+  }, []));
 
   return (
     <View style={styles.right}>
@@ -38,6 +54,11 @@ function AuthenticatedActions() {
         onPress={() => { lightTap(); router.push('/notifications'); }}
       >
         <Ionicons name="notifications-outline" size={26} color={c.textPrimary} />
+        {notifCount > 0 && (
+          <View style={[styles.notifBadge, { backgroundColor: c.primary, borderColor: c.headerBg }]}>
+            <Text style={styles.notifBadgeText}>{notifCount > 9 ? '9+' : notifCount}</Text>
+          </View>
+        )}
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.iconBtn}
@@ -131,6 +152,23 @@ const styles = StyleSheet.create({
     height: 7,
     borderRadius: 4,
     borderWidth: 1.5,
+  },
+  notifBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 2,
+  },
+  notifBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '700',
   },
   loginBtn: {
     paddingHorizontal: 14,

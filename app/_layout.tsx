@@ -16,6 +16,22 @@ export default function RootLayout() {
     useThemeStore.getState().loadMode();
   }, []);
 
+  // 푸시 알림 설정 (네이티브 빌드에서만 동작)
+  useEffect(() => {
+    import('../utils/notifications').then(async ({ setupNotificationHandler, registerForPushNotifications, addNotificationResponseListener }) => {
+      await setupNotificationHandler();
+
+      const { useAuthStore } = await import('../stores/authStore');
+      const { isAuthenticated } = useAuthStore.getState();
+      if (isAuthenticated) {
+        registerForPushNotifications();
+      }
+
+      const { router } = await import('expo-router');
+      addNotificationResponseListener(() => router.push('/notifications'));
+    }).catch(() => {});
+  }, []);
+
   const resolvedScheme = mode === 'system' ? systemScheme : mode;
   const isDark = resolvedScheme === 'dark';
   const c = isDark ? themes.dark : themes.light;

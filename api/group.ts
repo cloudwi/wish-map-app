@@ -7,6 +7,10 @@ export interface GroupResponse {
   leaderNickname: string;
   memberCount: number;
   isLeader: boolean;
+  baseLat: number | null;
+  baseLng: number | null;
+  baseAddress: string | null;
+  baseRadius: number | null;
 }
 
 export interface GroupDetailResponse {
@@ -58,4 +62,28 @@ export const groupApi = {
   leaveGroup: async (groupId: number): Promise<void> => {
     await apiClient.delete(`/groups/${groupId}/leave`);
   },
+
+  updateLocation: async (groupId: number, baseLat: number, baseLng: number, baseAddress: string, baseRadius: number = 1000): Promise<void> => {
+    await apiClient.patch(`/groups/${groupId}/location`, { baseLat, baseLng, baseAddress, baseRadius });
+  },
+
+  getInvites: async (): Promise<GroupInviteResponse[]> => {
+    const { data } = await apiClient.get('/groups/invites');
+    return data;
+  },
+
+  acceptInvite: async (groupId: number): Promise<void> => {
+    await apiClient.patch(`/groups/${groupId}/invites/accept`);
+  },
+
+  rejectInvite: async (groupId: number): Promise<void> => {
+    await apiClient.patch(`/groups/${groupId}/invites/reject`);
+  },
 };
+
+export interface GroupInviteResponse {
+  groupId: number;
+  groupName: string;
+  invitedBy: string;
+  invitedAt: string;
+}

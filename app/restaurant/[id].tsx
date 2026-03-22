@@ -33,21 +33,22 @@ export default function RestaurantDetailScreen() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [restaurantData, commentsData] = await Promise.all([
-        restaurantApi.getRestaurantDetail(Number(id)),
-        commentApi.getComments(Number(id)),
-      ]);
+      const restaurantData = await restaurantApi.getRestaurantDetail(Number(id));
       setRestaurant(restaurantData);
-      setComments(commentsData.content);
       if (!restaurantData.thumbnailImage && restaurantData.images.length === 0) {
         searchPlaceImages(restaurantData.name + ' 맛집', 3).then(setSearchImages);
       }
     } catch (error) {
-      console.error('Failed to fetch data:', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+      console.error('Failed to fetch restaurant:', error);
     }
+    try {
+      const commentsData = await commentApi.getComments(Number(id));
+      setComments(commentsData.content);
+    } catch (error) {
+      console.error('Failed to fetch comments:', error);
+    }
+    setLoading(false);
+    setRefreshing(false);
   }, [id]);
 
   useEffect(() => { fetchData(); }, [fetchData]);

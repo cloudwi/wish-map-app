@@ -1,13 +1,160 @@
-import { StyleSheet, View, Text, FlatList, TouchableOpacity, Platform } from 'react-native';
+import { useState, useCallback } from 'react';
+import { StyleSheet, View, Text, FlatList, TouchableOpacity, Platform, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Stack, router } from 'expo-router';
+import { Stack, router, useFocusEffect } from 'expo-router';
 import { useTheme } from '../../hooks/useTheme';
+import { useAuthStore } from '../../stores/authStore';
+import { friendApi, FriendResponse } from '../../api/friend';
+import { groupApi, GroupInviteResponse } from '../../api/group';
+import { useGroupStore } from '../../stores/groupStore';
+import { lightTap, successTap } from '../../utils/haptics';
+import { showSuccess, showError } from '../../utils/toast';
+import { getErrorMessage } from '../../utils/getErrorMessage';
 
-// TODO: 백엔드 알림 API 연동 후 실제 데이터로 교체
-const MOCK_NOTIFICATIONS: { id: string; title: string; body: string; date: string; read: boolean }[] = [];
+type NotifItem =
+  | { type: 'friend'; data: FriendResponse }
+  | { type: 'group'; data: GroupInviteResponse };
 
 export default function NotificationsScreen() {
   const c = useTheme();
+  const { isAuthenticated } = useAuthStore();
+  const { fetchGroups } = useGroupStore();
+  const [items, setItems] = useState<NotifItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [processingId, setProcessingId] = useState<string | null>(null);
+
+  const loadData = useCallback(async () => {
+    if (!isAuthenticated) return;
+    setLoading(true);
+    try {
+      const [friendReqs, groupInvites] = await Promise.all([
+        friendApi.getPendingRequests(),
+        groupApi.getInvites(),
+      ]);
+      const merged: NotifItem[] = [
+        ...friendReqs.map((f) => ({ type: 'friend' as const, data: f })),
+        ...groupInvites.map((g) => ({ type: 'group' as const, data: g })),
+      ];
+      setItems(merged);
+    } catch {} finally {
+      setLoading(false);
+    }
+  }, [isAuthenticated]);
+
+  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
+
+  const handleAcceptFriend = async (item: FriendResponse) => {
+    setProcessingId(`friend-${item.id}`);
+    try {
+      await friendApi.acceptRequest(item.id);
+      successTap();
+      setItems(prev => prev.filter(i => !(i.type === 'friend' && i.data.id === item.id)));
+      showSuccess('수락 완료', `${item.user.nickname}님과 친구가 되었습니다!`);
+    } catch (e: unknown) { showError('오류', getErrorMessage(e)); }
+    finally { setProcessingId(null); }
+  };
+
+  const handleRejectFriend = async (item: FriendResponse) => {
+    setProcessingId(`friend-${item.id}`);
+    try {
+      await friendApi.rejectRequest(item.id);
+      setItems(prev => prev.filter(i => !(i.type === 'friend' && i.data.id === item.id)));
+    } catch (e: unknown) { showError('오류', getErrorMessage(e)); }
+    finally { setProcessingId(null); }
+  };
+
+  const handleAcceptGroup = async (item: GroupInviteResponse) => {
+    setProcessingId(`group-${item.groupId}`);
+    try {
+      await groupApi.acceptInvite(item.groupId);
+      successTap();
+      setItems(prev => prev.filter(i => !(i.type === 'group' && i.data.groupId === item.groupId)));
+      fetchGroups();
+      showSuccess('수락 완료', `'${item.groupName}' 그룹에 참여했습니다!`);
+    } catch (e: unknown) { showError('오류', getErrorMessage(e)); }
+    finally { setProcessingId(null); }
+  };
+
+  const handleRejectGroup = async (item: GroupInviteResponse) => {
+    setProcessingId(`group-${item.groupId}`);
+    try {
+      await groupApi.rejectInvite(item.groupId);
+      setItems(prev => prev.filter(i => !(i.type === 'group' && i.data.groupId === item.groupId)));
+    } catch (e: unknown) { showError('오류', getErrorMessage(e)); }
+    finally { setProcessingId(null); }
+  };
+
+  const renderItem = ({ item }: { item: NotifItem }) => {
+    if (item.type === 'friend') {
+      const f = item.data;
+      const isProcessing = processingId === `friend-${f.id}`;
+      return (
+        <View style={[styles.card, { backgroundColor: c.cardBg }]}>
+          <View style={[styles.iconWrap, { backgroundColor: '#4CAF50' + '20' }]}>
+            <Ionicons name="person-add" size={18} color="#4CAF50" />
+          </View>
+          <View style={styles.cardContent}>
+            <Text style={[styles.cardTitle, { color: c.textPrimary }]}>친구 요청</Text>
+            <Text style={[styles.cardDesc, { color: c.textSecondary }]}>
+              <Text style={{ fontWeight: '600' }}>{f.user.nickname}</Text>님이 친구 요청을 보냈어요
+            </Text>
+          </View>
+          {isProcessing ? (
+            <ActivityIndicator size="small" color={c.primary} />
+          ) : (
+            <View style={styles.actions}>
+              <TouchableOpacity
+                style={[styles.rejectBtn, { borderColor: c.border }]}
+                onPress={() => { lightTap(); handleRejectFriend(f); }}
+              >
+                <Text style={[styles.rejectText, { color: c.textSecondary }]}>거절</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.acceptBtn, { backgroundColor: c.primary }]}
+                onPress={() => handleAcceptFriend(f)}
+              >
+                <Text style={styles.acceptText}>수락</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      );
+    }
+
+    const g = item.data;
+    const isProcessing = processingId === `group-${g.groupId}`;
+    return (
+      <View style={[styles.card, { backgroundColor: c.cardBg }]}>
+        <View style={[styles.iconWrap, { backgroundColor: c.primary + '20' }]}>
+          <Ionicons name="people" size={18} color={c.primary} />
+        </View>
+        <View style={styles.cardContent}>
+          <Text style={[styles.cardTitle, { color: c.textPrimary }]}>그룹 초대</Text>
+          <Text style={[styles.cardDesc, { color: c.textSecondary }]}>
+            <Text style={{ fontWeight: '600' }}>{g.invitedBy}</Text>님이 '<Text style={{ fontWeight: '600' }}>{g.groupName}</Text>' 그룹에 초대했어요
+          </Text>
+        </View>
+        {isProcessing ? (
+          <ActivityIndicator size="small" color={c.primary} />
+        ) : (
+          <View style={styles.actions}>
+            <TouchableOpacity
+              style={[styles.rejectBtn, { borderColor: c.border }]}
+              onPress={() => { lightTap(); handleRejectGroup(g); }}
+            >
+              <Text style={[styles.rejectText, { color: c.textSecondary }]}>거절</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.acceptBtn, { backgroundColor: c.primary }]}
+              onPress={() => handleAcceptGroup(g)}
+            >
+              <Text style={styles.acceptText}>수락</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+    );
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: c.background }]}>
@@ -19,51 +166,67 @@ export default function NotificationsScreen() {
           </TouchableOpacity>
         ),
       }} />
-      <FlatList
-        data={MOCK_NOTIFICATIONS}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View style={[styles.item, { backgroundColor: c.cardBg }, !item.read && { backgroundColor: c.primaryBg }]}>
-            <View style={[styles.dot, { backgroundColor: c.border }, !item.read && { backgroundColor: c.primary }]} />
-            <View style={styles.content}>
-              <Text style={[styles.title, { color: c.textPrimary }]}>{item.title}</Text>
-              <Text style={[styles.body, { color: c.textSecondary }]} numberOfLines={2}>{item.body}</Text>
-              <Text style={[styles.date, { color: c.textDisabled }]}>{item.date}</Text>
+      {loading ? (
+        <View style={styles.centered}>
+          <ActivityIndicator color={c.primary} />
+        </View>
+      ) : (
+        <FlatList
+          data={items}
+          keyExtractor={(item) => item.type === 'friend' ? `f-${item.data.id}` : `g-${item.data.groupId}`}
+          renderItem={renderItem}
+          contentContainerStyle={items.length === 0 ? styles.emptyContainer : styles.list}
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Ionicons name="notifications-outline" size={40} color={c.textDisabled} />
+              <Text style={[styles.emptyTitle, { color: c.textSecondary }]}>알림이 없어요</Text>
+              <Text style={[styles.emptyDesc, { color: c.textTertiary }]}>
+                {'친구 요청이나 그룹 초대가 오면\n여기에서 알려드릴게요'}
+              </Text>
             </View>
-          </View>
-        )}
-        contentContainerStyle={MOCK_NOTIFICATIONS.length === 0 ? styles.emptyContainer : styles.list}
-        ListEmptyComponent={
-          <View style={styles.empty}>
-            <Ionicons name="notifications-outline" size={40} color={c.textDisabled} />
-            <Text style={[styles.emptyTitle, { color: c.textSecondary }]}>아직 알림이 없어요</Text>
-            <Text style={[styles.emptyDesc, { color: c.textTertiary }]}>
-              {'맛집이 승인되거나 새로운 소식이 있으면\n여기에서 알려드릴게요'}
-            </Text>
-          </View>
-        }
-      />
+          }
+        />
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  list: { padding: 16 },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  list: { padding: 16, gap: 10 },
   emptyContainer: { flex: 1 },
-  item: {
+  card: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 8,
+    alignItems: 'center',
+    borderRadius: 10,
+    padding: 14,
     gap: 12,
   },
-  dot: { width: 8, height: 8, borderRadius: 4, marginTop: 6 },
-  content: { flex: 1 },
-  title: { fontSize: 15, fontWeight: '600', marginBottom: 4 },
-  body: { fontSize: 13, lineHeight: 18 },
-  date: { fontSize: 11, marginTop: 6 },
+  iconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cardContent: { flex: 1 },
+  cardTitle: { fontSize: 13, fontWeight: '700', marginBottom: 2 },
+  cardDesc: { fontSize: 13, lineHeight: 18 },
+  actions: { flexDirection: 'row', gap: 6 },
+  rejectBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  rejectText: { fontSize: 12, fontWeight: '600' },
+  acceptBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  acceptText: { color: '#fff', fontSize: 12, fontWeight: '600' },
   empty: {
     flex: 1,
     alignItems: 'center',

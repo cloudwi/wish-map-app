@@ -55,6 +55,34 @@ export default function MapScreen() {
     if (isAuthenticated) fetchGroups();
   }, [isAuthenticated]);
 
+  // 그룹 선택/해제 시 자동으로 맛집 다시 로드 + 카메라 이동
+  const pendingGroupFetchRef = useRef(false);
+
+  useEffect(() => {
+    if (selectedGroupId) {
+      const group = groups.find(g => g.id === selectedGroupId);
+      if (group?.baseLat && group?.baseLng) {
+        const radius = group.baseRadius || 1000;
+        const zoom = radius <= 300 ? 17 : radius <= 500 ? 16 : 15;
+        pendingGroupFetchRef.current = true;
+        mapRef.current?.animateCameraTo({
+          latitude: group.baseLat, longitude: group.baseLng, zoom,
+        });
+        // 카메라 이동 완료 후 fetch할 수 있도록 딜레이
+        setTimeout(() => {
+          if (pendingGroupFetchRef.current && currentBoundsRef.current) {
+            fetchRestaurants(currentBoundsRef.current);
+            pendingGroupFetchRef.current = false;
+          }
+        }, 800);
+        return;
+      }
+    }
+    if (currentBoundsRef.current) {
+      fetchRestaurants(currentBoundsRef.current);
+    }
+  }, [selectedGroupId]);
+
   const fetchRestaurants = useCallback(async (bounds: MapBounds) => {
     try {
       const groupId = useGroupStore.getState().selectedGroupId;
@@ -294,40 +322,40 @@ export default function MapScreen() {
         )}
       </View>
 
-      {/* 그룹 선택 칩 */}
-      {isAuthenticated && groups.length > 0 && (
+      {/* 그룹 선택 칩 (1개만 표시) */}
+      {isAuthenticated && (
         <View style={[styles.groupChips, { top: insets.top + 60 }]}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingHorizontal: 16 }}>
-            {groups.map((g) => (
+          <View style={{ paddingHorizontal: 16 }}>
+            {selectedGroupId && groups.find(g => g.id === selectedGroupId) ? (
               <TouchableOpacity
-                key={g.id}
-                style={[styles.groupChip, { backgroundColor: c.surface, borderColor: selectedGroupId === g.id ? c.primary : c.border },
-                  selectedGroupId === g.id && { backgroundColor: c.primary + '15' }]}
-                onPress={() => {
-                  lightTap();
-                  selectGroup(g.id);
-                  fetchRestaurants(currentBoundsRef.current);
-                }}
+                style={[styles.groupChip, { backgroundColor: c.primary + '15', borderColor: c.primary, alignSelf: 'flex-start' }]}
+                onPress={() => { lightTap(); router.push('/group-manage'); }}
                 activeOpacity={0.7}
               >
-                <Ionicons name="people" size={13} color={selectedGroupId === g.id ? c.primary : c.textTertiary} />
-                <Text style={[styles.groupChipText, { color: selectedGroupId === g.id ? c.primary : c.textSecondary }]}>{g.name}</Text>
+                <Ionicons name="people" size={13} color={c.primary} />
+                <Text style={[styles.groupChipText, { color: c.primary }]}>
+                  {groups.find(g => g.id === selectedGroupId)?.name}
+                </Text>
+                <Ionicons name="chevron-down" size={12} color={c.primary} />
               </TouchableOpacity>
-            ))}
-            <TouchableOpacity
-              style={[styles.groupChip, { backgroundColor: c.surface, borderColor: c.border }]}
-              onPress={() => router.push('/group-manage')}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="add" size={13} color={c.textTertiary} />
-              <Text style={[styles.groupChipText, { color: c.textTertiary }]}>그룹 관리</Text>
-            </TouchableOpacity>
-          </ScrollView>
+            ) : (
+              <TouchableOpacity
+                style={[styles.groupChip, { backgroundColor: c.surface, borderColor: c.border, alignSelf: 'flex-start' }]}
+                onPress={() => { lightTap(); router.push('/group-manage'); }}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="people-outline" size={13} color={c.textTertiary} />
+                <Text style={[styles.groupChipText, { color: c.textTertiary }]}>
+                  {groups.length > 0 ? '그룹 선택' : '+ 그룹 만들기'}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
       )}
 
       {showResearchBtn && (
-        <View style={[styles.researchContainer, { top: insets.top + (groups.length > 0 ? 96 : 62) }]}>
+        <View style={[styles.researchContainer, { top: insets.top + 60 }]}>
           <TouchableOpacity
             style={[styles.researchBtn, { backgroundColor: c.primary }]}
             onPress={handleResearch}

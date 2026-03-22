@@ -1,16 +1,19 @@
-import { useState } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Image, ScrollView, Alert, Switch, Linking, Platform } from 'react-native';
+import { useState, useEffect, useCallback } from 'react';
+import { StyleSheet, View, Text, TouchableOpacity, Image, ScrollView, Alert, Switch, Linking, Platform, ActivityIndicator } from 'react-native';
 import { MypageTabHeader } from '../../components/TabHeader';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { useAuthStore } from '../../stores/authStore';
 import { AuthRequired } from '../../components/AuthRequired';
 import { useTheme } from '../../hooks/useTheme';
 import { useThemeStore } from '../../stores/themeStore';
-import { lightTap } from '../../utils/haptics';
+import { lightTap, successTap } from '../../utils/haptics';
 import { showSuccess, showError } from '../../utils/toast';
 import { getErrorMessage } from '../../utils/getErrorMessage';
+import { friendApi, FriendResponse } from '../../api/friend';
+import { groupApi, GroupInviteResponse } from '../../api/group';
+import { useGroupStore } from '../../stores/groupStore';
 
 interface SettingRowProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -50,7 +53,63 @@ export default function MyPageScreen() {
   const c = useTheme();
   const { isAuthenticated, user, logout, updateNickname } = useAuthStore();
   const { mode: themeMode, setMode: setThemeMode } = useThemeStore();
+  const { fetchGroups } = useGroupStore();
   const [pushEnabled, setPushEnabled] = useState(false);
+  const [friendRequests, setFriendRequests] = useState<FriendResponse[]>([]);
+  const [groupInvites, setGroupInvites] = useState<GroupInviteResponse[]>([]);
+
+  const notifCount = friendRequests.length + groupInvites.length;
+
+  const loadNotifications = useCallback(async () => {
+    if (!isAuthenticated) return;
+    try {
+      const [fr, gi] = await Promise.all([
+        friendApi.getPendingRequests(),
+        groupApi.getInvites(),
+      ]);
+      setFriendRequests(fr);
+      setGroupInvites(gi);
+    } catch {}
+  }, [isAuthenticated]);
+
+  useFocusEffect(useCallback(() => { loadNotifications(); }, [loadNotifications]));
+
+  const handleAcceptFriend = async (id: number) => {
+    lightTap();
+    try {
+      await friendApi.acceptRequest(id);
+      successTap();
+      setFriendRequests(prev => prev.filter(r => r.id !== id));
+      showSuccess('수락 완료', '친구가 되었습니다!');
+    } catch (e: unknown) { showError('오류', getErrorMessage(e)); }
+  };
+
+  const handleRejectFriend = async (id: number) => {
+    lightTap();
+    try {
+      await friendApi.rejectRequest(id);
+      setFriendRequests(prev => prev.filter(r => r.id !== id));
+    } catch (e: unknown) { showError('오류', getErrorMessage(e)); }
+  };
+
+  const handleAcceptGroup = async (groupId: number) => {
+    lightTap();
+    try {
+      await groupApi.acceptInvite(groupId);
+      successTap();
+      setGroupInvites(prev => prev.filter(i => i.groupId !== groupId));
+      fetchGroups();
+      showSuccess('수락 완료', '그룹에 참여했습니다!');
+    } catch (e: unknown) { showError('오류', getErrorMessage(e)); }
+  };
+
+  const handleRejectGroup = async (groupId: number) => {
+    lightTap();
+    try {
+      await groupApi.rejectInvite(groupId);
+      setGroupInvites(prev => prev.filter(i => i.groupId !== groupId));
+    } catch (e: unknown) { showError('오류', getErrorMessage(e)); }
+  };
 
   const themeLabel = themeMode === 'system' ? '시스템' : themeMode === 'dark' ? '다크' : '라이트';
   const handleThemeToggle = () => {
@@ -168,6 +227,14 @@ export default function MyPageScreen() {
         </View>
       </View>
 
+      {/* 소셜 */}
+      <View style={styles.section}>
+        <Text style={[styles.sectionLabel, { color: c.textTertiary }]}>소셜</Text>
+        <View style={[styles.card, { backgroundColor: c.cardBg }]}>
+          <SettingRow icon="people-outline" label="친구" subtitle="친구 추가 · 관리" onPress={() => router.push('/friends')} isLast />
+        </View>
+      </View>
+
       {/* 설정 */}
       <View style={styles.section}>
         <Text style={[styles.sectionLabel, { color: c.textTertiary }]}>설정</Text>
@@ -271,4 +338,23 @@ const styles = StyleSheet.create({
   appInfo: { alignItems: 'center', paddingVertical: 32, gap: 4 },
   appName: { fontSize: 13, fontWeight: '500' },
   appVersion: { fontSize: 11 },
+  notifBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginTop: 16,
+    padding: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    gap: 10,
+  },
+  notifBadge: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  notifBadgeText: { color: '#fff', fontSize: 11, fontWeight: '700' },
+  notifText: { flex: 1, fontSize: 14, fontWeight: '600' },
 });
