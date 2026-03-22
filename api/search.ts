@@ -31,7 +31,7 @@ export async function searchPlaceImage(query: string): Promise<string | null> {
       params: { query, display: 1 },
     });
     const item = data.items?.[0];
-    return item?.thumbnail || item?.link || null;
+    return item?.link || item?.thumbnail || null;
   } catch {
     return null;
   }
