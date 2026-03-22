@@ -6,6 +6,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { useAuthStore } from '../../stores/authStore';
 import { friendApi, FriendResponse } from '../../api/friend';
 import { groupApi, GroupInviteResponse } from '../../api/group';
+import { notificationApi, NotificationResponse } from '../../api/notification';
 import { useGroupStore } from '../../stores/groupStore';
 import { lightTap, successTap } from '../../utils/haptics';
 import { showSuccess, showError } from '../../utils/toast';
@@ -13,7 +14,8 @@ import { getErrorMessage } from '../../utils/getErrorMessage';
 
 type NotifItem =
   | { type: 'friend'; data: FriendResponse }
-  | { type: 'group'; data: GroupInviteResponse };
+  | { type: 'group'; data: GroupInviteResponse }
+  | { type: 'info'; data: NotificationResponse };
 
 export default function NotificationsScreen() {
   const c = useTheme();
@@ -27,15 +29,23 @@ export default function NotificationsScreen() {
     if (!isAuthenticated) return;
     setLoading(true);
     try {
-      const [friendReqs, groupInvites] = await Promise.all([
+      const [friendReqs, groupInvites, notifs] = await Promise.all([
         friendApi.getPendingRequests(),
         groupApi.getInvites(),
+        notificationApi.getNotifications(0, 50).catch(() => ({ content: [] })),
       ]);
+      // 일반 알림에서 이미 액션 알림으로 보여주는 것 제외
+      const infoNotifs = notifs.content.filter(
+        (n) => n.type !== 'FRIEND_REQUEST' && n.type !== 'GROUP_INVITE'
+      );
       const merged: NotifItem[] = [
         ...friendReqs.map((f) => ({ type: 'friend' as const, data: f })),
         ...groupInvites.map((g) => ({ type: 'group' as const, data: g })),
+        ...infoNotifs.map((n) => ({ type: 'info' as const, data: n })),
       ];
       setItems(merged);
+      // 모두 읽음 처리
+      notificationApi.markAllAsRead().catch(() => {});
     } catch {} finally {
       setLoading(false);
     }
@@ -121,37 +131,60 @@ export default function NotificationsScreen() {
       );
     }
 
-    const g = item.data;
-    const isProcessing = processingId === `group-${g.groupId}`;
+    if (item.type === 'group') {
+      const g = item.data as GroupInviteResponse;
+      const isProcessing = processingId === `group-${g.groupId}`;
+      return (
+        <View style={[styles.card, { backgroundColor: c.cardBg }]}>
+          <View style={[styles.iconWrap, { backgroundColor: c.primary + '20' }]}>
+            <Ionicons name="people" size={18} color={c.primary} />
+          </View>
+          <View style={styles.cardContent}>
+            <Text style={[styles.cardTitle, { color: c.textPrimary }]}>그룹 초대</Text>
+            <Text style={[styles.cardDesc, { color: c.textSecondary }]}>
+              <Text style={{ fontWeight: '600' }}>{g.invitedBy}</Text>님이 '<Text style={{ fontWeight: '600' }}>{g.groupName}</Text>' 그룹에 초대했어요
+            </Text>
+          </View>
+          {isProcessing ? (
+            <ActivityIndicator size="small" color={c.primary} />
+          ) : (
+            <View style={styles.actions}>
+              <TouchableOpacity
+                style={[styles.rejectBtn, { borderColor: c.border }]}
+                onPress={() => { lightTap(); handleRejectGroup(g); }}
+              >
+                <Text style={[styles.rejectText, { color: c.textSecondary }]}>거절</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.acceptBtn, { backgroundColor: c.primary }]}
+                onPress={() => handleAcceptGroup(g)}
+              >
+                <Text style={styles.acceptText}>수락</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      );
+    }
+
+    // info 타입 (위치 변경 등 일반 알림)
+    const n = item.data as NotificationResponse;
+    const iconMap: Record<string, { name: keyof typeof Ionicons.glyphMap; color: string }> = {
+      GROUP_LOCATION_CHANGED: { name: 'location', color: '#2196F3' },
+    };
+    const icon = iconMap[n.type] || { name: 'notifications', color: c.textTertiary };
     return (
-      <View style={[styles.card, { backgroundColor: c.cardBg }]}>
-        <View style={[styles.iconWrap, { backgroundColor: c.primary + '20' }]}>
-          <Ionicons name="people" size={18} color={c.primary} />
+      <View style={[styles.card, { backgroundColor: c.cardBg }, !n.isRead && { backgroundColor: c.primary + '08' }]}>
+        <View style={[styles.iconWrap, { backgroundColor: icon.color + '20' }]}>
+          <Ionicons name={icon.name} size={18} color={icon.color} />
         </View>
         <View style={styles.cardContent}>
-          <Text style={[styles.cardTitle, { color: c.textPrimary }]}>그룹 초대</Text>
-          <Text style={[styles.cardDesc, { color: c.textSecondary }]}>
-            <Text style={{ fontWeight: '600' }}>{g.invitedBy}</Text>님이 '<Text style={{ fontWeight: '600' }}>{g.groupName}</Text>' 그룹에 초대했어요
+          <Text style={[styles.cardTitle, { color: c.textPrimary }]}>{n.title}</Text>
+          <Text style={[styles.cardDesc, { color: c.textSecondary }]}>{n.message}</Text>
+          <Text style={{ fontSize: 11, color: c.textDisabled, marginTop: 4 }}>
+            {new Date(n.createdAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
           </Text>
         </View>
-        {isProcessing ? (
-          <ActivityIndicator size="small" color={c.primary} />
-        ) : (
-          <View style={styles.actions}>
-            <TouchableOpacity
-              style={[styles.rejectBtn, { borderColor: c.border }]}
-              onPress={() => { lightTap(); handleRejectGroup(g); }}
-            >
-              <Text style={[styles.rejectText, { color: c.textSecondary }]}>거절</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.acceptBtn, { backgroundColor: c.primary }]}
-              onPress={() => handleAcceptGroup(g)}
-            >
-              <Text style={styles.acceptText}>수락</Text>
-            </TouchableOpacity>
-          </View>
-        )}
       </View>
     );
   };

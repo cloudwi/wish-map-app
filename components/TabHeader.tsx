@@ -8,6 +8,7 @@ import { useTheme } from '../hooks/useTheme';
 import { lightTap } from '../utils/haptics';
 import { friendApi } from '../api/friend';
 import { groupApi } from '../api/group';
+import { notificationApi } from '../api/notification';
 
 interface BaseTabHeaderProps {
   title: string;
@@ -38,11 +39,12 @@ function AuthenticatedActions() {
   useFocusEffect(useCallback(() => {
     (async () => {
       try {
-        const [fr, gi] = await Promise.all([
+        const [fr, gi, unread] = await Promise.all([
           friendApi.getPendingRequests(),
           groupApi.getInvites(),
+          notificationApi.getUnreadCount().catch(() => 0),
         ]);
-        setNotifCount(fr.length + gi.length);
+        setNotifCount(fr.length + gi.length + unread);
       } catch {}
     })();
   }, []));
