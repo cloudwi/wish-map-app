@@ -1,4 +1,4 @@
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ActivityIndicator, TextInput, KeyboardAvoidingView, Platform, RefreshControl, Linking, Dimensions, Modal, Pressable } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ActivityIndicator, TextInput, KeyboardAvoidingView, Platform, RefreshControl, Linking, Dimensions, Modal, Pressable, ActionSheetIOS, Alert } from 'react-native';
 import { Image } from 'expo-image';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocalSearchParams, Stack, router } from 'expo-router';
@@ -8,10 +8,13 @@ import { TaggedContent } from '../../components/TaggedContent';
 import { restaurantApi } from '../../api/restaurant';
 import { commentApi } from '../../api/comment';
 import { searchPlaceImages } from '../../api/search';
+import { blockApi } from '../../api/block';
 import { useAuthStore } from '../../stores/authStore';
 import { useTheme } from '../../hooks/useTheme';
-import { showError, showInfo } from '../../utils/toast';
+import { showError, showInfo, showSuccess } from '../../utils/toast';
 import { mediumTap, lightTap, successTap } from '../../utils/haptics';
+import { getErrorMessage } from '../../utils/getErrorMessage';
+import { ReportModal } from '../../components/ReportModal';
 import RestaurantCardSkeleton from '../../components/RestaurantCardSkeleton';
 import Skeleton from '../../components/Skeleton';
 
@@ -29,6 +32,7 @@ export default function RestaurantDetailScreen() {
   const [visitLoading, setVisitLoading] = useState(false);
   const [searchImages, setSearchImages] = useState<string[]>([]);
   const [viewerImage, setViewerImage] = useState<string | null>(null);
+  const [reportTarget, setReportTarget] = useState<{ type: 'COMMENT' | 'RESTAURANT'; id: number } | null>(null);
 
 
   const fetchData = useCallback(async () => {
@@ -131,6 +135,49 @@ export default function RestaurantDetailScreen() {
     } finally {
       setVisitLoading(false);
     }
+  };
+
+  const handleCommentAction = (comment: Comment) => {
+    if (!isAuthenticated) {
+      router.push('/login');
+      return;
+    }
+    lightTap();
+    const options = ['신고하기', '차단하기', '취소'];
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        { options, destructiveButtonIndex: 1, cancelButtonIndex: 2 },
+        (index) => {
+          if (index === 0) setReportTarget({ type: 'COMMENT', id: comment.id });
+          if (index === 1) handleBlockUser(comment.user.id, comment.user.nickname);
+        },
+      );
+    } else {
+      Alert.alert('', '', [
+        { text: '신고하기', onPress: () => setReportTarget({ type: 'COMMENT', id: comment.id }) },
+        { text: '차단하기', style: 'destructive', onPress: () => handleBlockUser(comment.user.id, comment.user.nickname) },
+        { text: '취소', style: 'cancel' },
+      ]);
+    }
+  };
+
+  const handleBlockUser = (userId: number, nickname: string) => {
+    Alert.alert('사용자 차단', `${nickname}님을 차단하시겠습니까?\n\n차단하면 이 사용자의 콘텐츠가 더 이상 표시되지 않습니다.`, [
+      { text: '취소', style: 'cancel' },
+      {
+        text: '차단',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await blockApi.block(userId);
+            setComments(prev => prev.filter(c => c.user.id !== userId));
+            showSuccess('차단 완료', `${nickname}님을 차단했습니다`);
+          } catch (e: unknown) {
+            showError('오류', getErrorMessage(e));
+          }
+        },
+      },
+    ]);
   };
 
   if (loading) {
@@ -277,9 +324,14 @@ export default function RestaurantDetailScreen() {
                       </View>
                     )}
                   </View>
-                  <Text style={[styles.commentDate, { color: c.textTertiary }]}>
-                    {new Date(comment.createdAt).toLocaleDateString()}
-                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Text style={[styles.commentDate, { color: c.textTertiary }]}>
+                      {new Date(comment.createdAt).toLocaleDateString()}
+                    </Text>
+                    <TouchableOpacity onPress={() => handleCommentAction(comment)} hitSlop={8}>
+                      <Ionicons name="ellipsis-horizontal" size={16} color={c.textDisabled} />
+                    </TouchableOpacity>
+                  </View>
                 </View>
                 {comment.images?.length > 0 && (
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.reviewImageRow}>
@@ -375,6 +427,16 @@ export default function RestaurantDetailScreen() {
           )}
         </Pressable>
       </Modal>
+
+      {/* 신고 모달 */}
+      {reportTarget && (
+        <ReportModal
+          visible={!!reportTarget}
+          onClose={() => setReportTarget(null)}
+          targetType={reportTarget.type}
+          targetId={reportTarget.id}
+        />
+      )}
     </>
   );
 }

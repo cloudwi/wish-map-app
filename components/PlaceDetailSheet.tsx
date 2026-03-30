@@ -194,7 +194,7 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
           </View>
         ) : null}
         <TouchableOpacity
-          style={[styles.naverMapBtn, { borderColor: c.success }]}
+          style={[styles.naverMapBtn, { borderColor: c.success, marginLeft: 8, flexShrink: 0 }]}
           onPress={() => onOpenNaverMap(place)}
           activeOpacity={0.75}
         >

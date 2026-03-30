@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   StyleSheet, View, Text, TouchableOpacity, TextInput,
   ScrollView, Image, ActivityIndicator, Alert,
@@ -12,6 +12,8 @@ import { uploadImages } from '../utils/imageUpload';
 import { lightTap, successTap, mediumTap } from '../utils/haptics';
 import { showError } from '../utils/toast';
 import { getErrorMessage } from '../utils/getErrorMessage';
+import { useAuthStore } from '../stores/authStore';
+import { TermsAgreementModal } from '../components/TermsAgreementModal';
 
 const TAGS = [
   '또 갈 집', '숨은 맛집', '점심 맛집', '회식 추천',
@@ -28,12 +30,23 @@ export default function VisitReviewScreen() {
     placeCategory: string;
   }>();
 
+  const { hasAgreedToTerms, checkTermsAgreement, setTermsAgreed } = useAuthStore();
+  const [showTermsModal, setShowTermsModal] = useState(false);
+
   const [comment, setComment] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [images, setImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadedUrls, setUploadedUrls] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!hasAgreedToTerms) {
+      checkTermsAgreement().then((agreed) => {
+        if (!agreed) setShowTermsModal(true);
+      });
+    }
+  }, []);
 
   const toggleTag = (tag: string) => {
     lightTap();
@@ -264,6 +277,18 @@ export default function VisitReviewScreen() {
         태그, 한줄평, 사진으로 리뷰를 남겨주세요
       </Text>
     </ScrollView>
+
+    <TermsAgreementModal
+      visible={showTermsModal}
+      onAgree={() => {
+        setShowTermsModal(false);
+        setTermsAgreed();
+      }}
+      onCancel={() => {
+        setShowTermsModal(false);
+        router.back();
+      }}
+    />
     </KeyboardAvoidingView>
   );
 }

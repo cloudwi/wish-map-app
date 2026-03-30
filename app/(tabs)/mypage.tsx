@@ -11,6 +11,7 @@ import { useThemeStore } from '../../stores/themeStore';
 import { lightTap, successTap } from '../../utils/haptics';
 import { showSuccess, showError } from '../../utils/toast';
 import { getErrorMessage } from '../../utils/getErrorMessage';
+import { authApi } from '../../api/auth';
 import { friendApi, FriendResponse } from '../../api/friend';
 import { groupApi, GroupInviteResponse } from '../../api/group';
 import { useGroupStore } from '../../stores/groupStore';
@@ -181,6 +182,30 @@ export default function MyPageScreen() {
     ]);
   };
 
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      '계정 탈퇴',
+      '정말 탈퇴하시겠습니까?\n\n모든 데이터(리뷰, 방문 기록, 컬렉션 등)가 영구적으로 삭제되며 복구할 수 없습니다.',
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '탈퇴하기',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await authApi.deleteAccount();
+              await logout();
+              router.navigate('/(tabs)');
+              showSuccess('탈퇴 완료', '계정이 삭제되었습니다');
+            } catch (e: unknown) {
+              showError('오류', getErrorMessage(e, '계정 삭제 중 오류가 발생했습니다'));
+            }
+          },
+        },
+      ],
+    );
+  };
+
   const handleContact = () => {
     const subject = encodeURIComponent('[위시맵] 문의');
     const body = encodeURIComponent(`\n\n---\n앱 버전: ${Constants.expoConfig?.version ?? '1.0.0'}\nOS: ${Platform.OS} ${Platform.Version}`);
@@ -231,7 +256,8 @@ export default function MyPageScreen() {
       <View style={styles.section}>
         <Text style={[styles.sectionLabel, { color: c.textTertiary }]}>소셜</Text>
         <View style={[styles.card, { backgroundColor: c.cardBg }]}>
-          <SettingRow icon="people-outline" label="친구" subtitle="친구 추가 · 관리" onPress={() => router.push('/friends')} isLast />
+          <SettingRow icon="people-outline" label="친구" subtitle="친구 추가 · 관리" onPress={() => router.push('/friends')} />
+          <SettingRow icon="shield-outline" label="차단 목록" onPress={() => router.push('/blocked-users')} isLast />
         </View>
       </View>
 
@@ -265,7 +291,8 @@ export default function MyPageScreen() {
       <View style={styles.section}>
         <Text style={[styles.sectionLabel, { color: c.textTertiary }]}>계정</Text>
         <View style={[styles.card, { backgroundColor: c.cardBg }]}>
-          <SettingRow icon="log-out-outline" label="로그아웃" onPress={handleLogout} isLast />
+          <SettingRow icon="log-out-outline" label="로그아웃" onPress={handleLogout} />
+          <SettingRow icon="trash-outline" label="계정 탈퇴" onPress={handleDeleteAccount} destructive isLast />
         </View>
       </View>
 

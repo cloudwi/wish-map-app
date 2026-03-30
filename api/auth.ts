@@ -25,4 +25,8 @@ export const authApi = {
     const response = await apiClient.patch<User>('/auth/me/nickname', { nickname });
     return response.data;
   },
+
+  deleteAccount: async (): Promise<void> => {
+    await apiClient.delete('/auth/me');
+  },
 };

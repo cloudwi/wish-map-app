@@ -372,7 +372,7 @@ export default function MapScreen() {
       )}
 
       {showResearchBtn && (
-        <View style={[styles.researchContainer, { top: insets.top + 60 }]}>
+        <View style={[styles.researchContainer, { top: insets.top + (isAuthenticated ? 100 : 60) }]}>
           <TouchableOpacity
             style={[styles.researchBtn, { backgroundColor: c.primary }]}
             onPress={handleResearch}

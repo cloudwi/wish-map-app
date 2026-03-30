@@ -15,6 +15,18 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     bundleIdentifier: 'com.wishmap.app',
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
+      NSLocationWhenInUseUsageDescription:
+        '위시맵은 주변 맛집을 지도에 표시하고, 방문 인증 시 가게와의 거리(100m 이내)를 확인하기 위해 위치 정보를 사용합니다.',
+      NSLocationAlwaysAndWhenInUseUsageDescription:
+        '위시맵은 주변 맛집을 지도에 표시하고, 방문 인증 시 가게와의 거리(100m 이내)를 확인하기 위해 위치 정보를 사용합니다.',
+      NSLocationAlwaysUsageDescription:
+        '위시맵은 주변 맛집을 지도에 표시하고, 방문 인증 시 가게와의 거리(100m 이내)를 확인하기 위해 위치 정보를 사용합니다.',
+      NSCameraUsageDescription:
+        '위시맵은 맛집 리뷰에 첨부할 음식 사진을 촬영하기 위해 카메라를 사용합니다.',
+      NSMicrophoneUsageDescription:
+        '위시맵은 맛집 리뷰용 영상 촬영 시 마이크를 사용합니다.',
+      NSPhotoLibraryUsageDescription:
+        '위시맵은 맛집 리뷰에 첨부할 사진을 선택하기 위해 사진 라이브러리에 접근합니다.',
       LSApplicationQueriesSchemes: [
         'kakaokompassauth',
         'naversearchapp',
@@ -77,6 +89,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       },
     ],
     'expo-apple-authentication',
+    [
+      'expo-location',
+      {
+        locationWhenInUsePermission:
+          '위시맵은 주변 맛집을 지도에 표시하고, 방문 인증 시 가게와의 거리(100m 이내)를 확인하기 위해 위치 정보를 사용합니다.',
+      },
+    ],
     [
       '@mj-studio/react-native-naver-map',
       {
