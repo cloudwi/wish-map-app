@@ -1,8 +1,7 @@
-import { StyleSheet, View, Text, TextInput, ActivityIndicator, TouchableOpacity, FlatList, Keyboard, Linking, ScrollView, Dimensions, Platform } from 'react-native';
+import { StyleSheet, View, Text, ActivityIndicator, TouchableOpacity, Keyboard, Linking, Dimensions } from 'react-native';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import BottomSheet, { BottomSheetFlatList, BottomSheetView } from '@gorhom/bottom-sheet';
 import type * as LocationType from 'expo-location';
@@ -13,13 +12,14 @@ import { PlaceResult } from '../../api/search';
 import NaverMap from '../../components/NaverMap';
 import { RestaurantCard } from '../../components/RestaurantCard';
 import { PlaceDetailSheet } from '../../components/PlaceDetailSheet';
+import { SearchBar } from '../../components/map/SearchBar';
+import { GroupChip } from '../../components/map/GroupChip';
+import { MapControls } from '../../components/map/MapControls';
 import { useSearch } from '../../hooks/useSearch';
 import { useTheme } from '../../hooks/useTheme';
 import { useGroupStore } from '../../stores/groupStore';
 import { useAuthStore } from '../../stores/authStore';
 import { lightTap, mediumTap } from '../../utils/haptics';
-import { showError, showSuccess } from '../../utils/toast';
-import { getErrorMessage } from '../../utils/getErrorMessage';
 
 const INITIAL_BOUNDS: MapBounds = { minLat: 37.4, maxLat: 37.7, minLng: 126.8, maxLng: 127.2 };
 
@@ -29,7 +29,6 @@ export default function MapScreen() {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Restaurant | null>(null);
-  const [locating, setLocating] = useState(false);
   const [showResearchBtn, setShowResearchBtn] = useState(false);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const initialLoadDone = useRef(false);
@@ -38,8 +37,7 @@ export default function MapScreen() {
   const [searchFocused, setSearchFocused] = useState(false);
   const [selectedPlace, setSelectedPlace] = useState<PlaceResult | null>(null);
   const { isAuthenticated } = useAuthStore();
-  const { groups, selectedGroupId, selectGroup, fetchGroups } = useGroupStore();
-  const [showGroupPicker, setShowGroupPicker] = useState(false);
+  const { groups, selectedGroupId, fetchGroups } = useGroupStore();
 
   const bottomSheetRef = useRef<BottomSheet>(null);
   const detailSheetRef = useRef<BottomSheet>(null);
@@ -47,10 +45,9 @@ export default function MapScreen() {
   const currentBoundsRef = useRef<MapBounds>(INITIAL_BOUNDS);
   const currentCameraRef = useRef<{ latitude: number; longitude: number; zoom: number }>({ latitude: 37.5665, longitude: 126.9780, zoom: 14 });
   const screenHeight = Dimensions.get('window').height;
-  const searchBarHeight = insets.top + 56 + 50; // 상태바 + 검색바 + 그룹칩/재검색 버튼
-  const maxSheetHeight = screenHeight - searchBarHeight;
-  const defaultSnapPoints = useMemo(() => [240, maxSheetHeight], [maxSheetHeight]);
-  const snapPoints = defaultSnapPoints;
+  // 최대 높이: 검색바 + 그룹칩 아래까지만 (상태바 + 검색바 48 + 간격 8 + 그룹칩 36 + 여유 8)
+  const maxSheetHeight = screenHeight - (insets.top + 48 + 8 + 36 + 8);
+  const snapPoints = useMemo(() => [240, maxSheetHeight], [maxSheetHeight]);
 
   useEffect(() => {
     if (isAuthenticated) fetchGroups();
@@ -202,30 +199,6 @@ export default function MapScreen() {
     Linking.openURL(`tel:${phone}`);
   };
 
-  const goToMyLocation = useCallback(async () => {
-    mediumTap();
-    setLocating(true);
-    try {
-      const Location = require('expo-location') as typeof LocationType;
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        showError('위치 권한 필요', '설정에서 위치 권한을 허용해주세요.');
-        return;
-      }
-      const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      setUserLocation({ latitude: location.coords.latitude, longitude: location.coords.longitude });
-      mapRef.current?.animateCameraTo({
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-        zoom: currentCameraRef.current.zoom,
-      });
-    } catch {
-      showError('위치 오류', '현재 위치를 가져올 수 없습니다.');
-    } finally {
-      setLocating(false);
-    }
-  }, []);
-
   const handleMarkerClick = useCallback(async (restaurant: Restaurant) => {
     lightTap();
     setSelected(restaurant);
@@ -268,8 +241,6 @@ export default function MapScreen() {
     <RestaurantCard item={item} index={index} />
   ), []);
 
-  const showResults = searchResults.length > 0;
-
   return (
     <View style={styles.container}>
       {/* 지도 화면에서는 항상 밝은 상태바 (그라데이션 오버레이와 함께) */}
@@ -291,85 +262,21 @@ export default function MapScreen() {
       />
 
       {/* 검색바 */}
-      <View style={[styles.searchContainer, { top: insets.top + 8 }]}>
-        <View style={[styles.searchBar, { backgroundColor: c.surface, shadowColor: '#000' }]}>
-          <Ionicons name="search-outline" size={20} color={c.textSecondary} />
-          <TextInput
-            style={[styles.searchInput, { color: c.textPrimary }]}
-            placeholder="장소 검색"
-            placeholderTextColor={c.textSecondary}
-            value={searchQuery}
-            onChangeText={handleSearch}
-            onFocus={() => setSearchFocused(true)}
-            onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
-            returnKeyType="search"
-            onSubmitEditing={() => { searchNow(); setSearchFocused(true); }}
-          />
-          {searching && <ActivityIndicator size="small" color={c.primary} />}
-          {searchQuery.length > 0 && !searching && (
-            <TouchableOpacity onPress={clearSearch} style={styles.clearBtn}>
-              <Ionicons name="close-circle" size={18} color={c.textDisabled} />
-            </TouchableOpacity>
-          )}
-        </View>
+      <SearchBar
+        top={insets.top + 8}
+        searchQuery={searchQuery}
+        searchResults={searchResults}
+        searching={searching}
+        onSearch={handleSearch}
+        onSearchNow={() => { searchNow(); setSearchFocused(true); }}
+        onClearSearch={clearSearch}
+        onSelectPlace={handleSelectPlace}
+        onFocus={() => setSearchFocused(true)}
+        onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
+      />
 
-        {showResults && (
-          <View style={[styles.searchResults, { backgroundColor: c.surface }]}>
-            <FlatList
-              data={searchResults}
-              keyExtractor={(item) => item.id}
-              keyboardShouldPersistTaps="handled"
-              renderItem={({ item, index }) => (
-                <TouchableOpacity
-                  style={[styles.resultItem, { borderBottomColor: c.divider }, index === searchResults.length - 1 && styles.resultItemLast]}
-                  onPress={() => handleSelectPlace(item)}
-                  activeOpacity={0.6}
-                >
-                  <Ionicons name="location-outline" size={18} color={c.primary} />
-                  <View style={styles.resultContent}>
-                    <Text style={[styles.resultName, { color: c.textPrimary }]} numberOfLines={1}>{item.name}</Text>
-                    <Text style={[styles.resultAddress, { color: c.textSecondary }]} numberOfLines={1}>
-                      {item.roadAddress || item.address}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              )}
-            />
-          </View>
-        )}
-      </View>
-
-      {/* 그룹 선택 칩 (1개만 표시) */}
-      {isAuthenticated && (
-        <View style={[styles.groupChips, { top: insets.top + 60 }]}>
-          <View style={{ paddingHorizontal: 16 }}>
-            {selectedGroupId && groups.find(g => g.id === selectedGroupId) ? (
-              <TouchableOpacity
-                style={[styles.groupChip, { backgroundColor: c.primary + '15', borderColor: c.primary, alignSelf: 'flex-start' }]}
-                onPress={() => { lightTap(); router.push('/group-manage'); }}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="people" size={13} color={c.primary} />
-                <Text style={[styles.groupChipText, { color: c.primary }]}>
-                  {groups.find(g => g.id === selectedGroupId)?.name}
-                </Text>
-                <Ionicons name="chevron-down" size={12} color={c.primary} />
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                style={[styles.groupChip, { backgroundColor: c.surface, borderColor: c.border, alignSelf: 'flex-start' }]}
-                onPress={() => { lightTap(); router.push('/group-manage'); }}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="people-outline" size={13} color={c.textTertiary} />
-                <Text style={[styles.groupChipText, { color: c.textTertiary }]}>
-                  {groups.length > 0 ? '그룹 선택' : '+ 그룹 만들기'}
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-      )}
+      {/* 그룹 선택 칩 */}
+      <GroupChip top={insets.top + 60} />
 
       {showResearchBtn && (
         <View style={[styles.researchContainer, { top: insets.top + (isAuthenticated ? 100 : 60) }]}>
@@ -385,42 +292,11 @@ export default function MapScreen() {
       )}
 
       {/* 오른쪽 버튼: 줌 + 내 위치 */}
-      <View style={styles.rightButtons}>
-        <TouchableOpacity
-          style={[styles.mapBtn, { backgroundColor: c.surface }]}
-          onPress={() => {
-            lightTap();
-            const cam = currentCameraRef.current;
-            mapRef.current?.animateCameraTo({ latitude: cam.latitude, longitude: cam.longitude, zoom: cam.zoom + 1, duration: 200 });
-          }}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="add" size={22} color={c.textSecondary} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.mapBtn, { backgroundColor: c.surface }]}
-          onPress={() => {
-            lightTap();
-            const cam = currentCameraRef.current;
-            mapRef.current?.animateCameraTo({ latitude: cam.latitude, longitude: cam.longitude, zoom: cam.zoom - 1, duration: 200 });
-          }}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="remove" size={22} color={c.textSecondary} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.mapBtn, { backgroundColor: c.surface, marginTop: 4 }]}
-          onPress={goToMyLocation}
-          activeOpacity={0.8}
-          disabled={locating}
-        >
-          <Ionicons
-            name={locating ? 'locate' : 'locate-outline'}
-            size={22}
-            color={locating ? c.primary : c.textSecondary}
-          />
-        </TouchableOpacity>
-      </View>
+      <MapControls
+        mapRef={mapRef}
+        currentCameraRef={currentCameraRef}
+        onLocationUpdate={setUserLocation}
+      />
 
       {loading && (
         <View style={[styles.loadingOverlay, { backgroundColor: c.loadingOverlay }]}>
@@ -435,6 +311,8 @@ export default function MapScreen() {
         backgroundStyle={[styles.sheetBg, { backgroundColor: c.sheetBg }]}
         handleIndicatorStyle={{ backgroundColor: c.textDisabled, width: 40 }}
         enablePanDownToClose={false}
+        enableOverDrag={false}
+        topInset={insets.top + 100}
         containerStyle={{ zIndex: 10 }}
       >
         <View style={styles.listWrap}>
@@ -492,50 +370,6 @@ const styles = StyleSheet.create({
     zIndex: 5,
     backgroundColor: 'rgba(0,0,0,0.3)',
   },
-  searchContainer: {
-    position: 'absolute',
-    top: 8,
-    left: 16,
-    right: 16,
-    zIndex: 10,
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    height: 48,
-    gap: 10,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  searchInput: { flex: 1, fontSize: 16, fontWeight: '500', paddingVertical: 0 },
-  clearBtn: { padding: 8 },
-  searchResults: {
-    marginTop: 6,
-    borderRadius: 8,
-    maxHeight: 320,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 4,
-    overflow: 'hidden',
-  },
-  resultItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    gap: 12,
-    borderBottomWidth: 0.5,
-  },
-  resultItemLast: { borderBottomWidth: 0 },
-  resultContent: { flex: 1 },
-  resultName: { fontSize: 15, fontWeight: '600', marginBottom: 2 },
-  resultAddress: { fontSize: 13 },
   researchContainer: {
     position: 'absolute',
     top: 62,
@@ -560,26 +394,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
   },
-  rightButtons: {
-    position: 'absolute',
-    right: 16,
-    top: '45%',
-    zIndex: 1,
-    elevation: 2,
-    gap: 8,
-  },
-  mapBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
-  },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
@@ -594,51 +408,6 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 6,
   },
-  preview: { flex: 1, paddingHorizontal: 16 },
-  previewHeader: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12 },
-  previewTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
-  previewName: { fontSize: 18, fontWeight: '600', flex: 1 },
-  previewCategory: {
-    paddingHorizontal: 8, paddingVertical: 3,
-    borderRadius: 4, fontSize: 12,
-  },
-  previewLikes: { fontSize: 13 },
-  previewClose: {
-    width: 32, height: 32, borderRadius: 16,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  previewActions: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 16,
-  },
-  previewVisitBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    borderRadius: 8,
-    paddingVertical: 11,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 5,
-  },
-  previewReviewBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    borderRadius: 8,
-    paddingVertical: 11,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 5,
-    borderWidth: 1,
-  },
-  previewDetailBtn: {
-    width: 40,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  previewActionText: { color: '#fff', fontSize: 14, fontWeight: '600' },
-  previewReviewText: { fontSize: 14, fontWeight: '600' },
   listWrap: { flex: 1 },
   listHeader: {
     flexDirection: 'row',
@@ -650,23 +419,4 @@ const styles = StyleSheet.create({
   listTitle: { fontSize: 15, fontWeight: '600' },
   listContent: { paddingHorizontal: 16, paddingBottom: 120 },
   emptyText: { textAlign: 'center', paddingVertical: 30, fontSize: 14 },
-  groupChips: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    zIndex: 9,
-  },
-  groupChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 8,
-    borderWidth: 1,
-  },
-  groupChipText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
 });

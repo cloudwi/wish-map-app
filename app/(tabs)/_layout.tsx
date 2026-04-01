@@ -1,20 +1,33 @@
 import { NativeTabs, Icon, Label } from 'expo-router/unstable-native-tabs';
 import { Platform } from 'react-native';
+import { router } from 'expo-router';
 import { useAuthStore } from '../../stores/authStore';
 import { useTheme } from '../../hooks/useTheme';
 import { useEffect } from 'react';
+import { TermsAgreementModal } from '../../components/TermsAgreementModal';
 
 const isIOS26 = Platform.OS === 'ios' && parseInt(Platform.Version as string, 10) >= 19;
 
 export default function TabLayout() {
-  const { checkAuth } = useAuthStore();
+  const { checkAuth, isAuthenticated, isLoading, hasAgreedToTerms, setTermsAgreed, logout } = useAuthStore();
   const c = useTheme();
 
   useEffect(() => {
     checkAuth();
   }, []);
 
+  const handleTermsCancel = async () => {
+    await logout();
+    router.replace('/login');
+  };
+
   return (
+    <>
+    <TermsAgreementModal
+      visible={isAuthenticated && !hasAgreedToTerms && !isLoading}
+      onAgree={setTermsAgreed}
+      onCancel={handleTermsCancel}
+    />
     <NativeTabs
       tintColor="#E8590C"
       backgroundColor={isIOS26 ? null : c.surface}
@@ -38,5 +51,6 @@ export default function TabLayout() {
         <Icon sf={{ default: 'person', selected: 'person.fill' }} />
       </NativeTabs.Trigger>
     </NativeTabs>
+    </>
   );
 }

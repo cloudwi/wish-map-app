@@ -31,7 +31,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const response: TokenResponse = await authApi.socialLogin(provider, accessToken, nickname);
       await setItem('accessToken', response.accessToken);
       await setItem('refreshToken', response.refreshToken);
-      set({ user: response.user, isAuthenticated: true, isLoading: false });
+      set({ user: response.user, isAuthenticated: true });
+      await get().checkTermsAgreement();
+      set({ isLoading: false });
     } catch (error) {
       set({ isLoading: false });
       throw error;
@@ -65,7 +67,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const response = await authApi.refresh(refreshToken);
       await setItem('accessToken', response.accessToken);
       await setItem('refreshToken', response.refreshToken);
-      set({ user: response.user, isAuthenticated: true, isLoading: false });
+      set({ user: response.user, isAuthenticated: true });
+      await get().checkTermsAgreement();
+      set({ isLoading: false });
     } catch (e) {
       console.warn('Auth check failed:', e);
       await deleteItem('accessToken');
