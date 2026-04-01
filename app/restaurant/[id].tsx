@@ -182,14 +182,48 @@ export default function RestaurantDetailScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.loadingContainer, { backgroundColor: c.surface }]}>
-        <Skeleton width="100%" height={250} borderRadius={0} />
-        <View style={{ padding: 20, gap: 12 }}>
-          <Skeleton width="70%" height={24} borderRadius={4} />
-          <Skeleton width="90%" height={14} borderRadius={4} />
-          <Skeleton width="50%" height={14} borderRadius={4} />
-          <View style={{ height: 20 }} />
-          <Skeleton width="100%" height={60} borderRadius={8} />
+      <View style={[styles.container, { backgroundColor: c.surface }]}>
+        {/* 이미지 영역 */}
+        <Skeleton width="100%" height={280} borderRadius={0} />
+
+        {/* 기본 정보 영역 */}
+        <View style={styles.skeletonInfo}>
+          <View style={styles.skeletonTitleRow}>
+            <Skeleton width="60%" height={26} borderRadius={6} />
+            <Skeleton width={60} height={24} borderRadius={6} />
+          </View>
+          <Skeleton width={80} height={14} borderRadius={4} />
+          <Skeleton width="45%" height={14} borderRadius={4} style={{ marginTop: 4 }} />
+          <View style={styles.skeletonNavRow}>
+            <Skeleton width={16} height={16} borderRadius={8} />
+            <Skeleton width={50} height={14} borderRadius={4} />
+          </View>
+          <View style={styles.skeletonMeta}>
+            <Skeleton width={80} height={12} borderRadius={4} />
+            <Skeleton width={70} height={12} borderRadius={4} />
+          </View>
+        </View>
+
+        {/* 구분선 */}
+        <View style={{ height: 8, backgroundColor: c.background }} />
+
+        {/* 리뷰 영역 */}
+        <View style={styles.skeletonComments}>
+          <Skeleton width={100} height={20} borderRadius={4} />
+          {[0, 1, 2].map(i => (
+            <View key={i} style={styles.skeletonComment}>
+              <View style={styles.skeletonCommentHeader}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Skeleton width={24} height={24} borderRadius={12} />
+                  <Skeleton width={60} height={14} borderRadius={4} />
+                  <Skeleton width={40} height={18} borderRadius={10} />
+                </View>
+                <Skeleton width={60} height={12} borderRadius={4} />
+              </View>
+              <Skeleton width="95%" height={14} borderRadius={4} />
+              <Skeleton width="70%" height={14} borderRadius={4} />
+            </View>
+          ))}
         </View>
       </View>
     );
@@ -513,4 +547,13 @@ const styles = StyleSheet.create({
   },
   bottomButtonPrimary: { flex: 1.5 },
   bottomButtonText: { fontSize: 14, fontWeight: '600' },
+
+  // 스켈레톤
+  skeletonInfo: { padding: 20, gap: 10 },
+  skeletonTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  skeletonNavRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 },
+  skeletonMeta: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
+  skeletonComments: { padding: 20, gap: 16 },
+  skeletonComment: { gap: 8 },
+  skeletonCommentHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
 });
