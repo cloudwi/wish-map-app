@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import BottomSheet, { BottomSheetFlatList, BottomSheetView } from '@gorhom/bottom-sheet';
 import type * as LocationType from 'expo-location';
 import { type NaverMapViewRef } from '@mj-studio/react-native-naver-map';
-import { Restaurant, MapBounds } from '../../types';
+import { Restaurant, MapBounds, PriceRange } from '../../types';
 import { restaurantApi } from '../../api/restaurant';
 import { PlaceResult } from '../../api/search';
 import NaverMap from '../../components/NaverMap';
@@ -38,6 +38,7 @@ export default function MapScreen() {
   const [selectedPlace, setSelectedPlace] = useState<PlaceResult | null>(null);
   const { isAuthenticated } = useAuthStore();
   const { groups, selectedGroupId, fetchGroups } = useGroupStore();
+  const [priceRangeFilter, setPriceRangeFilter] = useState<PriceRange | null>(null);
 
   const bottomSheetRef = useRef<BottomSheet>(null);
   const detailSheetRef = useRef<BottomSheet>(null);
@@ -81,16 +82,17 @@ export default function MapScreen() {
     }
   }, [selectedGroupId]);
 
-  const fetchRestaurants = useCallback(async (bounds: MapBounds) => {
+  const fetchRestaurants = useCallback(async (bounds: MapBounds, priceRange?: PriceRange | null) => {
     try {
       const { selectedGroupId: groupId, groups: storeGroups } = useGroupStore.getState();
+      const effectivePriceRange = priceRange !== undefined ? priceRange : priceRangeFilter;
 
       // 그룹 선택 + 반경 설정 시 → 반경 기반 bounds로 제한
       let effectiveBounds = bounds;
       if (groupId) {
         const group = storeGroups.find(g => g.id === groupId);
         if (group?.baseLat && group?.baseLng && group?.baseRadius) {
-          const radiusDeg = group.baseRadius / 111000; // 미터 → 위도 도 변환 (약 111km/도)
+          const radiusDeg = group.baseRadius / 111000;
           effectiveBounds = {
             minLat: group.baseLat - radiusDeg,
             maxLat: group.baseLat + radiusDeg,
@@ -101,8 +103,8 @@ export default function MapScreen() {
       }
 
       const response = groupId
-        ? await restaurantApi.getGroupRestaurants(groupId, effectiveBounds)
-        : await restaurantApi.getRestaurants(bounds);
+        ? await restaurantApi.getGroupRestaurants(groupId, effectiveBounds, effectivePriceRange || undefined)
+        : await restaurantApi.getRestaurants(bounds, effectivePriceRange || undefined);
       setRestaurants(response.content);
       setShowResearchBtn(false);
     } catch {
@@ -111,7 +113,7 @@ export default function MapScreen() {
       setLoading(false);
       setTimeout(() => { initialLoadDone.current = true; }, 500);
     }
-  }, []);
+  }, [priceRangeFilter]);
 
   useEffect(() => {
     let subscription: { remove: () => void } | null = null;
@@ -120,7 +122,10 @@ export default function MapScreen() {
         const Location = require('expo-location') as typeof LocationType;
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status === 'granted') {
-          const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+          let location = await Location.getLastKnownPositionAsync();
+          if (!location) {
+            location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+          }
           const { latitude, longitude } = location.coords;
           setUserLocation({ latitude, longitude });
           mapRef.current?.animateCameraTo({ latitude, longitude, zoom: 15 });
@@ -138,7 +143,9 @@ export default function MapScreen() {
           );
           return;
         }
-      } catch {}
+      } catch (e) {
+        console.warn('[Location Error]', e);
+      }
       fetchRestaurants(INITIAL_BOUNDS);
     })();
     return () => { subscription?.remove(); };
@@ -261,7 +268,7 @@ export default function MapScreen() {
         pointerEvents="none"
       />
 
-      {/* 검색바 */}
+      {/* 검색바 + 가격대 필터 */}
       <SearchBar
         top={insets.top + 8}
         searchQuery={searchQuery}
@@ -273,6 +280,13 @@ export default function MapScreen() {
         onSelectPlace={handleSelectPlace}
         onFocus={() => setSearchFocused(true)}
         onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
+        priceRange={priceRangeFilter}
+        onPriceRangeChange={(pr) => {
+          setPriceRangeFilter(pr);
+          if (currentBoundsRef.current) {
+            fetchRestaurants(currentBoundsRef.current, pr);
+          }
+        }}
       />
 
       {/* 그룹 선택 칩 */}

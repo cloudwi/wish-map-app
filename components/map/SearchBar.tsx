@@ -1,7 +1,10 @@
-import { StyleSheet, View, Text, TextInput, ActivityIndicator, TouchableOpacity, FlatList } from 'react-native';
+import { useState } from 'react';
+import { StyleSheet, View, Text, TextInput, ActivityIndicator, TouchableOpacity, FlatList, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { PlaceResult } from '../../api/search';
 import { useTheme } from '../../hooks/useTheme';
+import { lightTap } from '../../utils/haptics';
+import { PriceRange, PRICE_RANGE_LABELS, PRICE_RANGES } from '../../types';
 
 interface SearchBarProps {
   top: number;
@@ -14,6 +17,8 @@ interface SearchBarProps {
   onSelectPlace: (place: PlaceResult) => void;
   onFocus?: () => void;
   onBlur?: () => void;
+  priceRange: PriceRange | null;
+  onPriceRangeChange: (priceRange: PriceRange | null) => void;
 }
 
 export function SearchBar({
@@ -27,9 +32,29 @@ export function SearchBar({
   onSelectPlace,
   onFocus,
   onBlur,
+  priceRange,
+  onPriceRangeChange,
 }: SearchBarProps) {
   const c = useTheme();
   const showResults = searchResults.length > 0;
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  const handleFilterPress = () => {
+    lightTap();
+    setDropdownOpen(prev => !prev);
+  };
+
+  const handleSelect = (pr: PriceRange) => {
+    lightTap();
+    onPriceRangeChange(priceRange === pr ? null : pr);
+    setDropdownOpen(false);
+  };
+
+  const handleClearFilter = () => {
+    lightTap();
+    onPriceRangeChange(null);
+    setDropdownOpen(false);
+  };
 
   return (
     <View style={[styles.searchContainer, { top }]}>
@@ -41,7 +66,7 @@ export function SearchBar({
           placeholderTextColor={c.textSecondary}
           value={searchQuery}
           onChangeText={onSearch}
-          onFocus={onFocus}
+          onFocus={() => { setDropdownOpen(false); onFocus?.(); }}
           onBlur={onBlur}
           returnKeyType="search"
           onSubmitEditing={onSearchNow}
@@ -52,9 +77,68 @@ export function SearchBar({
             <Ionicons name="close-circle" size={18} color={c.textDisabled} />
           </TouchableOpacity>
         )}
+
+        {/* 가격대 필터 버튼 */}
+        <TouchableOpacity
+          style={[
+            styles.filterBtn,
+            { borderColor: c.border, backgroundColor: c.searchBg },
+            priceRange && { borderColor: c.primary, backgroundColor: c.primaryBg },
+          ]}
+          onPress={handleFilterPress}
+          activeOpacity={0.7}
+        >
+          {priceRange ? (
+            <Text style={[styles.filterLabel, { color: c.primary }]}>
+              {PRICE_RANGE_LABELS[priceRange]}
+            </Text>
+          ) : (
+            <Ionicons name="pricetag-outline" size={15} color={c.textSecondary} />
+          )}
+          <Ionicons
+            name={dropdownOpen ? 'chevron-up' : 'chevron-down'}
+            size={12}
+            color={priceRange ? c.primary : c.textSecondary}
+          />
+        </TouchableOpacity>
       </View>
 
-      {showResults && (
+      {/* 가격대 드롭다운 */}
+      {dropdownOpen && (
+        <View style={[styles.dropdown, { backgroundColor: c.surface, shadowColor: '#000' }]}>
+          {PRICE_RANGES.map((pr) => {
+            const isSelected = priceRange === pr;
+            return (
+              <TouchableOpacity
+                key={pr}
+                style={[styles.dropdownItem, { borderBottomColor: c.divider }]}
+                onPress={() => handleSelect(pr)}
+                activeOpacity={0.6}
+              >
+                <Text style={[
+                  styles.dropdownText,
+                  { color: c.textPrimary },
+                  isSelected && { color: c.primary, fontWeight: '600' },
+                ]}>
+                  {PRICE_RANGE_LABELS[pr]}
+                </Text>
+                {isSelected && <Ionicons name="checkmark" size={16} color={c.primary} />}
+              </TouchableOpacity>
+            );
+          })}
+          {priceRange && (
+            <TouchableOpacity
+              style={[styles.dropdownItem, { borderBottomWidth: 0 }]}
+              onPress={handleClearFilter}
+              activeOpacity={0.6}
+            >
+              <Text style={[styles.dropdownText, { color: c.error }]}>필터 해제</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
+
+      {showResults && !dropdownOpen && (
         <View style={[styles.searchResults, { backgroundColor: c.surface }]}>
           <FlatList
             data={searchResults}
@@ -96,7 +180,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 14,
     height: 48,
-    gap: 10,
+    gap: 8,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 6,
@@ -104,6 +188,40 @@ const styles = StyleSheet.create({
   },
   searchInput: { flex: 1, fontSize: 16, fontWeight: '500', paddingVertical: 0 },
   clearBtn: { padding: 8 },
+  filterBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  filterLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  dropdown: {
+    marginTop: 6,
+    borderRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+    overflow: 'hidden',
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+    borderBottomWidth: 0.5,
+  },
+  dropdownText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
   searchResults: {
     marginTop: 6,
     borderRadius: 8,

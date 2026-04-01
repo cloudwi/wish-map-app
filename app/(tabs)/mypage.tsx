@@ -185,7 +185,7 @@ export default function MyPageScreen() {
   const handleDeleteAccount = () => {
     Alert.alert(
       '계정 탈퇴',
-      '정말 탈퇴하시겠습니까?\n\n모든 데이터(리뷰, 방문 기록, 컬렉션 등)가 영구적으로 삭제되며 복구할 수 없습니다.',
+      '정말 탈퇴하시겠습니까?\n\n모든 데이터(방문평, 방문 기록, 컬렉션 등)가 영구적으로 삭제되며 복구할 수 없습니다.',
       [
         { text: '취소', style: 'cancel' },
         {

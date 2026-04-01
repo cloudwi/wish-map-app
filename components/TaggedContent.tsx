@@ -1,10 +1,8 @@
 import { StyleSheet, View, Text, ScrollView } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
+import { ALL_KNOWN_TAGS } from '../types';
 
-const KNOWN_TAGS = [
-  '또 갈 집', '숨은 맛집', '점심 맛집', '회식 추천',
-  '혼밥 성지', '줄 서는 집', '가성비 갑', '뷰 맛집',
-];
+const KNOWN_TAGS = ALL_KNOWN_TAGS;
 
 interface Props {
   content: string;

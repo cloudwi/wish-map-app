@@ -7,6 +7,7 @@ import {
   PageResponse,
   MapBounds,
   LikeGroup,
+  PriceRange,
 } from '../types';
 
 export interface ReviewSummary {
@@ -21,6 +22,7 @@ export interface PlaceStatsResponse {
   visitCount: number;
   avgRating: number | null;
   visitedToday: boolean;
+  priceRange: PriceRange;
   recentReviews: ReviewSummary[];
 }
 
@@ -29,19 +31,21 @@ export interface RestaurantListParams {
   category?: string;
   search?: string;
   sort?: 'latest' | 'visits';
+  priceRange?: PriceRange;
   page?: number;
   size?: number;
 }
 
 export const restaurantApi = {
   // 지도 범위 내 맛집 목록 (지도 탭용)
-  getRestaurants: async (bounds: MapBounds, page = 0, size = 50): Promise<PageResponse<Restaurant>> => {
+  getRestaurants: async (bounds: MapBounds, priceRange?: PriceRange, page = 0, size = 50): Promise<PageResponse<Restaurant>> => {
     const response = await apiClient.get<PageResponse<Restaurant>>('/restaurants', {
       params: {
         minLat: bounds.minLat,
         maxLat: bounds.maxLat,
         minLng: bounds.minLng,
         maxLng: bounds.maxLng,
+        priceRange: priceRange || undefined,
         page,
         size,
       },
@@ -56,6 +60,7 @@ export const restaurantApi = {
         category: params.category || undefined,
         search: params.search || undefined,
         sortBy: params.sort || 'latest',
+        priceRange: params.priceRange || undefined,
         page: params.page ?? 0,
         size: params.size ?? 20,
       },
@@ -89,7 +94,7 @@ export const restaurantApi = {
     return response.data;
   },
 
-  // 빠른 방문인증 (미등록 장소 자동 등록 + 방문인증 + 선택적 리뷰)
+  // 방문인증 (미등록 장소 자동 등록 + 방문인증 + 선택적 리뷰)
   quickVisit: async (data: {
     name: string;
     lat: number;
@@ -100,22 +105,10 @@ export const restaurantApi = {
     userLng: number;
     comment?: string;
     rating?: number;
+    priceRange?: PriceRange;
+    imageUrls?: string[];
   }): Promise<{ restaurantId: number; visited: boolean; isNew: boolean }> => {
     const response = await apiClient.post<{ restaurantId: number; visited: boolean; isNew: boolean }>('/restaurants/quick-visit', data);
-    return response.data;
-  },
-
-  // 맛집 제보 (방문인증과 별도 - 리뷰/태그/사진 제출)
-  suggest: async (data: {
-    name: string;
-    lat: number;
-    lng: number;
-    naverPlaceId?: string;
-    category?: string;
-    comment?: string;
-    imageUrls?: string[];
-  }): Promise<{ restaurantId: number; isNew: boolean }> => {
-    const response = await apiClient.post<{ restaurantId: number; isNew: boolean }>('/restaurants/suggest', data);
     return response.data;
   },
 
@@ -163,9 +156,16 @@ export const restaurantApi = {
   },
 
   // 그룹 필터: 그룹 구성원이 방문/제보한 맛집
-  getGroupRestaurants: async (groupId: number, bounds: MapBounds): Promise<PageResponse<Restaurant>> => {
+  getGroupRestaurants: async (groupId: number, bounds: MapBounds, priceRange?: PriceRange): Promise<PageResponse<Restaurant>> => {
     const response = await apiClient.get<PageResponse<Restaurant>>(`/groups/${groupId}/restaurants`, {
-      params: { minLat: bounds.minLat, maxLat: bounds.maxLat, minLng: bounds.minLng, maxLng: bounds.maxLng, size: 50 },
+      params: {
+        minLat: bounds.minLat,
+        maxLat: bounds.maxLat,
+        minLng: bounds.minLng,
+        maxLng: bounds.maxLng,
+        priceRange: priceRange || undefined,
+        size: 50,
+      },
     });
     return response.data;
   },

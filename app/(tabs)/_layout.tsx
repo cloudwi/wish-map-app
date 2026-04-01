@@ -44,8 +44,6 @@ export default function TabLayout() {
         <Icon sf={{ default: 'safari', selected: 'safari.fill' }} />
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger name="suggest" hidden />
-
       <NativeTabs.Trigger name="mypage">
         <Label>마이</Label>
         <Icon sf={{ default: 'person', selected: 'person.fill' }} />

@@ -18,6 +18,51 @@ export interface TokenResponse {
 
 export type AuthProvider = 'KAKAO' | 'GOOGLE' | 'NAVER' | 'APPLE';
 
+// Price Range
+export type PriceRange = 'UNDER_10K' | 'RANGE_10K' | 'RANGE_20K' | 'RANGE_30K' | 'OVER_30K';
+
+export const PRICE_RANGE_LABELS: Record<PriceRange, string> = {
+  UNDER_10K: '1만원 이하',
+  RANGE_10K: '1만원대',
+  RANGE_20K: '2만원대',
+  RANGE_30K: '3만원대',
+  OVER_30K: '3만원 이상',
+};
+
+export const PRICE_RANGES: PriceRange[] = ['UNDER_10K', 'RANGE_10K', 'RANGE_20K', 'RANGE_30K', 'OVER_30K'];
+
+// Tag Categories
+export interface TagCategory {
+  key: string;
+  label: string;
+  tags: string[];
+}
+
+export const TAG_CATEGORIES: TagCategory[] = [
+  {
+    key: 'atmosphere',
+    label: '분위기',
+    tags: ['혼밥 성지', '회식 추천', '데이트', '조용한', '활기찬'],
+  },
+  {
+    key: 'taste',
+    label: '맛 특징',
+    tags: ['매운맛', '달콤한', '담백한', '짜릿한', '고소한'],
+  },
+  {
+    key: 'convenience',
+    label: '편의',
+    tags: ['주차 편해', '대기 없음', '늦게까지', '반려동물 OK'],
+  },
+  {
+    key: 'oneLiner',
+    label: '한줄평',
+    tags: ['또 갈 집', '숨은 맛집', '점심 맛집', '줄 서는 집', '가성비 갑', '뷰 맛집'],
+  },
+];
+
+export const ALL_KNOWN_TAGS: string[] = TAG_CATEGORIES.flatMap(c => c.tags);
+
 // Restaurant
 export interface Restaurant {
   id: number;
@@ -29,7 +74,8 @@ export interface Restaurant {
   thumbnailImage: string | null;
   likeCount: number;
   visitCount: number;
-  weeklyChampion: string | null;  // 이번 주 방문왕 닉네임
+  weeklyChampion: string | null;
+  priceRange: PriceRange;
 }
 
 export interface RestaurantDetail extends Restaurant {

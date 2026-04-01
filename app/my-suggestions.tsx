@@ -51,9 +51,9 @@ export default function MySuggestionsScreen() {
               <Text style={[styles.emptyTitle, { color: c.textSecondary }]}>제안한 맛집이 없습니다</Text>
               <TouchableOpacity
                 style={styles.suggestBtn}
-                onPress={() => router.push('/(tabs)/suggest')}
+                onPress={() => router.push('/(tabs)')}
               >
-                <Text style={styles.suggestBtnText}>맛집 제안하기</Text>
+                <Text style={styles.suggestBtnText}>지도에서 맛집 찾기</Text>
               </TouchableOpacity>
             </View>
           }

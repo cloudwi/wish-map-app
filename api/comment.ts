@@ -12,10 +12,10 @@ export const commentApi = {
   },
 
   // 댓글 작성
-  createComment: async (restaurantId: number, content: string): Promise<Comment> => {
+  createComment: async (restaurantId: number, content: string, imageUrls?: string[]): Promise<Comment> => {
     const response = await apiClient.post<Comment>(
       `/restaurants/${restaurantId}/comments`,
-      { content }
+      { content, imageUrls }
     );
     return response.data;
   },

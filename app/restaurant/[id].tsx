@@ -96,7 +96,7 @@ export default function RestaurantDetailScreen() {
         commentCount: prev.commentCount + 1,
       } : null);
     } catch (error) {
-      showError('오류', '리뷰 작성 중 오류가 발생했습니다.');
+      showError('오류', '방문평 작성 중 오류가 발생했습니다.');
     } finally {
       setSubmitting(false);
     }
@@ -323,7 +323,7 @@ export default function RestaurantDetailScreen() {
           {/* 리뷰 섹션 */}
           <View style={styles.commentSection}>
             <Text style={[styles.sectionTitle, { color: c.textPrimary }]}>
-              리뷰 {restaurant.commentCount}개
+              방문평 {restaurant.commentCount}개
             </Text>
 
             {/* 리뷰 이미지 모아보기 */}
@@ -384,7 +384,7 @@ export default function RestaurantDetailScreen() {
               <View style={styles.noCommentsWrap}>
                 <Ionicons name="chatbubble-outline" size={32} color={c.textDisabled} />
                 <Text style={[styles.noComments, { color: c.textSecondary }]}>
-                  아직 리뷰가 없습니다. 첫 리뷰를 남겨보세요!
+                  아직 방문평이 없습니다. 첫 방문평을 남겨보세요!
                 </Text>
               </View>
             )}
@@ -421,26 +421,17 @@ export default function RestaurantDetailScreen() {
               )}
             </TouchableOpacity>
 
-            {/* 리뷰 작성 */}
+            {/* 댓글 작성 (인라인 입력으로 스크롤) */}
             <TouchableOpacity
               style={[styles.bottomButton, styles.bottomButtonPrimary, { backgroundColor: c.primary }]}
               onPress={() => {
                 lightTap();
-                router.push({
-                  pathname: '/visit-review',
-                  params: {
-                    placeName: restaurant.name,
-                    placeLat: String(restaurant.lat),
-                    placeLng: String(restaurant.lng),
-                    placeId: restaurant.naverPlaceId || '',
-                    placeCategory: restaurant.category || '',
-                  },
-                });
+                showSuccess('방문평을 작성해주세요', '아래 입력란에 작성할 수 있어요.');
               }}
               activeOpacity={0.8}
             >
-              <Ionicons name="create-outline" size={16} color="#fff" />
-              <Text style={[styles.bottomButtonText, { color: '#fff' }]}>리뷰 작성</Text>
+              <Ionicons name="chatbubble-outline" size={16} color="#fff" />
+              <Text style={[styles.bottomButtonText, { color: '#fff' }]}>방문평 작성</Text>
             </TouchableOpacity>
           </View>
         )}

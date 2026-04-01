@@ -25,13 +25,12 @@
 app/
 ├── (tabs)/              # 탭 화면
 │   ├── _layout.tsx      # NativeTabs (지도, 맛집, 마이)
-│   ├── index.tsx        # 지도 (메인) - 검색, 그룹 필터, 바텀시트
+│   ├── index.tsx        # 지도 (메인) - 검색, 가격대 필터, 그룹 필터, 바텀시트
 │   ├── list.tsx         # 맛집 리스트
-│   ├── suggest.tsx      # 맛집 제안 (숨김 탭)
 │   └── mypage.tsx       # 마이페이지
 ├── _layout.tsx          # Root Stack
 ├── login.tsx            # 로그인 (모달)
-├── visit-review.tsx     # 맛집 제보 (태그/리뷰/사진)
+├── visit-review.tsx     # 방문 리뷰 (가격대/테마별 태그/사진/한줄평)
 ├── group-manage.tsx     # 그룹 관리 (생성/초대/추방/양도)
 ├── restaurant/[id].tsx  # 맛집 상세
 ├── friends.tsx          # 친구
@@ -42,15 +41,21 @@ app/
 
 components/
 ├── NaverMap.tsx          # 네이버 지도 래퍼
-├── PlaceDetailSheet.tsx  # 장소 상세 바텀시트 (방문인증 + 맛집제보 버튼)
+├── PlaceDetailSheet.tsx  # 장소 상세 바텀시트 (정보 표시 + 방문인증 navigate)
 ├── RestaurantCard.tsx    # 맛집 카드
+├── TaggedContent.tsx     # 태그 파싱/표시 컴포넌트
 ├── CollectionSheet.tsx   # 컬렉션 바텀시트
 ├── ToastConfig.tsx       # 커스텀 토스트 (성공/에러/정보)
+├── map/
+│   ├── SearchBar.tsx     # 검색바 + 가격대 드롭다운 필터
+│   ├── GroupChip.tsx     # 그룹 선택 칩
+│   └── MapControls.tsx   # 줌/내위치 버튼
 └── ...
 
 api/
 ├── client.ts         # axios 인스턴스 (JWT 인터셉터, 토큰 자동 갱신)
-├── restaurant.ts     # 맛집 API (CRUD, quickVisit, 그룹 필터)
+├── restaurant.ts     # 맛집 API (CRUD, quickVisit, 가격대 필터, 그룹 필터)
+├── comment.ts        # 댓글 API (CRUD, 이미지 첨부)
 ├── group.ts          # 그룹 API (CRUD, 초대/추방/양도)
 ├── search.ts         # 네이버 검색 (백엔드 프록시)
 ├── auth.ts           # 인증 API
@@ -67,21 +72,20 @@ hooks/
 ```
 
 ## 핵심 기능
-### 방문 인증
-- 바텀시트에서 바로 처리 (별도 화면 없음)
-- 가게 100m 이내 GPS 거리 확인 → quickVisit API 호출
-- 단순 방문 카운트만 증가
+### 방문 인증 + 리뷰
+- 바텀시트에서 [방문 인증] 탭 → visit-review 전체화면 이동
+- 가격대 선택 (필수) + 테마별 태그 (선택) + 한줄평/사진 (선택)
+- GPS 100m 이내 확인 → quickVisit API (가격대 + 리뷰 데이터 포함)
+- 태그 테마: 분위기, 맛 특징, 편의, 한줄평
 
-### 맛집 제보
-- 가게 100m 이내 GPS 거리 확인 → visit-review 화면 이동
-- 태그 선택, 한줄 리뷰, 사진 첨부 가능
-- quickVisit API로 자동 맛집 등록 + 리뷰
+### 가격대 필터
+- 검색바 내 드롭다운으로 가격대 필터 (1만원이하 ~ 3만원이상)
+- 서버사이드 필터링 (Restaurant.priceRange 캐시 기반)
 
 ### 그룹 시스템
 - 지도 화면 상단에 그룹 칩으로 선택/해제
 - 그룹 선택 시 해당 그룹 구성원이 방문/제보한 맛집만 표시
 - 그룹 관리: 생성, 닉네임으로 초대, 추방(그룹장), 양도(그룹장), 탈퇴
-- 목적: 회사 동료들과 회사 근처 맛집 기록
 
 ### 좋아요 없음
 - 좋아요 시스템 사용하지 않음
@@ -96,6 +100,8 @@ hooks/
 ## 디자인 시스템 (constants/theme.ts)
 - Primary: #E8590C (오렌지)
 - 다크모드 지원
+- 가격대: primaryBg + primary 색상 계열
+- 태그: chipActiveBg + chipActiveText 색상 계열
 - 토스트: 타입별 배경색 (성공=초록, 에러=빨강, 정보=오렌지)
 
 ## 빌드
@@ -120,7 +126,6 @@ EXPO_PUBLIC_NAVER_SEARCH_CLIENT_ID, EXPO_PUBLIC_NAVER_SEARCH_CLIENT_SECRET,
 ## 디자인 원칙
 - **해외 서비스 스타일의 단순한 UX/UI를 추구** (미니멀, 깔끔, 직관적)
 - 불필요한 장식 요소 최소화, 핵심 기능에 집중
-- 화면 전환 최소화, 인라인 인터랙션 선호
 - 컬러 팔레트 절제: Primary(오렌지) + 중립색 중심
 - 타이포그래피: 가독성 우선, 굵기/크기 변화로 위계 표현
 
@@ -132,5 +137,4 @@ EXPO_PUBLIC_NAVER_SEARCH_CLIENT_ID, EXPO_PUBLIC_NAVER_SEARCH_CLIENT_SECRET,
 - 별점 시스템 사용하지 않음
 
 ## 알려진 이슈 / TODO
-- **리뷰 이미지 업로드 미구현**: visit-review.tsx에서 이미지를 선택하지만 서버에 전송하지 않음. 이미지 업로드 엔드포인트 + 스토리지(S3 등) 구축 필요
 - **스플래시 다크 아이콘**: splash-icon-dark.png이 현재 라이트 버전 복사본. 다크 배경에 맞는 밝은 색상 아이콘으로 교체 필요

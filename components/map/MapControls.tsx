@@ -27,7 +27,11 @@ export function MapControls({ mapRef, currentCameraRef, onLocationUpdate }: MapC
         showError('위치 권한 필요', '설정에서 위치 권한을 허용해주세요.');
         return;
       }
-      const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      // 마지막 알려진 위치 먼저 시도 → 없으면 현재 위치 요청
+      let location = await Location.getLastKnownPositionAsync();
+      if (!location) {
+        location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      }
       onLocationUpdate?.({ latitude: location.coords.latitude, longitude: location.coords.longitude });
       mapRef.current?.animateCameraTo({
         latitude: location.coords.latitude,
