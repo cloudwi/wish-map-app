@@ -1,6 +1,7 @@
 // Native (iOS/Android) - 네이버 지도 네이티브 SDK
 import { useCallback, forwardRef } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import {
   NaverMapView,
   NaverMapMarkerOverlay,
@@ -66,37 +67,50 @@ const NaverMap = forwardRef<NaverMapViewRef, Props>(({
       isShowLocationButton={false}
       mapPadding={{ top: 120, bottom: 150 }}
     >
+      {/* 동그라미 마커 + 포크 문양 */}
       {restaurants.filter((r) => !selectedPlace || (r.lat !== selectedPlace.lat || r.lng !== selectedPlace.lng)).map((r) => {
-        const isSelected = selectedId === r.id;
         const hasVisits = r.visitCount > 0;
         const hasChampion = !!r.weeklyChampion;
+        const isActive = hasChampion || hasVisits;
+        const size = hasChampion ? 28 : 24;
+        const color = isActive ? '#FF8A65' : '#C5C9CF';
+
         return (
           <NaverMapMarkerOverlay
             key={r.id}
             latitude={r.lat}
             longitude={r.lng}
-            width={isSelected ? 32 : hasChampion ? 28 : 24}
-            height={isSelected ? 44 : hasChampion ? 38 : 34}
-            caption={undefined}
-            subCaption={undefined}
-            image={{ symbol: hasChampion ? 'red' : hasVisits ? 'red' : 'gray' }}
-            zIndex={isSelected ? 100 : hasChampion ? 50 : 0}
+            anchor={{ x: 0.5, y: 0.5 }}
+            width={size}
+            height={size}
+            zIndex={hasChampion ? 50 : 0}
             onTap={() => onMarkerClick(r)}
-          />
+          >
+            <View collapsable={false} style={[styles.dot, { width: size, height: size, borderRadius: size / 2, backgroundColor: color }]}>
+              <Ionicons name="restaurant" size={size * 0.5} color="rgba(255,255,255,0.9)" />
+            </View>
+          </NaverMapMarkerOverlay>
         );
       })}
+
+      {/* 검색 선택 장소 */}
       {selectedPlace && (
         <NaverMapMarkerOverlay
           key={`place-${selectedPlace.id}`}
           latitude={selectedPlace.lat}
           longitude={selectedPlace.lng}
-          width={30}
-          height={40}
-          image={{ symbol: 'blue' }}
-          caption={{ text: selectedPlace.name, color: '#4A90D9', textSize: 13, haloColor: '#fff' }}
+          anchor={{ x: 0.5, y: 0.5 }}
+          width={28}
+          height={28}
+          caption={{ text: selectedPlace.name, color: '#E8590C', textSize: 13, haloColor: '#fff' }}
           zIndex={200}
-        />
+        >
+          <View collapsable={false} style={[styles.dot, { width: 28, height: 28, borderRadius: 14, backgroundColor: '#FF8A65' }]}>
+            <Ionicons name="restaurant" size={14} color="rgba(255,255,255,0.9)" />
+          </View>
+        </NaverMapMarkerOverlay>
       )}
+
       {/* 내 위치 마커 */}
       {userLocation && (
         <>
@@ -122,6 +136,13 @@ const NaverMap = forwardRef<NaverMapViewRef, Props>(({
       )}
     </NaverMapView>
   );
+});
+
+const styles = StyleSheet.create({
+  dot: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });
 
 const myLocationStyles = StyleSheet.create({
