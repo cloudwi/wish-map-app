@@ -24,17 +24,34 @@ export interface NaverPlaceItem {
   mapy: string;
 }
 
-// 이미지 검색 (1장)
+// 이미지 검색 캐시 (세션 동안 유지)
+const imageCache = new Map<string, string | null>();
+const pendingRequests = new Map<string, Promise<string | null>>();
+
+// 이미지 검색 (1장) — 캐시 + 중복 요청 방지
 export async function searchPlaceImage(query: string): Promise<string | null> {
-  try {
-    const { data } = await apiClient.get('/search/images', {
-      params: { query, display: 1 },
-    });
-    const item = data.items?.[0];
-    return item?.link || item?.thumbnail || null;
-  } catch {
-    return null;
-  }
+  if (imageCache.has(query)) return imageCache.get(query)!;
+  if (pendingRequests.has(query)) return pendingRequests.get(query)!;
+
+  const request = (async () => {
+    try {
+      const { data } = await apiClient.get('/search/images', {
+        params: { query, display: 1 },
+      });
+      const item = data.items?.[0];
+      const url = item?.link || item?.thumbnail || null;
+      imageCache.set(query, url);
+      return url;
+    } catch {
+      imageCache.set(query, null);
+      return null;
+    } finally {
+      pendingRequests.delete(query);
+    }
+  })();
+
+  pendingRequests.set(query, request);
+  return request;
 }
 
 // 이미지 검색 (여러 장)
