@@ -376,7 +376,7 @@ export default function RestaurantDetailScreen() {
                     ))}
                   </ScrollView>
                 )}
-                {comment.content ? <TaggedContent content={comment.content} /> : null}
+                {(comment.content || comment.tags?.length > 0) ? <TaggedContent content={comment.content} tags={comment.tags} /> : null}
               </View>
             ))}
 

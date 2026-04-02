@@ -14,6 +14,7 @@ export interface ReviewSummary {
   nickname: string;
   profileImage: string | null;
   content: string;
+  tags: string[];
   createdAt: string;
 }
 
@@ -104,6 +105,7 @@ export const restaurantApi = {
     userLat: number;
     userLng: number;
     comment?: string;
+    tags?: string[];
     rating?: number;
     priceRange?: PriceRange;
     imageUrls?: string[];

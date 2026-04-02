@@ -109,11 +109,8 @@ export default function VisitReviewScreen() {
     setUploadedUrls(prev => prev.filter((_, i) => i !== index));
   };
 
-  const buildReviewText = () => {
-    const parts: string[] = [];
-    if (selectedTags.length > 0) parts.push(selectedTags.map(t => `#${t}`).join(' '));
-    if (comment.trim()) parts.push(comment.trim());
-    return parts.join('\n') || undefined;
+  const getReviewComment = () => {
+    return comment.trim() || undefined;
   };
 
   const isUploadPending = images.length > 0 && (uploading || uploadedUrls.length < images.length);
@@ -153,7 +150,7 @@ export default function VisitReviewScreen() {
         return;
       }
 
-      const reviewText = buildReviewText();
+      const reviewComment = getReviewComment();
 
       const result = await restaurantApi.quickVisit({
         name: params.placeName,
@@ -164,7 +161,8 @@ export default function VisitReviewScreen() {
         userLat: loc.coords.latitude,
         userLng: loc.coords.longitude,
         priceRange: selectedPriceRange,
-        comment: reviewText,
+        comment: reviewComment,
+        tags: selectedTags.length > 0 ? selectedTags : undefined,
         imageUrls: uploadedUrls.length > 0 ? uploadedUrls : undefined,
       });
 
@@ -178,9 +176,14 @@ export default function VisitReviewScreen() {
         const rid = params.restaurantId ? Number(params.restaurantId) : null;
         if (rid) {
           try {
-            const reviewText = buildReviewText();
-            if (reviewText || uploadedUrls.length > 0) {
-              await commentApi.createComment(rid, reviewText || '', uploadedUrls.length > 0 ? uploadedUrls : undefined);
+            const reviewComment = getReviewComment();
+            if (reviewComment || selectedTags.length > 0 || uploadedUrls.length > 0) {
+              await commentApi.createComment(
+                rid,
+                reviewComment || '',
+                uploadedUrls.length > 0 ? uploadedUrls : undefined,
+                selectedTags.length > 0 ? selectedTags : undefined,
+              );
               successTap();
               showSuccess('방문평이 등록되었습니다!');
             }

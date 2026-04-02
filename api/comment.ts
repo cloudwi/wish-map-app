@@ -12,19 +12,19 @@ export const commentApi = {
   },
 
   // 댓글 작성
-  createComment: async (restaurantId: number, content: string, imageUrls?: string[]): Promise<Comment> => {
+  createComment: async (restaurantId: number, content: string, imageUrls?: string[], tags?: string[]): Promise<Comment> => {
     const response = await apiClient.post<Comment>(
       `/restaurants/${restaurantId}/comments`,
-      { content, imageUrls }
+      { content, imageUrls, tags }
     );
     return response.data;
   },
 
   // 댓글 수정
-  updateComment: async (commentId: number, content: string): Promise<Comment> => {
+  updateComment: async (commentId: number, content: string, tags?: string[]): Promise<Comment> => {
     const response = await apiClient.patch<Comment>(
       `/comments/${commentId}`,
-      { content }
+      { content, tags }
     );
     return response.data;
   },

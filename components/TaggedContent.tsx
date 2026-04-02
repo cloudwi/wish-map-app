@@ -1,52 +1,30 @@
 import { StyleSheet, View, Text, ScrollView } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
-import { ALL_KNOWN_TAGS } from '../types';
-
-const KNOWN_TAGS = ALL_KNOWN_TAGS;
 
 interface Props {
   content: string;
+  tags?: string[];
 }
 
-export function TaggedContent({ content }: Props) {
+export function TaggedContent({ content, tags = [] }: Props) {
   const c = useTheme();
 
-  // 알려진 태그를 content에서 찾기
-  const foundTags: string[] = [];
-  let remaining = content;
+  if (tags.length === 0 && !content) return null;
 
-  for (const tag of KNOWN_TAGS) {
-    const pattern = `#${tag}`;
-    if (remaining.includes(pattern)) {
-      foundTags.push(tag);
-      remaining = remaining.replace(pattern, '');
-    }
-  }
-
-  // 남은 # 태그도 처리 (알려지지 않은 태그)
-  const unknownTagRegex = /#([^\s#]+)/g;
-  let match;
-  while ((match = unknownTagRegex.exec(remaining)) !== null) {
-    foundTags.push(match[1]);
-    remaining = remaining.replace(match[0], '');
-  }
-
-  const text = remaining.trim();
-
-  if (foundTags.length === 0) {
+  if (tags.length === 0) {
     return <Text style={[styles.text, { color: c.textPrimary }]} numberOfLines={2}>{content}</Text>;
   }
 
   return (
     <View style={styles.container}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tagRow}>
-        {foundTags.map((tag, i) => (
+        {tags.map((tag, i) => (
           <View key={i} style={[styles.badge, { backgroundColor: c.chipBg }]}>
             <Text style={[styles.badgeText, { color: c.textSecondary }]}>{tag}</Text>
           </View>
         ))}
       </ScrollView>
-      {text ? <Text style={[styles.text, { color: c.textPrimary }]} numberOfLines={2}>{text}</Text> : null}
+      {content ? <Text style={[styles.text, { color: c.textPrimary }]} numberOfLines={2}>{content}</Text> : null}
     </View>
   );
 }

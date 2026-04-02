@@ -140,7 +140,7 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
       <View style={[styles.reviewSection, { borderTopColor: c.divider }]}>
         {stats && stats.recentReviews.length > 0 ? (
           <>
-            <TaggedContent content={stats.recentReviews[0].content} />
+            <TaggedContent content={stats.recentReviews[0].content} tags={stats.recentReviews[0].tags} />
             <TouchableOpacity
               style={styles.moreBtn}
               onPress={() => { lightTap(); router.push(`/restaurant/${stats.restaurantId}`); }}

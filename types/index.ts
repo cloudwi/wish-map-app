@@ -111,6 +111,7 @@ export interface CreateRestaurantRequest {
 export interface Comment {
   id: number;
   content: string;
+  tags: string[];
   images: string[];
   user: UserSummary;
   userVisitCount: number;
