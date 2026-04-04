@@ -20,7 +20,7 @@ export function RestaurantCard({ item, badge, index = 0 }: Props) {
 
   useEffect(() => {
     if (!item.thumbnailImage) {
-      searchPlaceImage(item.name + ' 맛집').then(setImageUri);
+      searchPlaceImage(item.name).then(setImageUri);
     }
   }, [item.name, item.thumbnailImage]);
 

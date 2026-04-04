@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -9,7 +9,6 @@ import { restaurantApi, PlaceStatsResponse } from '../api/restaurant';
 import { useAuthStore } from '../stores/authStore';
 import { useTheme } from '../hooks/useTheme';
 import { lightTap } from '../utils/haptics';
-import { TaggedContent } from './TaggedContent';
 import { PRICE_RANGE_LABELS } from '../types';
 
 const TAB_BAR_HEIGHT = 49;
@@ -38,7 +37,7 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
 
   useEffect(() => {
     setThumbnail(null);
-    searchPlaceImage(place.name + ' 맛집').then(setThumbnail);
+    searchPlaceImage(place.name).then(setThumbnail);
   }, [place.name]);
 
   const visitedToday = stats?.visitedToday ?? false;
@@ -74,7 +73,7 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
             <Image source={{ uri: thumbnail }} style={styles.thumbnail} />
           ) : (
             <View style={[styles.thumbnailPlaceholder, { backgroundColor: c.searchBg }]}>
-              <Ionicons name="restaurant-outline" size={22} color={c.textDisabled} />
+              <Ionicons name="location-outline" size={22} color={c.textDisabled} />
             </View>
           )}
           <View style={styles.headerInfo}>
@@ -85,7 +84,7 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
                   <Text style={[styles.badgeText, { color: c.categoryBadgeText }]} numberOfLines={1}>{place.category}</Text>
                 </View>
               ) : null}
-              {stats ? (
+              {stats?.priceRange ? (
                 <View style={[styles.badge, { backgroundColor: c.primaryBg }]}>
                   <Text style={[styles.badgeText, { color: c.primary }]}>{PRICE_RANGE_LABELS[stats.priceRange]}</Text>
                 </View>
@@ -136,28 +135,6 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
         </TouchableOpacity>
       ) : null}
 
-      {/* 리뷰 섹션 */}
-      <View style={[styles.reviewSection, { borderTopColor: c.divider }]}>
-        {stats && stats.recentReviews.length > 0 ? (
-          <>
-            <TaggedContent content={stats.recentReviews[0].content} tags={stats.recentReviews[0].tags} />
-            <TouchableOpacity
-              style={styles.moreBtn}
-              onPress={() => { lightTap(); router.push(`/restaurant/${stats.restaurantId}`); }}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.moreBtnText, { color: c.textTertiary }]}>더보기</Text>
-              <Ionicons name="chevron-forward" size={14} color={c.textTertiary} />
-            </TouchableOpacity>
-          </>
-        ) : stats !== undefined ? (
-          <TouchableOpacity style={styles.moreBtn} onPress={handleVisit} activeOpacity={0.7}>
-            <Text style={[styles.moreBtnText, { color: c.textTertiary }]}>첫 방문평을 남겨보세요!</Text>
-            <Ionicons name="chevron-forward" size={14} color={c.textTertiary} />
-          </TouchableOpacity>
-        ) : null}
-      </View>
-
       {/* CTA */}
       <View style={styles.cta}>
         <TouchableOpacity
@@ -204,9 +181,6 @@ const styles = StyleSheet.create({
   naverMapBtnText: { fontSize: 13, fontWeight: '600' },
   phonePill: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, marginBottom: 6 },
   actionPillText: { fontSize: 13, fontWeight: '600' },
-  reviewSection: { paddingVertical: 8, borderTopWidth: 0.5, gap: 6 },
-  moreBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
-  moreBtnText: { fontSize: 12, fontWeight: '500' },
   cta: { paddingTop: 8 },
   visitBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 13, borderRadius: 8 },
   visitBtnText: { fontSize: 14, fontWeight: '600', color: '#fff' },

@@ -23,7 +23,8 @@ export interface PlaceStatsResponse {
   visitCount: number;
   avgRating: number | null;
   visitedToday: boolean;
-  priceRange: PriceRange;
+  priceRange: PriceRange | null;
+  placeCategoryId: number | null;
   recentReviews: ReviewSummary[];
 }
 
@@ -38,8 +39,8 @@ export interface RestaurantListParams {
 }
 
 export const restaurantApi = {
-  // 지도 범위 내 맛집 목록 (지도 탭용)
-  getRestaurants: async (bounds: MapBounds, priceRange?: PriceRange, page = 0, size = 50): Promise<PageResponse<Restaurant>> => {
+  // 지도 범위 내 장소 목록 (지도 탭용)
+  getRestaurants: async (bounds: MapBounds, priceRange?: PriceRange, placeCategoryId?: number, page = 0, size = 50): Promise<PageResponse<Restaurant>> => {
     const response = await apiClient.get<PageResponse<Restaurant>>('/restaurants', {
       params: {
         minLat: bounds.minLat,
@@ -47,6 +48,7 @@ export const restaurantApi = {
         minLng: bounds.minLng,
         maxLng: bounds.maxLng,
         priceRange: priceRange || undefined,
+        placeCategoryId: placeCategoryId || undefined,
         page,
         size,
       },
@@ -108,6 +110,7 @@ export const restaurantApi = {
     tags?: string[];
     rating?: number;
     priceRange?: PriceRange;
+    placeCategoryId?: number;
     imageUrls?: string[];
   }): Promise<{ restaurantId: number; visited: boolean; isNew: boolean }> => {
     const response = await apiClient.post<{ restaurantId: number; visited: boolean; isNew: boolean }>('/restaurants/quick-visit', data);

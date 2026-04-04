@@ -31,7 +31,7 @@ export const PRICE_RANGE_LABELS: Record<PriceRange, string> = {
 
 export const PRICE_RANGES: PriceRange[] = ['UNDER_10K', 'RANGE_10K', 'RANGE_20K', 'RANGE_30K', 'OVER_30K'];
 
-// Tag Categories
+// Tag Categories (legacy - 하위호환용)
 export interface TagCategory {
   key: string;
   label: string;
@@ -63,6 +63,61 @@ export const TAG_CATEGORIES: TagCategory[] = [
 
 export const ALL_KNOWN_TAGS: string[] = TAG_CATEGORIES.flatMap(c => c.tags);
 
+// Place Categories (API 기반)
+export interface TagGroup {
+  key: string;
+  tags: string[];
+}
+
+export interface PlaceCategory {
+  id: number;
+  name: string;
+  icon: string | null;
+  hasPriceRange: boolean;
+  tagGroups: TagGroup[];
+}
+
+export const DEFAULT_PLACE_CATEGORIES: PlaceCategory[] = [
+  {
+    id: 1, name: '음식', icon: '🍽', hasPriceRange: true,
+    tagGroups: [
+      { key: '분위기', tags: ['혼밥 성지', '회식 추천', '데이트', '조용한', '활기찬'] },
+      { key: '맛 특징', tags: ['매운맛', '달콤한', '담백한', '짜릿한', '고소한'] },
+      { key: '편의', tags: ['주차 편해', '대기 없음', '늦게까지', '반려동물 OK'] },
+      { key: '한줄평', tags: ['또 갈 집', '숨은 맛집', '점심 맛집', '가성비 갑'] },
+    ],
+  },
+  {
+    id: 2, name: '카페', icon: '☕', hasPriceRange: false,
+    tagGroups: [
+      { key: '분위기', tags: ['조용한', '넓은', '루프탑', '감성적인', '작업하기 좋은'] },
+      { key: '메뉴', tags: ['커피 맛집', '디저트 맛집', '브런치', '음료 다양'] },
+      { key: '한줄평', tags: ['또 갈 곳', '숨은 카페', '뷰 맛집'] },
+    ],
+  },
+  {
+    id: 3, name: '디저트/간식', icon: '🍞', hasPriceRange: false,
+    tagGroups: [
+      { key: '종류', tags: ['붕어빵', '호떡', '타코야끼', '와플', '마카롱'] },
+      { key: '특징', tags: ['줄 서는 곳', '가성비', '수제', '계절 한정'] },
+    ],
+  },
+  {
+    id: 4, name: '자연/풍경', icon: '🌸', hasPriceRange: false,
+    tagGroups: [
+      { key: '종류', tags: ['벚꽃', '단풍', '야경', '일출', '공원'] },
+      { key: '특징', tags: ['사진 맛집', '산책 코스', '드라이브', '피크닉'] },
+    ],
+  },
+  {
+    id: 5, name: '생활편의', icon: '🔧', hasPriceRange: false,
+    tagGroups: [
+      { key: '종류', tags: ['철물점', '세탁소', '수선집', '열쇠'] },
+      { key: '특징', tags: ['친절한', '가성비', '실력 좋은', '빠른'] },
+    ],
+  },
+];
+
 // Restaurant
 export interface Restaurant {
   id: number;
@@ -75,7 +130,8 @@ export interface Restaurant {
   likeCount: number;
   visitCount: number;
   weeklyChampion: string | null;
-  priceRange: PriceRange;
+  priceRange: PriceRange | null;
+  placeCategoryId: number | null;
 }
 
 export interface RestaurantDetail extends Restaurant {

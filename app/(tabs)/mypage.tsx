@@ -185,7 +185,7 @@ export default function MyPageScreen() {
   const handleDeleteAccount = () => {
     Alert.alert(
       '계정 탈퇴',
-      '정말 탈퇴하시겠습니까?\n\n모든 데이터(방문평, 방문 기록, 컬렉션 등)가 영구적으로 삭제되며 복구할 수 없습니다.',
+      '정말 탈퇴하시겠습니까?\n\n모든 데이터(방문 인증, 방문 기록, 컬렉션 등)가 영구적으로 삭제되며 복구할 수 없습니다.',
       [
         { text: '취소', style: 'cancel' },
         {
@@ -215,7 +215,7 @@ export default function MyPageScreen() {
   if (!isAuthenticated) {
     return (
       <AuthRequired
-        message={'로그인하고 맛집을 제안하고\n컬렉션을 관리해보세요!'}
+        message={'로그인하고 장소를 제안하고\n컬렉션을 관리해보세요!'}
       />
     );
   }

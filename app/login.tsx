@@ -131,7 +131,7 @@ export default function LoginScreen() {
             style={styles.logoImage}
           />
           <Text style={[styles.appName, { color: c.primary }]}>위시맵</Text>
-          <Text style={[styles.tagline, { color: c.textSecondary }]}>우리 동네 맛집 지도</Text>
+          <Text style={[styles.tagline, { color: c.textSecondary }]}>우리 동네 장소 지도</Text>
         </View>
 
         {/* 소셜 로그인 버튼 */}

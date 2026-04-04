@@ -2,9 +2,9 @@ import { StyleSheet, View, Text, FlatList, TouchableOpacity, ActivityIndicator, 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { MapListTabHeader } from '../../components/TabHeader';
 import { Ionicons } from '@expo/vector-icons';
-import { Restaurant } from '../../types';
+import { Restaurant, PriceRange, PRICE_RANGE_LABELS, PRICE_RANGES, PlaceCategory, DEFAULT_PLACE_CATEGORIES } from '../../types';
 import { restaurantApi } from '../../api/restaurant';
-import { categoryApi } from '../../api/category';
+import { placeCategoryApi } from '../../api/placeCategory';
 import { RestaurantCard } from '../../components/RestaurantCard';
 import RestaurantCardSkeleton from '../../components/RestaurantCardSkeleton';
 import { useTheme } from '../../hooks/useTheme';
@@ -24,10 +24,12 @@ export default function ListScreen() {
   // 데이터 상태
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [categories, setCategories] = useState<string[]>(['전체']);
+  const [placeCategoryList, setPlaceCategoryList] = useState<PlaceCategory[]>([]);
   const [totalElements, setTotalElements] = useState(0);
 
   // 필터 상태
   const [selectedCategory, setSelectedCategory] = useState('전체');
+  const [selectedPriceRange, setSelectedPriceRange] = useState<PriceRange | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [sortBy, setSortBy] = useState<SortBy>('latest');
@@ -45,14 +47,20 @@ export default function ListScreen() {
   const fetchingRef = useRef(false);
   const hasDataRef = useRef(false);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const filtersRef = useRef({ selectedCategory, debouncedSearch, sortBy });
-  filtersRef.current = { selectedCategory, debouncedSearch, sortBy };
+  const filtersRef = useRef({ selectedCategory, debouncedSearch, sortBy, selectedPriceRange });
+  filtersRef.current = { selectedCategory, debouncedSearch, sortBy, selectedPriceRange };
 
   // 카테고리 목록 로드
   useEffect(() => {
-    categoryApi.getCategories()
-      .then((data) => setCategories(['전체', ...data.map((c) => c.name).filter(Boolean)]))
-      .catch(() => {});
+    placeCategoryApi.getPlaceCategories()
+      .then((data) => {
+        setPlaceCategoryList(data);
+        setCategories(['전체', ...data.map((c) => c.name).filter(Boolean)]);
+      })
+      .catch(() => {
+        setPlaceCategoryList(DEFAULT_PLACE_CATEGORIES);
+        setCategories(['전체', ...DEFAULT_PLACE_CATEGORIES.map((c) => c.name)]);
+      });
   }, []);
 
   // 검색어 디바운스
@@ -83,7 +91,7 @@ export default function ListScreen() {
       }
 
       const groupId = useGroupStore.getState().selectedGroupId;
-      const { selectedCategory: cat, debouncedSearch: search, sortBy: sort } = filtersRef.current;
+      const { selectedCategory: cat, debouncedSearch: search, sortBy: sort, selectedPriceRange: pr } = filtersRef.current;
 
       let response;
       if (groupId) {
@@ -93,6 +101,7 @@ export default function ListScreen() {
           category: cat === '전체' ? undefined : cat,
           search: search || undefined,
           sort,
+          priceRange: pr || undefined,
           page: pageNum,
           size: PAGE_SIZE,
         });
@@ -118,7 +127,7 @@ export default function ListScreen() {
   // 필터/검색/정렬/그룹 변경 시 첫 페이지부터 다시 로드
   useEffect(() => {
     fetchRestaurants(0);
-  }, [selectedCategory, debouncedSearch, sortBy, selectedGroupId, fetchRestaurants]);
+  }, [selectedCategory, debouncedSearch, sortBy, selectedPriceRange, selectedGroupId, fetchRestaurants]);
 
   // Pull-to-refresh
   const onRefresh = useCallback(() => {
@@ -133,10 +142,14 @@ export default function ListScreen() {
     }
   }, [hasMore, page, fetchRestaurants]);
 
+  // 선택된 카테고리 데이터
+  const selectedCategoryData = placeCategoryList.find(c => c.name === selectedCategory);
+
   // 카테고리 선택 핸들러
   const handleCategoryChange = useCallback((category: string) => {
     lightTap();
     setSelectedCategory(category);
+    setSelectedPriceRange(null);
   }, []);
 
   // 정렬 변경 핸들러
@@ -166,7 +179,7 @@ export default function ListScreen() {
     return (
       <View style={styles.empty}>
         <Ionicons name="search-outline" size={48} color={c.textDisabled} />
-        <Text style={[styles.emptyTitle, { color: c.textSecondary }]}>맛집을 찾을 수 없습니다</Text>
+        <Text style={[styles.emptyTitle, { color: c.textSecondary }]}>장소를 찾을 수 없습니다</Text>
         <Text style={[styles.emptyDesc, { color: c.textDisabled }]}>
           {debouncedSearch ? '다른 검색어를 시도해보세요' : '다른 카테고리를 선택해보세요'}
         </Text>
@@ -183,7 +196,7 @@ export default function ListScreen() {
           <Ionicons name="search-outline" size={18} color={c.textTertiary} style={styles.searchIcon} />
           <TextInput
             style={[styles.searchInput, { color: c.textPrimary }]}
-            placeholder="맛집 이름 검색"
+            placeholder="장소 이름 검색"
             placeholderTextColor={c.textDisabled}
             editable={false}
           />
@@ -206,7 +219,7 @@ export default function ListScreen() {
         <Ionicons name="search-outline" size={18} color={c.textTertiary} style={styles.searchIcon} />
         <TextInput
           style={[styles.searchInput, { color: c.textPrimary }]}
-          placeholder="맛집 이름 검색"
+          placeholder="장소 이름 검색"
           placeholderTextColor={c.textDisabled}
           value={searchQuery}
           onChangeText={setSearchQuery}
@@ -252,6 +265,56 @@ export default function ListScreen() {
           </TouchableOpacity>
         ))}
       </ScrollView>
+
+      {/* 카테고리별 서브 필터 (가격대 + 태그) */}
+      {selectedCategoryData && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.subFilterList}
+          contentContainerStyle={styles.subFilterContent}
+        >
+          {selectedCategoryData.hasPriceRange && PRICE_RANGES.map((pr) => (
+            <TouchableOpacity
+              key={pr}
+              style={[
+                styles.subFilterBtn,
+                { backgroundColor: c.chipBg },
+                selectedPriceRange === pr && { backgroundColor: c.primaryBg },
+              ]}
+              onPress={() => {
+                lightTap();
+                setSelectedPriceRange(prev => prev === pr ? null : pr);
+              }}
+            >
+              <Text
+                style={[
+                  styles.subFilterText,
+                  { color: c.chipText },
+                  selectedPriceRange === pr && { color: c.primary, fontWeight: '600' },
+                ]}
+              >
+                {PRICE_RANGE_LABELS[pr]}
+              </Text>
+            </TouchableOpacity>
+          ))}
+          {selectedCategoryData.tagGroups.flatMap(g => g.tags).map((tag) => (
+            <TouchableOpacity
+              key={tag}
+              style={[
+                styles.subFilterBtn,
+                { backgroundColor: c.chipBg },
+              ]}
+              onPress={() => {
+                lightTap();
+                setSearchQuery(tag);
+              }}
+            >
+              <Text style={[styles.subFilterText, { color: c.chipText }]}>{tag}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
 
       {/* 정렬 + 총 개수 */}
       <View style={styles.sortRow}>
@@ -326,6 +389,15 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   categoryText: { fontSize: 14 },
+  subFilterList: { backgroundColor: 'transparent', flexGrow: 0, flexShrink: 0 },
+  subFilterContent: { paddingHorizontal: 14, paddingBottom: 6, gap: 6, alignItems: 'center' },
+  subFilterBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 8,
+    marginRight: 6,
+  },
+  subFilterText: { fontSize: 13 },
   sortRow: {
     flexDirection: 'row',
     alignItems: 'center',

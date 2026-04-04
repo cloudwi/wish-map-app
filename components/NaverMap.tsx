@@ -17,9 +17,11 @@ interface Props {
   restaurants: Restaurant[];
   onMarkerClick: (restaurant: Restaurant) => void;
   onBoundsChange: (bounds: MapBounds, camera: { latitude: number; longitude: number; zoom: number }) => void;
+  onTapMap?: (lat: number, lng: number) => void;
   userLocation?: { latitude: number; longitude: number } | null;
   selectedPlace?: PlaceResult | null;
   selectedId?: number | null;
+  tappedLocation?: { latitude: number; longitude: number } | null;
   initialLat?: number;
   initialLng?: number;
   initialZoom?: number;
@@ -29,9 +31,11 @@ const NaverMap = forwardRef<NaverMapViewRef, Props>(({
   restaurants,
   onMarkerClick,
   onBoundsChange,
+  onTapMap,
   userLocation,
   selectedPlace,
   selectedId,
+  tappedLocation,
   initialLat = 37.5665,
   initialLng = 126.9780,
   initialZoom = 14,
@@ -62,6 +66,7 @@ const NaverMap = forwardRef<NaverMapViewRef, Props>(({
         zoom: initialZoom,
       }}
       onCameraChanged={handleCameraChanged}
+      onTapMap={onTapMap ? (params) => onTapMap(params.latitude, params.longitude) : undefined}
       isShowZoomControls={false}
       isShowCompass
       isShowLocationButton={false}
@@ -102,11 +107,27 @@ const NaverMap = forwardRef<NaverMapViewRef, Props>(({
           anchor={{ x: 0.5, y: 0.5 }}
           width={28}
           height={28}
-          caption={{ text: selectedPlace.name, color: '#E8590C', textSize: 13, haloColor: '#fff' }}
+          caption={undefined}
           zIndex={200}
         >
           <View collapsable={false} style={[styles.dot, { width: 28, height: 28, borderRadius: 14, backgroundColor: '#FF8A65' }]}>
             <Ionicons name="restaurant" size={14} color="rgba(255,255,255,0.9)" />
+          </View>
+        </NaverMapMarkerOverlay>
+      )}
+
+      {/* 탭한 위치 핀 */}
+      {tappedLocation && (
+        <NaverMapMarkerOverlay
+          latitude={tappedLocation.latitude}
+          longitude={tappedLocation.longitude}
+          anchor={{ x: 0.5, y: 1 }}
+          width={28}
+          height={36}
+          zIndex={100}
+        >
+          <View collapsable={false} style={styles.tappedPin}>
+            <Ionicons name="location" size={36} color="#E8590C" />
           </View>
         </NaverMapMarkerOverlay>
       )}
@@ -142,6 +163,10 @@ const styles = StyleSheet.create({
   dot: {
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  tappedPin: {
+    alignItems: 'center',
+    justifyContent: 'flex-end',
   },
 });
 

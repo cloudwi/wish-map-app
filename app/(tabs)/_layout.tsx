@@ -40,7 +40,7 @@ export default function TabLayout() {
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="list">
-        <Label>맛집</Label>
+        <Label>장소</Label>
         <Icon sf={{ default: 'safari', selected: 'safari.fill' }} />
       </NativeTabs.Trigger>
 

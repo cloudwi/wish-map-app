@@ -87,7 +87,7 @@ export default function CollectionsScreen() {
                 <View style={styles.empty}>
                   <Ionicons name="restaurant-outline" size={48} color={c.textDisabled} />
                   <Text style={[styles.emptyTitle, { color: c.textSecondary }]}>컬렉션이 비어있습니다</Text>
-                  <Text style={[styles.emptyDesc, { color: c.textDisabled }]}>맛집에서 좋아요를 눌러 추가해보세요</Text>
+                  <Text style={[styles.emptyDesc, { color: c.textDisabled }]}>장소에서 좋아요를 눌러 추가해보세요</Text>
                 </View>
               }
             />
@@ -117,7 +117,7 @@ export default function CollectionsScreen() {
               </View>
               <View style={styles.groupContent}>
                 <Text style={[styles.groupName, { color: c.textPrimary }]}>{item.name}</Text>
-                <Text style={[styles.groupCount, { color: c.textTertiary }]}>{item.restaurantCount}개의 맛집</Text>
+                <Text style={[styles.groupCount, { color: c.textTertiary }]}>{item.restaurantCount}개의 장소</Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color={c.textDisabled} />
             </TouchableOpacity>
@@ -126,7 +126,7 @@ export default function CollectionsScreen() {
             <View style={styles.empty}>
               <Ionicons name="heart-outline" size={48} color={c.textDisabled} />
               <Text style={[styles.emptyTitle, { color: c.textSecondary }]}>컬렉션이 없습니다</Text>
-              <Text style={[styles.emptyDesc, { color: c.textDisabled }]}>맛집에서 좋아요를 눌러 컬렉션에 추가해보세요</Text>
+              <Text style={[styles.emptyDesc, { color: c.textDisabled }]}>장소에서 좋아요를 눌러 컬렉션에 추가해보세요</Text>
             </View>
           }
         />

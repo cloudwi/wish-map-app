@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { StyleSheet, View, Text, TextInput, ActivityIndicator, TouchableOpacity, FlatList, Pressable } from 'react-native';
+import { StyleSheet, View, Text, TextInput, ActivityIndicator, TouchableOpacity, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { PlaceResult } from '../../api/search';
 import { useTheme } from '../../hooks/useTheme';
 import { lightTap } from '../../utils/haptics';
-import { PriceRange, PRICE_RANGE_LABELS, PRICE_RANGES } from '../../types';
+import { PlaceCategory } from '../../types';
 
 interface SearchBarProps {
   top: number;
@@ -17,8 +17,9 @@ interface SearchBarProps {
   onSelectPlace: (place: PlaceResult) => void;
   onFocus?: () => void;
   onBlur?: () => void;
-  priceRange: PriceRange | null;
-  onPriceRangeChange: (priceRange: PriceRange | null) => void;
+  placeCategories: PlaceCategory[];
+  selectedCategoryId: number | null;
+  onCategoryChange: (categoryId: number | null) => void;
 }
 
 export function SearchBar({
@@ -32,28 +33,25 @@ export function SearchBar({
   onSelectPlace,
   onFocus,
   onBlur,
-  priceRange,
-  onPriceRangeChange,
+  placeCategories,
+  selectedCategoryId,
+  onCategoryChange,
 }: SearchBarProps) {
   const c = useTheme();
   const showResults = searchResults.length > 0;
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
 
-  const handleFilterPress = () => {
+  const selectedCategory = placeCategories.find(c => c.id === selectedCategoryId);
+
+  const handleCategoryPress = () => {
     lightTap();
-    setDropdownOpen(prev => !prev);
+    setCategoryDropdownOpen(prev => !prev);
   };
 
-  const handleSelect = (pr: PriceRange) => {
+  const handleCategorySelect = (id: number | null) => {
     lightTap();
-    onPriceRangeChange(priceRange === pr ? null : pr);
-    setDropdownOpen(false);
-  };
-
-  const handleClearFilter = () => {
-    lightTap();
-    onPriceRangeChange(null);
-    setDropdownOpen(false);
+    onCategoryChange(id);
+    setCategoryDropdownOpen(false);
   };
 
   return (
@@ -66,7 +64,7 @@ export function SearchBar({
           placeholderTextColor={c.textSecondary}
           value={searchQuery}
           onChangeText={onSearch}
-          onFocus={() => { setDropdownOpen(false); onFocus?.(); }}
+          onFocus={() => { setCategoryDropdownOpen(false); onFocus?.(); }}
           onBlur={onBlur}
           returnKeyType="search"
           onSubmitEditing={onSearchNow}
@@ -78,41 +76,53 @@ export function SearchBar({
           </TouchableOpacity>
         )}
 
-        {/* 가격대 필터 버튼 */}
+        {/* 카테고리 필터 버튼 */}
         <TouchableOpacity
           style={[
             styles.filterBtn,
             { borderColor: c.border, backgroundColor: c.searchBg },
-            priceRange && { borderColor: c.primary, backgroundColor: c.primaryBg },
+            selectedCategoryId != null && { borderColor: c.primary, backgroundColor: c.primaryBg },
           ]}
-          onPress={handleFilterPress}
+          onPress={handleCategoryPress}
           activeOpacity={0.7}
         >
-          {priceRange ? (
-            <Text style={[styles.filterLabel, { color: c.primary }]}>
-              {PRICE_RANGE_LABELS[priceRange]}
+          {selectedCategoryId != null ? (
+            <Text style={[styles.filterLabel, { color: c.primary }]} numberOfLines={1}>
+              {selectedCategory?.name || ''}
             </Text>
           ) : (
-            <Ionicons name="pricetag-outline" size={15} color={c.textSecondary} />
+            <Ionicons name="grid-outline" size={15} color={c.textSecondary} />
           )}
           <Ionicons
-            name={dropdownOpen ? 'chevron-up' : 'chevron-down'}
+            name={categoryDropdownOpen ? 'chevron-up' : 'chevron-down'}
             size={12}
-            color={priceRange ? c.primary : c.textSecondary}
+            color={selectedCategoryId != null ? c.primary : c.textSecondary}
           />
         </TouchableOpacity>
       </View>
 
-      {/* 가격대 드롭다운 */}
-      {dropdownOpen && (
+      {/* 카테고리 드롭다운 */}
+      {categoryDropdownOpen && (
         <View style={[styles.dropdown, { backgroundColor: c.surface, shadowColor: '#000' }]}>
-          {PRICE_RANGES.map((pr) => {
-            const isSelected = priceRange === pr;
+          <TouchableOpacity
+            style={[styles.dropdownItem, { borderBottomColor: c.divider }]}
+            onPress={() => handleCategorySelect(null)}
+            activeOpacity={0.6}
+          >
+            <Text style={[
+              styles.dropdownText,
+              { color: c.textPrimary },
+              selectedCategoryId == null && { color: c.primary, fontWeight: '600' },
+            ]}>전체</Text>
+            {selectedCategoryId == null && <Ionicons name="checkmark" size={16} color={c.primary} />}
+          </TouchableOpacity>
+          {placeCategories.map((cat) => {
+            const isSelected = selectedCategoryId === cat.id;
             return (
               <TouchableOpacity
-                key={pr}
+                key={cat.id}
                 style={[styles.dropdownItem, { borderBottomColor: c.divider }]}
-                onPress={() => handleSelect(pr)}
+                onPress={() => handleCategorySelect(cat.id)}
                 activeOpacity={0.6}
               >
                 <Text style={[
@@ -120,16 +130,16 @@ export function SearchBar({
                   { color: c.textPrimary },
                   isSelected && { color: c.primary, fontWeight: '600' },
                 ]}>
-                  {PRICE_RANGE_LABELS[pr]}
+                  {cat.name}
                 </Text>
                 {isSelected && <Ionicons name="checkmark" size={16} color={c.primary} />}
               </TouchableOpacity>
             );
           })}
-          {priceRange && (
+          {selectedCategoryId != null && (
             <TouchableOpacity
               style={[styles.dropdownItem, { borderBottomWidth: 0 }]}
-              onPress={handleClearFilter}
+              onPress={() => handleCategorySelect(null)}
               activeOpacity={0.6}
             >
               <Text style={[styles.dropdownText, { color: c.error }]}>필터 해제</Text>
@@ -138,11 +148,11 @@ export function SearchBar({
         </View>
       )}
 
-      {showResults && !dropdownOpen && (
+      {showResults && !categoryDropdownOpen && (
         <View style={[styles.searchResults, { backgroundColor: c.surface }]}>
           <FlatList
             data={searchResults}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item, index) => `${item.id}-${index}`}
             keyboardShouldPersistTaps="handled"
             renderItem={({ item, index }) => (
               <TouchableOpacity

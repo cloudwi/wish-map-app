@@ -48,12 +48,12 @@ export default function MySuggestionsScreen() {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Ionicons name="restaurant-outline" size={48} color={c.textDisabled} />
-              <Text style={[styles.emptyTitle, { color: c.textSecondary }]}>제안한 맛집이 없습니다</Text>
+              <Text style={[styles.emptyTitle, { color: c.textSecondary }]}>제안한 장소가 없습니다</Text>
               <TouchableOpacity
                 style={styles.suggestBtn}
                 onPress={() => router.push('/(tabs)')}
               >
-                <Text style={styles.suggestBtnText}>지도에서 맛집 찾기</Text>
+                <Text style={styles.suggestBtnText}>지도에서 장소 찾기</Text>
               </TouchableOpacity>
             </View>
           }

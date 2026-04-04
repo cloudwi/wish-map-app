@@ -6,8 +6,9 @@ import { Ionicons } from '@expo/vector-icons';
 import BottomSheet, { BottomSheetFlatList, BottomSheetView } from '@gorhom/bottom-sheet';
 import type * as LocationType from 'expo-location';
 import { type NaverMapViewRef } from '@mj-studio/react-native-naver-map';
-import { Restaurant, MapBounds, PriceRange } from '../../types';
+import { Restaurant, MapBounds, PlaceCategory, DEFAULT_PLACE_CATEGORIES } from '../../types';
 import { restaurantApi } from '../../api/restaurant';
+import { placeCategoryApi } from '../../api/placeCategory';
 import { PlaceResult } from '../../api/search';
 import NaverMap from '../../components/NaverMap';
 import { RestaurantCard } from '../../components/RestaurantCard';
@@ -38,7 +39,8 @@ export default function MapScreen() {
   const [selectedPlace, setSelectedPlace] = useState<PlaceResult | null>(null);
   const { isAuthenticated } = useAuthStore();
   const { groups, selectedGroupId, fetchGroups } = useGroupStore();
-  const [priceRangeFilter, setPriceRangeFilter] = useState<PriceRange | null>(null);
+  const [placeCategories, setPlaceCategories] = useState<PlaceCategory[]>([]);
+  const [categoryFilter, setCategoryFilter] = useState<number | null>(null);
 
   const bottomSheetRef = useRef<BottomSheet>(null);
   const detailSheetRef = useRef<BottomSheet>(null);
@@ -53,6 +55,12 @@ export default function MapScreen() {
   useEffect(() => {
     if (isAuthenticated) fetchGroups();
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    placeCategoryApi.getPlaceCategories()
+      .then(setPlaceCategories)
+      .catch(() => setPlaceCategories(DEFAULT_PLACE_CATEGORIES));
+  }, []);
 
   // 그룹 선택/해제 시 자동으로 맛집 다시 로드 + 카메라 이동
   const pendingGroupFetchRef = useRef(false);
@@ -82,10 +90,10 @@ export default function MapScreen() {
     }
   }, [selectedGroupId]);
 
-  const fetchRestaurants = useCallback(async (bounds: MapBounds, priceRange?: PriceRange | null) => {
+  const fetchRestaurants = useCallback(async (bounds: MapBounds, placeCategoryId?: number | null) => {
     try {
       const { selectedGroupId: groupId, groups: storeGroups } = useGroupStore.getState();
-      const effectivePriceRange = priceRange !== undefined ? priceRange : priceRangeFilter;
+      const effectiveCategoryId = placeCategoryId !== undefined ? placeCategoryId : categoryFilter;
 
       // 그룹 선택 + 반경 설정 시 → 반경 기반 bounds로 제한
       let effectiveBounds = bounds;
@@ -103,8 +111,8 @@ export default function MapScreen() {
       }
 
       const response = groupId
-        ? await restaurantApi.getGroupRestaurants(groupId, effectiveBounds, effectivePriceRange || undefined)
-        : await restaurantApi.getRestaurants(bounds, effectivePriceRange || undefined);
+        ? await restaurantApi.getGroupRestaurants(groupId, effectiveBounds)
+        : await restaurantApi.getRestaurants(bounds, undefined, effectiveCategoryId || undefined);
       setRestaurants(response.content);
       setShowResearchBtn(false);
     } catch {
@@ -113,7 +121,7 @@ export default function MapScreen() {
       setLoading(false);
       setTimeout(() => { initialLoadDone.current = true; }, 500);
     }
-  }, [priceRangeFilter]);
+  }, [categoryFilter]);
 
   useEffect(() => {
     let subscription: { remove: () => void } | null = null;
@@ -167,6 +175,7 @@ export default function MapScreen() {
     clearSearch();
     setSearchFocused(false);
     setSelected(null);
+
     setSelectedPlace(place);
     Keyboard.dismiss();
 
@@ -183,6 +192,7 @@ export default function MapScreen() {
     detailSheetRef.current?.close();
     setSelectedPlace(null);
     setSelected(null);
+
     bottomSheetRef.current?.snapToIndex(0);
   };
 
@@ -268,7 +278,7 @@ export default function MapScreen() {
         pointerEvents="none"
       />
 
-      {/* 검색바 + 가격대 필터 */}
+      {/* 검색바 + 카테고리 필터 */}
       <SearchBar
         top={insets.top + 8}
         searchQuery={searchQuery}
@@ -280,11 +290,12 @@ export default function MapScreen() {
         onSelectPlace={handleSelectPlace}
         onFocus={() => setSearchFocused(true)}
         onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
-        priceRange={priceRangeFilter}
-        onPriceRangeChange={(pr) => {
-          setPriceRangeFilter(pr);
+        placeCategories={placeCategories}
+        selectedCategoryId={categoryFilter}
+        onCategoryChange={(catId) => {
+          setCategoryFilter(catId);
           if (currentBoundsRef.current) {
-            fetchRestaurants(currentBoundsRef.current, pr);
+            fetchRestaurants(currentBoundsRef.current, catId);
           }
         }}
       />
@@ -331,8 +342,8 @@ export default function MapScreen() {
       >
         <View style={styles.listWrap}>
           <View style={styles.listHeader}>
-            <Ionicons name="restaurant" size={18} color={c.textSecondary} />
-            <Text style={[styles.listTitle, { color: c.textPrimary }]}>주변 맛집 {restaurants.length}개</Text>
+            <Ionicons name="location" size={18} color={c.textSecondary} />
+            <Text style={[styles.listTitle, { color: c.textPrimary }]}>주변 장소 {restaurants.length}개</Text>
           </View>
           <BottomSheetFlatList
             data={restaurants}
@@ -341,7 +352,7 @@ export default function MapScreen() {
             contentContainerStyle={styles.listContent}
             ListEmptyComponent={
               <Text style={[styles.emptyText, { color: c.textSecondary }]}>
-                {loading ? '맛집을 불러오는 중...' : '이 지역에 등록된 맛집이 없습니다'}
+                {loading ? '장소를 불러오는 중...' : '이 지역에 등록된 장소가 없습니다'}
               </Text>
             }
           />
