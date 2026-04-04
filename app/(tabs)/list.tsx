@@ -76,8 +76,8 @@ export default function ListScreen() {
 
   // 안정적인 fetch 함수 (ref로 최신 필터값 참조 → useCallback deps 불필요)
   const fetchRestaurants = useCallback(async (pageNum: number, isRefresh = false) => {
-    // 중복 요청 방지
-    if (fetchingRef.current) return;
+    // 페이지네이션 중복만 방지 (필터 변경은 허용)
+    if (pageNum > 0 && fetchingRef.current) return;
     fetchingRef.current = true;
 
     try {
@@ -173,9 +173,9 @@ export default function ListScreen() {
     return null;
   }, [hasMore, loadingMore]);
 
-  // 빈 상태 컴포넌트 (로딩 중이거나 fetch 중이면 표시하지 않음)
+  // 빈 상태 컴포넌트 (로딩 중이면 표시하지 않음)
   const renderEmpty = useCallback(() => {
-    if (initialLoading || fetchingRef.current) return null;
+    if (initialLoading) return null;
     return (
       <View style={styles.empty}>
         <Ionicons name="search-outline" size={48} color={c.textDisabled} />
@@ -304,13 +304,20 @@ export default function ListScreen() {
               style={[
                 styles.subFilterBtn,
                 { backgroundColor: c.chipBg },
+                searchQuery === tag && { backgroundColor: c.chipActiveBg },
               ]}
               onPress={() => {
                 lightTap();
-                setSearchQuery(tag);
+                const next = searchQuery === tag ? '' : tag;
+                setSearchQuery(next);
+                setDebouncedSearch(next.trim());
               }}
             >
-              <Text style={[styles.subFilterText, { color: c.chipText }]}>{tag}</Text>
+              <Text style={[
+                styles.subFilterText,
+                { color: c.chipText },
+                searchQuery === tag && { color: c.chipActiveText, fontWeight: '600' },
+              ]}>{tag}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
