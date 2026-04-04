@@ -14,7 +14,7 @@ import { showError, showSuccess } from '../utils/toast';
 import { getErrorMessage } from '../utils/getErrorMessage';
 import {
   PriceRange, PRICE_RANGE_LABELS, PRICE_RANGES,
-  PlaceCategory, DEFAULT_PLACE_CATEGORIES,
+  PlaceCategory, DEFAULT_PLACE_CATEGORIES, matchNaverCategory,
 } from '../types';
 
 const VISIT_DISTANCE_LIMIT = 100;
@@ -52,9 +52,21 @@ export default function VisitReviewScreen() {
 
   useEffect(() => {
     placeCategoryApi.getPlaceCategories()
-      .then(setPlaceCategories)
-      .catch(() => setPlaceCategories(DEFAULT_PLACE_CATEGORIES));
+      .then((cats) => {
+        setPlaceCategories(cats);
+        autoSelectCategory(cats);
+      })
+      .catch(() => {
+        setPlaceCategories(DEFAULT_PLACE_CATEGORIES);
+        autoSelectCategory(DEFAULT_PLACE_CATEGORIES);
+      });
   }, []);
+
+  const autoSelectCategory = (cats: PlaceCategory[]) => {
+    if (!params.placeCategory) return;
+    const matched = matchNaverCategory(params.placeCategory, cats);
+    if (matched) setSelectedCategoryId(matched.id);
+  };
 
   const selectCategory = (id: number) => {
     lightTap();
@@ -167,11 +179,13 @@ export default function VisitReviewScreen() {
           </View>
         </View>
 
-        {/* 카테고리 선택 (필수) */}
+        {/* 카테고리 선택 */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: c.textPrimary }]}>카테고리</Text>
-            <Text style={[styles.required, { color: c.error }]}>필수</Text>
+            {selectedCategoryId && params.placeCategory ? (
+              <Text style={[styles.autoDetected, { color: c.textTertiary }]}>자동 감지</Text>
+            ) : null}
           </View>
           <View style={styles.chipGrid}>
             {placeCategories.map((cat) => {
@@ -320,7 +334,7 @@ const styles = StyleSheet.create({
   section: { marginBottom: 24 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 },
   sectionTitle: { fontSize: 16, fontWeight: '600', marginBottom: 12 },
-  required: { fontSize: 12, fontWeight: '600', marginBottom: 12 },
+  autoDetected: { fontSize: 12, fontWeight: '500', marginBottom: 12 },
   chipGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     paddingHorizontal: 14,

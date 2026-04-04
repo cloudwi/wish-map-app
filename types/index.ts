@@ -79,7 +79,7 @@ export interface PlaceCategory {
 
 export const DEFAULT_PLACE_CATEGORIES: PlaceCategory[] = [
   {
-    id: 1, name: '음식', icon: '🍽', hasPriceRange: true,
+    id: 1, name: '음식점', icon: null, hasPriceRange: true,
     tagGroups: [
       { key: '분위기', tags: ['혼밥 성지', '회식 추천', '데이트', '조용한', '활기찬'] },
       { key: '맛 특징', tags: ['매운맛', '달콤한', '담백한', '짜릿한', '고소한'] },
@@ -88,7 +88,7 @@ export const DEFAULT_PLACE_CATEGORIES: PlaceCategory[] = [
     ],
   },
   {
-    id: 2, name: '카페', icon: '☕', hasPriceRange: false,
+    id: 2, name: '카페,디저트', icon: null, hasPriceRange: true,
     tagGroups: [
       { key: '분위기', tags: ['조용한', '넓은', '루프탑', '감성적인', '작업하기 좋은'] },
       { key: '메뉴', tags: ['커피 맛집', '디저트 맛집', '브런치', '음료 다양'] },
@@ -96,27 +96,75 @@ export const DEFAULT_PLACE_CATEGORIES: PlaceCategory[] = [
     ],
   },
   {
-    id: 3, name: '디저트/간식', icon: '🍞', hasPriceRange: false,
+    id: 3, name: '쇼핑,유통', icon: null, hasPriceRange: false,
     tagGroups: [
-      { key: '종류', tags: ['붕어빵', '호떡', '타코야끼', '와플', '마카롱'] },
-      { key: '특징', tags: ['줄 서는 곳', '가성비', '수제', '계절 한정'] },
+      { key: '특징', tags: ['가성비', '품질 좋은', '종류 다양', '친절한'] },
     ],
   },
   {
-    id: 4, name: '자연/풍경', icon: '🌸', hasPriceRange: false,
-    tagGroups: [
-      { key: '종류', tags: ['벚꽃', '단풍', '야경', '일출', '공원'] },
-      { key: '특징', tags: ['사진 맛집', '산책 코스', '드라이브', '피크닉'] },
-    ],
-  },
-  {
-    id: 5, name: '생활편의', icon: '🔧', hasPriceRange: false,
+    id: 4, name: '생활,편의', icon: null, hasPriceRange: false,
     tagGroups: [
       { key: '종류', tags: ['철물점', '세탁소', '수선집', '열쇠'] },
       { key: '특징', tags: ['친절한', '가성비', '실력 좋은', '빠른'] },
     ],
   },
+  {
+    id: 5, name: '여행,숙박', icon: null, hasPriceRange: false,
+    tagGroups: [
+      { key: '특징', tags: ['뷰 맛집', '깨끗한', '가성비', '위치 좋은'] },
+    ],
+  },
+  {
+    id: 6, name: '문화,예술', icon: null, hasPriceRange: false,
+    tagGroups: [
+      { key: '특징', tags: ['볼거리 많은', '조용한', '가족 추천', '데이트'] },
+    ],
+  },
+  {
+    id: 7, name: '교육,학문', icon: null, hasPriceRange: false,
+    tagGroups: [
+      { key: '특징', tags: ['전문적인', '친절한', '가성비'] },
+    ],
+  },
+  {
+    id: 8, name: '의료,건강', icon: null, hasPriceRange: false,
+    tagGroups: [
+      { key: '특징', tags: ['친절한', '실력 좋은', '대기 없음', '깨끗한'] },
+    ],
+  },
 ];
+
+// 네이버 카테고리 문자열 → PlaceCategory 자동 매칭
+const NAVER_CATEGORY_KEYWORDS: [string[], string][] = [
+  [['음식점', '한식', '중식', '일식', '양식', '치킨', '분식', '패스트푸드', '뷔페'], '음식점'],
+  [['카페', '디저트', '베이커리', '제과'], '카페,디저트'],
+  [['쇼핑', '유통', '마트', '백화점', '시장'], '쇼핑,유통'],
+  [['생활', '편의', '세탁', '철물', '수선', '열쇠', '인쇄'], '생활,편의'],
+  [['여행', '숙박', '호텔', '모텔', '펜션', '게스트하우스', '글램핑', '캠핑'], '여행,숙박'],
+  [['문화', '예술', '공연', '전시', '영화', '박물관', '미술관'], '문화,예술'],
+  [['교육', '학문', '학원', '도서관', '학교'], '교육,학문'],
+  [['의료', '건강', '병원', '약국', '한의원', '치과', '피부과'], '의료,건강'],
+];
+
+export function matchNaverCategory(naverCategory: string, categories: PlaceCategory[]): PlaceCategory | null {
+  if (!naverCategory) return null;
+  const lower = naverCategory.toLowerCase();
+
+  // 1) 대분류 정확 매칭 (예: "카페,디저트>카페" → "카페,디저트")
+  const majorPart = naverCategory.split('>')[0].trim();
+  const exact = categories.find(c => c.name === majorPart);
+  if (exact) return exact;
+
+  // 2) 키워드 매칭
+  for (const [keywords, categoryName] of NAVER_CATEGORY_KEYWORDS) {
+    if (keywords.some(kw => lower.includes(kw))) {
+      const matched = categories.find(c => c.name === categoryName);
+      if (matched) return matched;
+    }
+  }
+
+  return null;
+}
 
 // Restaurant
 export interface Restaurant {
