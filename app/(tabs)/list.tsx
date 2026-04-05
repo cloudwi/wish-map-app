@@ -29,6 +29,7 @@ export default function ListScreen() {
   // 필터 상태
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [selectedPriceRange, setSelectedPriceRange] = useState<PriceRange | null>(null);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [sortBy, setSortBy] = useState<SortBy>('latest');
@@ -46,8 +47,8 @@ export default function ListScreen() {
   const fetchingRef = useRef(false);
   const hasDataRef = useRef(false);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const filtersRef = useRef({ selectedCategoryId, debouncedSearch, sortBy, selectedPriceRange });
-  filtersRef.current = { selectedCategoryId, debouncedSearch, sortBy, selectedPriceRange };
+  const filtersRef = useRef({ selectedCategoryId, debouncedSearch, sortBy, selectedPriceRange, selectedTag });
+  filtersRef.current = { selectedCategoryId, debouncedSearch, sortBy, selectedPriceRange, selectedTag };
 
   // 카테고리 목록 로드
   useEffect(() => {
@@ -85,7 +86,7 @@ export default function ListScreen() {
       }
 
       const groupId = useGroupStore.getState().selectedGroupId;
-      const { selectedCategoryId: catId, debouncedSearch: search, sortBy: sort, selectedPriceRange: pr } = filtersRef.current;
+      const { selectedCategoryId: catId, debouncedSearch: search, sortBy: sort, selectedPriceRange: pr, selectedTag: tag } = filtersRef.current;
 
       let response;
       if (groupId) {
@@ -94,6 +95,7 @@ export default function ListScreen() {
         response = await restaurantApi.getRestaurantList({
           placeCategoryId: catId || undefined,
           search: search || undefined,
+          tag: tag || undefined,
           sort,
           priceRange: pr || undefined,
           page: pageNum,
@@ -122,7 +124,7 @@ export default function ListScreen() {
   // 필터/검색/정렬/그룹 변경 시 첫 페이지부터 다시 로드
   useEffect(() => {
     fetchRestaurants(0);
-  }, [selectedCategoryId, debouncedSearch, sortBy, selectedPriceRange, selectedGroupId, fetchRestaurants]);
+  }, [selectedCategoryId, debouncedSearch, sortBy, selectedPriceRange, selectedTag, selectedGroupId, fetchRestaurants]);
 
   // Pull-to-refresh
   const onRefresh = useCallback(() => {
@@ -145,6 +147,7 @@ export default function ListScreen() {
     lightTap();
     setSelectedCategoryId(id);
     setSelectedPriceRange(null);
+    setSelectedTag(null);
     setSearchQuery('');
     setDebouncedSearch('');
   }, []);
@@ -314,26 +317,24 @@ export default function ListScreen() {
               </Text>
             </TouchableOpacity>
           ))}
-          {selectedCategoryData.tagGroups.flatMap(g => g.tags).map((tag) => (
+          {selectedCategoryData.tagGroups.flatMap(g => g.tags).map((t) => (
             <TouchableOpacity
-              key={tag}
+              key={t}
               style={[
                 styles.subFilterBtn,
                 { backgroundColor: c.chipBg },
-                searchQuery === tag && { backgroundColor: c.chipActiveBg },
+                selectedTag === t && { backgroundColor: c.chipActiveBg },
               ]}
               onPress={() => {
                 lightTap();
-                const next = searchQuery === tag ? '' : tag;
-                setSearchQuery(next);
-                setDebouncedSearch(next.trim());
+                setSelectedTag(prev => prev === t ? null : t);
               }}
             >
               <Text style={[
                 styles.subFilterText,
                 { color: c.chipText },
-                searchQuery === tag && { color: c.chipActiveText, fontWeight: '600' },
-              ]}>{tag}</Text>
+                selectedTag === t && { color: c.chipActiveText, fontWeight: '600' },
+              ]}>{t}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
