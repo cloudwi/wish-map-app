@@ -23,12 +23,11 @@ export default function ListScreen() {
 
   // 데이터 상태
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
-  const [categories, setCategories] = useState<string[]>(['전체']);
   const [placeCategoryList, setPlaceCategoryList] = useState<PlaceCategory[]>([]);
   const [totalElements, setTotalElements] = useState(0);
 
   // 필터 상태
-  const [selectedCategory, setSelectedCategory] = useState('전체');
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [selectedPriceRange, setSelectedPriceRange] = useState<PriceRange | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -47,20 +46,14 @@ export default function ListScreen() {
   const fetchingRef = useRef(false);
   const hasDataRef = useRef(false);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const filtersRef = useRef({ selectedCategory, debouncedSearch, sortBy, selectedPriceRange });
-  filtersRef.current = { selectedCategory, debouncedSearch, sortBy, selectedPriceRange };
+  const filtersRef = useRef({ selectedCategoryId, debouncedSearch, sortBy, selectedPriceRange });
+  filtersRef.current = { selectedCategoryId, debouncedSearch, sortBy, selectedPriceRange };
 
   // 카테고리 목록 로드
   useEffect(() => {
     placeCategoryApi.getPlaceCategories()
-      .then((data) => {
-        setPlaceCategoryList(data);
-        setCategories(['전체', ...data.map((c) => c.name).filter(Boolean)]);
-      })
-      .catch(() => {
-        setPlaceCategoryList(DEFAULT_PLACE_CATEGORIES);
-        setCategories(['전체', ...DEFAULT_PLACE_CATEGORIES.map((c) => c.name)]);
-      });
+      .then(setPlaceCategoryList)
+      .catch(() => setPlaceCategoryList(DEFAULT_PLACE_CATEGORIES));
   }, []);
 
   // 검색어 디바운스
@@ -92,14 +85,14 @@ export default function ListScreen() {
       }
 
       const groupId = useGroupStore.getState().selectedGroupId;
-      const { selectedCategory: cat, debouncedSearch: search, sortBy: sort, selectedPriceRange: pr } = filtersRef.current;
+      const { selectedCategoryId: catId, debouncedSearch: search, sortBy: sort, selectedPriceRange: pr } = filtersRef.current;
 
       let response;
       if (groupId) {
         response = await restaurantApi.getGroupRestaurants(groupId, KOREA_BOUNDS);
       } else {
         response = await restaurantApi.getRestaurantList({
-          category: cat === '전체' ? undefined : cat,
+          placeCategoryId: catId || undefined,
           search: search || undefined,
           sort,
           priceRange: pr || undefined,
@@ -129,7 +122,7 @@ export default function ListScreen() {
   // 필터/검색/정렬/그룹 변경 시 첫 페이지부터 다시 로드
   useEffect(() => {
     fetchRestaurants(0);
-  }, [selectedCategory, debouncedSearch, sortBy, selectedPriceRange, selectedGroupId, fetchRestaurants]);
+  }, [selectedCategoryId, debouncedSearch, sortBy, selectedPriceRange, selectedGroupId, fetchRestaurants]);
 
   // Pull-to-refresh
   const onRefresh = useCallback(() => {
@@ -145,12 +138,12 @@ export default function ListScreen() {
   }, [hasMore, page, fetchRestaurants]);
 
   // 선택된 카테고리 데이터
-  const selectedCategoryData = placeCategoryList.find(c => c.name === selectedCategory);
+  const selectedCategoryData = placeCategoryList.find(c => c.id === selectedCategoryId);
 
   // 카테고리 선택 핸들러
-  const handleCategoryChange = useCallback((category: string) => {
+  const handleCategoryChange = useCallback((id: number | null) => {
     lightTap();
-    setSelectedCategory(category);
+    setSelectedCategoryId(id);
     setSelectedPriceRange(null);
     setSearchQuery('');
     setDebouncedSearch('');
@@ -248,24 +241,42 @@ export default function ListScreen() {
         style={styles.categoryList}
         contentContainerStyle={styles.categoryContent}
       >
-        {categories.map((item) => (
+        <TouchableOpacity
+          style={[
+            styles.categoryBtn,
+            { backgroundColor: c.chipBg },
+            selectedCategoryId === null && { backgroundColor: c.chipActiveBg },
+          ]}
+          onPress={() => handleCategoryChange(null)}
+        >
+          <Text
+            style={[
+              styles.categoryText,
+              { color: c.chipText },
+              selectedCategoryId === null && { color: c.chipActiveText, fontWeight: '600' },
+            ]}
+          >
+            전체
+          </Text>
+        </TouchableOpacity>
+        {placeCategoryList.map((cat) => (
           <TouchableOpacity
-            key={item}
+            key={cat.id}
             style={[
               styles.categoryBtn,
               { backgroundColor: c.chipBg },
-              selectedCategory === item && { backgroundColor: c.chipActiveBg },
+              selectedCategoryId === cat.id && { backgroundColor: c.chipActiveBg },
             ]}
-            onPress={() => handleCategoryChange(item)}
+            onPress={() => handleCategoryChange(cat.id)}
           >
             <Text
               style={[
                 styles.categoryText,
                 { color: c.chipText },
-                selectedCategory === item && { color: c.chipActiveText, fontWeight: '600' },
+                selectedCategoryId === cat.id && { color: c.chipActiveText, fontWeight: '600' },
               ]}
             >
-              {item}
+              {cat.name}
             </Text>
           </TouchableOpacity>
         ))}

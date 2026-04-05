@@ -31,6 +31,7 @@ export interface PlaceStatsResponse {
 export interface RestaurantListParams {
   bounds?: MapBounds;
   category?: string;
+  placeCategoryId?: number;
   search?: string;
   sort?: 'latest' | 'visits';
   priceRange?: PriceRange;
@@ -56,11 +57,12 @@ export const restaurantApi = {
     return response.data;
   },
 
-  // 맛집 리스트 (리스트 탭용 - 서버사이드 필터/검색/정렬)
+  // 장소 리스트 (리스트 탭용 - 서버사이드 필터/검색/정렬)
   getRestaurantList: async (params: RestaurantListParams = {}): Promise<PageResponse<Restaurant>> => {
     const response = await apiClient.get<PageResponse<Restaurant>>('/restaurants', {
       params: {
         category: params.category || undefined,
+        placeCategoryId: params.placeCategoryId || undefined,
         search: params.search || undefined,
         sortBy: params.sort || 'latest',
         priceRange: params.priceRange || undefined,
