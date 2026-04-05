@@ -247,8 +247,7 @@ export default function MyPageScreen() {
       <View style={styles.section}>
         <Text style={[styles.sectionLabel, { color: c.textTertiary }]}>나의 활동</Text>
         <View style={[styles.card, { backgroundColor: c.cardBg }]}>
-          <SettingRow icon="restaurant-outline" label="내 제안 목록" onPress={() => router.push('/my-suggestions')} />
-          <SettingRow icon="heart-outline" label="내 컬렉션" onPress={() => router.push('/bookmarks')} isLast />
+          <SettingRow icon="location-outline" label="내가 방문한 장소" onPress={() => router.push('/my-suggestions')} isLast />
         </View>
       </View>
 

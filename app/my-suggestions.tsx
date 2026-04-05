@@ -33,7 +33,7 @@ export default function MySuggestionsScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: '내 제안 목록' }} />
+      <Stack.Screen options={{ title: '내가 방문한 장소' }} />
       <View style={[styles.container, { backgroundColor: c.background }]}>
         <FlatList
           data={restaurants}
@@ -48,7 +48,7 @@ export default function MySuggestionsScreen() {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Ionicons name="restaurant-outline" size={48} color={c.textDisabled} />
-              <Text style={[styles.emptyTitle, { color: c.textSecondary }]}>제안한 장소가 없습니다</Text>
+              <Text style={[styles.emptyTitle, { color: c.textSecondary }]}>방문한 장소가 없습니다</Text>
               <TouchableOpacity
                 style={styles.suggestBtn}
                 onPress={() => router.push('/(tabs)')}
