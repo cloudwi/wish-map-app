@@ -2,7 +2,7 @@ import { StyleSheet, View, Text, FlatList, TouchableOpacity, ActivityIndicator, 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { MapListTabHeader } from '../../components/TabHeader';
 import { Ionicons } from '@expo/vector-icons';
-import { Restaurant, PriceRange, PRICE_RANGE_LABELS, PRICE_RANGES, PlaceCategory, DEFAULT_PLACE_CATEGORIES } from '../../types';
+import { Restaurant, PlaceCategory, DEFAULT_PLACE_CATEGORIES } from '../../types';
 import { restaurantApi } from '../../api/restaurant';
 import { placeCategoryApi } from '../../api/placeCategory';
 import { RestaurantCard } from '../../components/RestaurantCard';
@@ -28,7 +28,6 @@ export default function ListScreen() {
 
   // 필터 상태
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
-  const [selectedPriceRange, setSelectedPriceRange] = useState<PriceRange | null>(null);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -48,8 +47,8 @@ export default function ListScreen() {
   const fetchingRef = useRef(false);
   const hasDataRef = useRef(false);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const filtersRef = useRef({ selectedCategoryId, debouncedSearch, sortBy, selectedPriceRange, selectedTag });
-  filtersRef.current = { selectedCategoryId, debouncedSearch, sortBy, selectedPriceRange, selectedTag };
+  const filtersRef = useRef({ selectedCategoryId, debouncedSearch, sortBy, selectedTag });
+  filtersRef.current = { selectedCategoryId, debouncedSearch, sortBy, selectedTag };
 
   const selectedCategoryData = useMemo(
     () => placeCategoryList.find(cat => cat.id === selectedCategoryId),
@@ -90,7 +89,7 @@ export default function ListScreen() {
       }
 
       const groupId = useGroupStore.getState().selectedGroupId;
-      const { selectedCategoryId: catId, debouncedSearch: search, sortBy: sort, selectedPriceRange: pr, selectedTag: tag } = filtersRef.current;
+      const { selectedCategoryId: catId, debouncedSearch: search, sortBy: sort, selectedTag: tag } = filtersRef.current;
 
       let response;
       if (groupId) {
@@ -101,7 +100,6 @@ export default function ListScreen() {
           search: search || undefined,
           tag: tag || undefined,
           sort,
-          priceRange: pr || undefined,
           page: pageNum,
           size: PAGE_SIZE,
         });
@@ -127,7 +125,7 @@ export default function ListScreen() {
   // 필터 변경 시 데이터만 다시 요청
   useEffect(() => {
     fetchRestaurants(0);
-  }, [selectedCategoryId, debouncedSearch, sortBy, selectedPriceRange, selectedTag, selectedGroupId, fetchRestaurants]);
+  }, [selectedCategoryId, debouncedSearch, sortBy, selectedTag, selectedGroupId, fetchRestaurants]);
 
   const onRefresh = useCallback(() => {
     fetchingRef.current = false;
@@ -222,7 +220,7 @@ export default function ListScreen() {
         >
           <TouchableOpacity
             style={[styles.categoryBtn, { backgroundColor: selectedCategoryId === null ? c.chipActiveBg : c.chipBg }]}
-            onPress={() => { lightTap(); setSelectedCategoryId(null); setSelectedPriceRange(null); setSelectedTag(null); }}
+            onPress={() => { lightTap(); setSelectedCategoryId(null); setSelectedTag(null); }}
           >
             <Text style={[styles.categoryText, { color: selectedCategoryId === null ? c.chipActiveText : c.chipText }, selectedCategoryId === null && { fontWeight: '600' }]}>
               전체
@@ -232,7 +230,7 @@ export default function ListScreen() {
             <TouchableOpacity
               key={cat.id}
               style={[styles.categoryBtn, { backgroundColor: selectedCategoryId === cat.id ? c.chipActiveBg : c.chipBg }]}
-              onPress={() => { lightTap(); setSelectedCategoryId(cat.id); setSelectedPriceRange(null); setSelectedTag(null); }}
+              onPress={() => { lightTap(); setSelectedCategoryId(cat.id); setSelectedTag(null); }}
             >
               <Text style={[styles.categoryText, { color: selectedCategoryId === cat.id ? c.chipActiveText : c.chipText }, selectedCategoryId === cat.id && { fontWeight: '600' }]}>
                 {cat.name}
@@ -248,17 +246,6 @@ export default function ListScreen() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.subFilterContent}
           >
-            {selectedCategoryData.hasPriceRange && PRICE_RANGES.map((pr) => (
-              <TouchableOpacity
-                key={pr}
-                style={[styles.subFilterBtn, { backgroundColor: selectedPriceRange === pr ? c.primaryBg : c.chipBg }]}
-                onPress={() => { lightTap(); setSelectedPriceRange(prev => prev === pr ? null : pr); }}
-              >
-                <Text style={[styles.subFilterText, { color: selectedPriceRange === pr ? c.primary : c.chipText }, selectedPriceRange === pr && { fontWeight: '600' }]}>
-                  {PRICE_RANGE_LABELS[pr]}
-                </Text>
-              </TouchableOpacity>
-            ))}
             {selectedCategoryData.tagGroups.flatMap(g => g.tags).map((t) => (
               <TouchableOpacity
                 key={t}

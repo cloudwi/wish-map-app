@@ -15,7 +15,6 @@ import { lightTap, successTap, mediumTap } from '../utils/haptics';
 import { showError, showSuccess } from '../utils/toast';
 import { getErrorMessage } from '../utils/getErrorMessage';
 import {
-  PriceRange, PRICE_RANGE_LABELS, PRICE_RANGES,
   PlaceCategory, DEFAULT_PLACE_CATEGORIES, matchNaverCategory,
 } from '../types';
 
@@ -45,7 +44,6 @@ export default function VisitReviewScreen() {
 
   const [placeCategories, setPlaceCategories] = useState<PlaceCategory[]>([]);
   const [detectedCategoryId, setDetectedCategoryId] = useState<number | null>(null);
-  const [selectedPriceRange, setSelectedPriceRange] = useState<PriceRange | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [comment, setComment] = useState('');
   const [images, setImages] = useState<string[]>([]);
@@ -72,11 +70,6 @@ export default function VisitReviewScreen() {
     if (!params.placeCategory) return;
     const matched = matchNaverCategory(params.placeCategory, cats);
     if (matched) setDetectedCategoryId(matched.id);
-  };
-
-  const togglePriceRange = (pr: PriceRange) => {
-    lightTap();
-    setSelectedPriceRange(prev => prev === pr ? null : pr);
   };
 
   const toggleTag = (tag: string) => {
@@ -171,7 +164,6 @@ export default function VisitReviewScreen() {
         category: params.placeCategory || undefined,
         userLat: loc.coords.latitude,
         userLng: loc.coords.longitude,
-        priceRange: selectedPriceRange || undefined,
         placeCategoryId: detectedCategoryId || undefined,
         comment: comment.trim() || undefined,
         tags: selectedTags.length > 0 ? selectedTags : undefined,
@@ -229,38 +221,6 @@ export default function VisitReviewScreen() {
               ) : null}
             </View>
           </View>
-
-          {/* 가격대 (음식 카테고리일 때만 표시) */}
-          {detectedCategory?.hasPriceRange && (
-            <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: c.textPrimary }]}>가격대</Text>
-              <View style={styles.chipGrid}>
-                {PRICE_RANGES.map((pr) => {
-                  const isSelected = selectedPriceRange === pr;
-                  return (
-                    <TouchableOpacity
-                      key={pr}
-                      style={[
-                        styles.chip,
-                        { backgroundColor: c.chipBg, borderColor: c.border },
-                        isSelected && { backgroundColor: c.primaryBg, borderColor: c.primary },
-                      ]}
-                      onPress={() => togglePriceRange(pr)}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={[
-                        styles.chipText,
-                        { color: c.textSecondary },
-                        isSelected && { color: c.primary, fontWeight: '600' },
-                      ]}>
-                        {PRICE_RANGE_LABELS[pr]}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </View>
-          )}
 
           {/* 카테고리별 태그 */}
           {detectedCategory?.tagGroups.map((group) => (
