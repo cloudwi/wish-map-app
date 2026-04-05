@@ -21,75 +21,58 @@ export default function ListScreen() {
   const c = useTheme();
   const { selectedGroupId } = useGroupStore();
 
-  // 데이터 상태
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [placeCategoryList, setPlaceCategoryList] = useState<PlaceCategory[]>([]);
   const [totalElements, setTotalElements] = useState(0);
 
-  // 필터 상태
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [sortBy, setSortBy] = useState<SortBy>('latest');
 
-  // 로딩 상태
   const [initialLoading, setInitialLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const filterLoadingRef = useRef(false);
 
-  // 페이지네이션 상태
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
-
-  // Refs
   const fetchingRef = useRef(false);
-  const hasDataRef = useRef(false);
-  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const filtersRef = useRef({ selectedCategoryId, debouncedSearch, sortBy, selectedTag });
-  filtersRef.current = { selectedCategoryId, debouncedSearch, sortBy, selectedTag };
 
   const selectedCategoryData = useMemo(
     () => placeCategoryList.find(cat => cat.id === selectedCategoryId),
     [placeCategoryList, selectedCategoryId]
   );
 
-  // 카테고리 목록 로드
   useEffect(() => {
     placeCategoryApi.getPlaceCategories()
       .then(setPlaceCategoryList)
       .catch(() => setPlaceCategoryList(DEFAULT_PLACE_CATEGORIES));
   }, []);
 
-  // 검색어 디바운스
   useEffect(() => {
-    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
-    searchTimerRef.current = setTimeout(() => {
-      setDebouncedSearch(searchQuery.trim());
-    }, SEARCH_DEBOUNCE_MS);
-    return () => {
-      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
-    };
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery.trim()), SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const fetchRestaurants = useCallback(async (pageNum: number, isRefresh = false) => {
+  // 데이터 요청 - 파라미터 직접 전달 (ref 사용 안 함)
+  const fetchData = useCallback(async (params: {
+    catId: number | null;
+    search: string;
+    sort: SortBy;
+    tag: string | null;
+    groupId: number | null;
+    pageNum: number;
+    isRefresh?: boolean;
+  }) => {
+    const { catId, search, sort, tag, groupId, pageNum, isRefresh } = params;
+
     if (pageNum > 0 && fetchingRef.current) return;
     fetchingRef.current = true;
 
     try {
-      if (isRefresh) {
-        setRefreshing(true);
-      } else if (pageNum === 0 && !hasDataRef.current) {
-        setInitialLoading(true);
-      } else if (pageNum === 0) {
-        filterLoadingRef.current = true;
-      } else {
-        setLoadingMore(true);
-      }
-
-      const groupId = useGroupStore.getState().selectedGroupId;
-      const { selectedCategoryId: catId, debouncedSearch: search, sortBy: sort, selectedTag: tag } = filtersRef.current;
+      if (isRefresh) setRefreshing(true);
+      else if (pageNum > 0) setLoadingMore(true);
 
       let response;
       if (groupId) {
@@ -105,9 +88,7 @@ export default function ListScreen() {
         });
       }
 
-      const newData = pageNum === 0 ? response.content : [...restaurants, ...response.content];
-      setRestaurants(newData);
-      hasDataRef.current = newData.length > 0;
+      setRestaurants(prev => pageNum === 0 ? response.content : [...prev, ...response.content]);
       setHasMore(!response.last);
       setTotalElements(response.totalElements);
       setPage(pageNum);
@@ -115,71 +96,60 @@ export default function ListScreen() {
       if (pageNum > 0) setHasMore(false);
     } finally {
       fetchingRef.current = false;
-      filterLoadingRef.current = false;
       setInitialLoading(false);
       setLoadingMore(false);
       setRefreshing(false);
     }
   }, []);
 
-  // 필터 변경 시 데이터만 다시 요청
+  // 필터 변경 시 페이지 0부터 다시 요청
   useEffect(() => {
-    fetchRestaurants(0);
-  }, [selectedCategoryId, debouncedSearch, sortBy, selectedTag, selectedGroupId, fetchRestaurants]);
+    fetchData({
+      catId: selectedCategoryId,
+      search: debouncedSearch,
+      sort: sortBy,
+      tag: selectedTag,
+      groupId: selectedGroupId,
+      pageNum: 0,
+    });
+  }, [selectedCategoryId, debouncedSearch, sortBy, selectedTag, selectedGroupId, fetchData]);
 
   const onRefresh = useCallback(() => {
     fetchingRef.current = false;
-    fetchRestaurants(0, true);
-  }, [fetchRestaurants]);
+    fetchData({
+      catId: selectedCategoryId,
+      search: debouncedSearch,
+      sort: sortBy,
+      tag: selectedTag,
+      groupId: selectedGroupId,
+      pageNum: 0,
+      isRefresh: true,
+    });
+  }, [selectedCategoryId, debouncedSearch, sortBy, selectedTag, selectedGroupId, fetchData]);
 
   const loadMore = useCallback(() => {
     if (hasMore && !fetchingRef.current) {
-      fetchRestaurants(page + 1);
+      fetchData({
+        catId: selectedCategoryId,
+        search: debouncedSearch,
+        sort: sortBy,
+        tag: selectedTag,
+        groupId: selectedGroupId,
+        pageNum: page + 1,
+      });
     }
-  }, [hasMore, page, fetchRestaurants]);
+  }, [hasMore, page, selectedCategoryId, debouncedSearch, sortBy, selectedTag, selectedGroupId, fetchData]);
 
-  const renderFooter = useCallback(() => {
-    if (!hasMore || !loadingMore) return null;
-    return (
-      <View style={styles.footerSkeleton}>
-        {Array.from({ length: 2 }).map((_, i) => (
-          <RestaurantCardSkeleton key={`footer-skeleton-${i}`} />
-        ))}
-      </View>
-    );
-  }, [hasMore, loadingMore]);
-
-  const renderEmpty = useCallback(() => {
-    if (initialLoading || filterLoadingRef.current) return null;
-    return (
-      <View style={styles.empty}>
-        <Ionicons name="search-outline" size={48} color={c.textDisabled} />
-        <Text style={[styles.emptyTitle, { color: c.textSecondary }]}>장소를 찾을 수 없습니다</Text>
-        <Text style={[styles.emptyDesc, { color: c.textDisabled }]}>
-          {debouncedSearch ? '다른 검색어를 시도해보세요' : '다른 카테고리를 선택해보세요'}
-        </Text>
-      </View>
-    );
-  }, [initialLoading, debouncedSearch, c]);
-
-  // 초기 로딩
   if (initialLoading && restaurants.length === 0) {
     return (
       <View style={[styles.container, { backgroundColor: c.background }]}>
         <MapListTabHeader />
         <View style={[styles.searchWrap, { backgroundColor: c.searchBg }]}>
           <Ionicons name="search-outline" size={18} color={c.textTertiary} style={styles.searchIcon} />
-          <TextInput
-            style={[styles.searchInput, { color: c.textPrimary }]}
-            placeholder="장소 이름 검색"
-            placeholderTextColor={c.textDisabled}
-            editable={false}
-          />
+          <TextInput style={[styles.searchInput, { color: c.textPrimary }]} placeholder="장소 이름 검색" placeholderTextColor={c.textDisabled} editable={false} />
         </View>
         <View style={styles.skeletonWrap}>
-          {Array.from({ length: 6 }).map((_, i) => (
-            <RestaurantCardSkeleton key={i} />
-          ))}
+          {Array.from({ length: 6 }).map((_, i) => <RestaurantCardSkeleton key={i} />)}
         </View>
       </View>
     );
@@ -206,94 +176,83 @@ export default function ListScreen() {
             <Ionicons name="close-circle" size={18} color={c.textDisabled} />
           </TouchableOpacity>
         )}
-        {searchQuery.trim() !== debouncedSearch && searchQuery.length > 0 && (
-          <ActivityIndicator size="small" color={c.textDisabled} style={styles.searchSpinner} />
-        )}
       </View>
 
-      {/* 카테고리 필터 */}
-      <View style={styles.filterArea}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoryContent}
+      {/* 카테고리 */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryContent}>
+        <TouchableOpacity
+          style={[styles.categoryBtn, { backgroundColor: selectedCategoryId === null ? c.chipActiveBg : c.chipBg }]}
+          onPress={() => { lightTap(); setSelectedCategoryId(null); setSelectedTag(null); }}
         >
+          <Text style={[styles.categoryText, { color: selectedCategoryId === null ? c.chipActiveText : c.chipText }, selectedCategoryId === null && { fontWeight: '600' }]}>전체</Text>
+        </TouchableOpacity>
+        {placeCategoryList.map((cat) => (
           <TouchableOpacity
-            style={[styles.categoryBtn, { backgroundColor: selectedCategoryId === null ? c.chipActiveBg : c.chipBg }]}
-            onPress={() => { lightTap(); setSelectedCategoryId(null); setSelectedTag(null); }}
+            key={cat.id}
+            style={[styles.categoryBtn, { backgroundColor: selectedCategoryId === cat.id ? c.chipActiveBg : c.chipBg }]}
+            onPress={() => { lightTap(); setSelectedCategoryId(cat.id); setSelectedTag(null); }}
           >
-            <Text style={[styles.categoryText, { color: selectedCategoryId === null ? c.chipActiveText : c.chipText }, selectedCategoryId === null && { fontWeight: '600' }]}>
-              전체
+            <Text style={[styles.categoryText, { color: selectedCategoryId === cat.id ? c.chipActiveText : c.chipText }, selectedCategoryId === cat.id && { fontWeight: '600' }]}>
+              {cat.name}
             </Text>
           </TouchableOpacity>
-          {placeCategoryList.map((cat) => (
+        ))}
+      </ScrollView>
+
+      {/* 서브 필터 (태그) */}
+      {selectedCategoryData && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.subFilterContent}>
+          {selectedCategoryData.tagGroups.flatMap(g => g.tags).map((t) => (
             <TouchableOpacity
-              key={cat.id}
-              style={[styles.categoryBtn, { backgroundColor: selectedCategoryId === cat.id ? c.chipActiveBg : c.chipBg }]}
-              onPress={() => { lightTap(); setSelectedCategoryId(cat.id); setSelectedTag(null); }}
+              key={t}
+              style={[styles.subFilterBtn, { backgroundColor: selectedTag === t ? c.chipActiveBg : c.chipBg }]}
+              onPress={() => { lightTap(); setSelectedTag(prev => prev === t ? null : t); }}
             >
-              <Text style={[styles.categoryText, { color: selectedCategoryId === cat.id ? c.chipActiveText : c.chipText }, selectedCategoryId === cat.id && { fontWeight: '600' }]}>
-                {cat.name}
-              </Text>
+              <Text style={[styles.subFilterText, { color: selectedTag === t ? c.chipActiveText : c.chipText }, selectedTag === t && { fontWeight: '600' }]}>{t}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
+      )}
 
-        {/* 서브 필터 (가격대 + 태그) */}
-        {selectedCategoryData && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.subFilterContent}
-          >
-            {selectedCategoryData.tagGroups.flatMap(g => g.tags).map((t) => (
-              <TouchableOpacity
-                key={t}
-                style={[styles.subFilterBtn, { backgroundColor: selectedTag === t ? c.chipActiveBg : c.chipBg }]}
-                onPress={() => { lightTap(); setSelectedTag(prev => prev === t ? null : t); }}
-              >
-                <Text style={[styles.subFilterText, { color: selectedTag === t ? c.chipActiveText : c.chipText }, selectedTag === t && { fontWeight: '600' }]}>
-                  {t}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        )}
-
-        {/* 정렬 + 총 개수 */}
-        <View style={styles.sortRow}>
-          <Text style={[styles.resultCount, { color: c.textSecondary }]}>
-            {totalElements > 0 ? `${totalElements}개` : '0개'}
-          </Text>
-          <View style={styles.sortBtns}>
-            {(['latest', 'visits'] as const).map((s) => (
-              <TouchableOpacity
-                key={s}
-                style={[styles.sortBtn, sortBy === s && { backgroundColor: c.chipBg }]}
-                onPress={() => { lightTap(); setSortBy(s); }}
-              >
-                <Text style={[styles.sortText, { color: sortBy === s ? c.textPrimary : c.textDisabled }, sortBy === s && { fontWeight: '600' }]}>
-                  {s === 'latest' ? '최신순' : '방문 많은 순'}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+      {/* 정렬 */}
+      <View style={styles.sortRow}>
+        <Text style={[styles.resultCount, { color: c.textSecondary }]}>{totalElements}개</Text>
+        <View style={styles.sortBtns}>
+          {(['latest', 'visits'] as const).map((s) => (
+            <TouchableOpacity key={s} style={[styles.sortBtn, sortBy === s && { backgroundColor: c.chipBg }]} onPress={() => { lightTap(); setSortBy(s); }}>
+              <Text style={[styles.sortText, { color: sortBy === s ? c.textPrimary : c.textDisabled }, sortBy === s && { fontWeight: '600' }]}>
+                {s === 'latest' ? '최신순' : '방문 많은 순'}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
       </View>
 
-      {/* 장소 목록 */}
+      {/* 리스트 */}
       <FlatList
         data={restaurants}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item, index }) => <RestaurantCard item={item} index={index} />}
         contentContainerStyle={styles.listContent}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[c.primary]} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[c.primary]} />}
         onEndReached={loadMore}
         onEndReachedThreshold={0.3}
-        ListEmptyComponent={renderEmpty}
-        ListFooterComponent={renderFooter}
+        ListEmptyComponent={
+          !initialLoading ? (
+            <View style={styles.empty}>
+              <Ionicons name="search-outline" size={48} color={c.textDisabled} />
+              <Text style={[styles.emptyTitle, { color: c.textSecondary }]}>장소를 찾을 수 없습니다</Text>
+              <Text style={[styles.emptyDesc, { color: c.textDisabled }]}>다른 카테고리를 선택해보세요</Text>
+            </View>
+          ) : null
+        }
+        ListFooterComponent={
+          hasMore && loadingMore ? (
+            <View style={styles.footerSkeleton}>
+              {Array.from({ length: 2 }).map((_, i) => <RestaurantCardSkeleton key={`f-${i}`} />)}
+            </View>
+          ) : null
+        }
         removeClippedSubviews
         maxToRenderPerBatch={10}
         windowSize={5}
@@ -305,44 +264,17 @@ export default function ListScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   skeletonWrap: { paddingTop: 16 },
-  searchWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: 16,
-    marginTop: 12,
-    marginBottom: 4,
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    height: 44,
-  },
+  searchWrap: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 16, marginTop: 12, marginBottom: 4, borderRadius: 8, paddingHorizontal: 14, height: 44 },
   searchIcon: { marginRight: 10 },
   searchInput: { flex: 1, fontSize: 15, paddingVertical: 0 },
   clearBtn: { padding: 8 },
-  searchSpinner: { marginLeft: 4 },
-  filterArea: {},
   categoryContent: { paddingHorizontal: 14, paddingVertical: 10, gap: 6, alignItems: 'center' },
-  categoryBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 9,
-    borderRadius: 8,
-    marginRight: 6,
-  },
+  categoryBtn: { paddingHorizontal: 16, paddingVertical: 9, borderRadius: 8, marginRight: 6 },
   categoryText: { fontSize: 14 },
   subFilterContent: { paddingHorizontal: 14, paddingBottom: 6, gap: 6, alignItems: 'center' },
-  subFilterBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 8,
-    marginRight: 6,
-  },
+  subFilterBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 8, marginRight: 6 },
   subFilterText: { fontSize: 13 },
-  sortRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-  },
+  sortRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 6 },
   resultCount: { fontSize: 13 },
   sortBtns: { flexDirection: 'row', gap: 4 },
   sortBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6 },
