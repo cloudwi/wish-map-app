@@ -1,5 +1,5 @@
 import { StyleSheet, View, Text, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, TextInput, ScrollView } from 'react-native';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { MapListTabHeader } from '../../components/TabHeader';
 import { Ionicons } from '@expo/vector-icons';
 import { Restaurant, PriceRange, PRICE_RANGE_LABELS, PRICE_RANGES, PlaceCategory, DEFAULT_PLACE_CATEGORIES } from '../../types';
@@ -34,8 +34,9 @@ export default function ListScreen() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [sortBy, setSortBy] = useState<SortBy>('latest');
 
-  // 로딩 상태 분리
+  // 로딩 상태
   const [initialLoading, setInitialLoading] = useState(true);
+  const [filterLoading, setFilterLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -43,12 +44,17 @@ export default function ListScreen() {
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
 
-  // Refs: 동시 요청 방지 + 최신값 참조
+  // Refs
   const fetchingRef = useRef(false);
   const hasDataRef = useRef(false);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const filtersRef = useRef({ selectedCategoryId, debouncedSearch, sortBy, selectedPriceRange, selectedTag });
   filtersRef.current = { selectedCategoryId, debouncedSearch, sortBy, selectedPriceRange, selectedTag };
+
+  const selectedCategoryData = useMemo(
+    () => placeCategoryList.find(cat => cat.id === selectedCategoryId),
+    [placeCategoryList, selectedCategoryId]
+  );
 
   // 카테고리 목록 로드
   useEffect(() => {
@@ -68,9 +74,7 @@ export default function ListScreen() {
     };
   }, [searchQuery]);
 
-  // 안정적인 fetch 함수 (ref로 최신 필터값 참조 → useCallback deps 불필요)
   const fetchRestaurants = useCallback(async (pageNum: number, isRefresh = false) => {
-    // 페이지네이션 중복만 방지 (필터 변경은 허용)
     if (pageNum > 0 && fetchingRef.current) return;
     fetchingRef.current = true;
 
@@ -81,7 +85,7 @@ export default function ListScreen() {
         setInitialLoading(true);
       } else if (pageNum === 0) {
         setFilterLoading(true);
-      } else if (pageNum > 0) {
+      } else {
         setLoadingMore(true);
       }
 
@@ -110,7 +114,6 @@ export default function ListScreen() {
       setTotalElements(response.totalElements);
       setPage(pageNum);
     } catch {
-      // 에러 시 추가 로드 중단
       if (pageNum > 0) setHasMore(false);
     } finally {
       fetchingRef.current = false;
@@ -119,62 +122,35 @@ export default function ListScreen() {
       setLoadingMore(false);
       setRefreshing(false);
     }
-  }, []); // deps 비움: filtersRef로 최신값 참조
+  }, []);
 
-  // 필터/검색/정렬/그룹 변경 시 첫 페이지부터 다시 로드
+  // 필터 변경 시 데이터만 다시 요청
   useEffect(() => {
     fetchRestaurants(0);
   }, [selectedCategoryId, debouncedSearch, sortBy, selectedPriceRange, selectedTag, selectedGroupId, fetchRestaurants]);
 
-  // Pull-to-refresh
   const onRefresh = useCallback(() => {
-    fetchingRef.current = false; // refresh는 강제 허용
+    fetchingRef.current = false;
     fetchRestaurants(0, true);
   }, [fetchRestaurants]);
 
-  // 무한 스크롤: 추가 로드
   const loadMore = useCallback(() => {
     if (hasMore && !fetchingRef.current) {
       fetchRestaurants(page + 1);
     }
   }, [hasMore, page, fetchRestaurants]);
 
-  // 선택된 카테고리 데이터
-  const selectedCategoryData = placeCategoryList.find(c => c.id === selectedCategoryId);
-
-  // 카테고리 선택 핸들러
-  const handleCategoryChange = useCallback((id: number | null) => {
-    lightTap();
-    setSelectedCategoryId(id);
-    setSelectedPriceRange(null);
-    setSelectedTag(null);
-    setSearchQuery('');
-    setDebouncedSearch('');
-  }, []);
-
-  // 정렬 변경 핸들러
-  const handleSortChange = useCallback((sort: SortBy) => {
-    lightTap();
-    setSortBy(sort);
-  }, []);
-
-  // 하단 로딩 컴포넌트 (스켈레톤)
   const renderFooter = useCallback(() => {
-    if (!hasMore) return null;
-    if (loadingMore) {
-      return (
-        <View style={styles.footerSkeleton}>
-          {Array.from({ length: 2 }).map((_, i) => (
-            <RestaurantCardSkeleton key={`footer-skeleton-${i}`} />
-          ))}
-        </View>
-      );
-    }
-    return null;
+    if (!hasMore || !loadingMore) return null;
+    return (
+      <View style={styles.footerSkeleton}>
+        {Array.from({ length: 2 }).map((_, i) => (
+          <RestaurantCardSkeleton key={`footer-skeleton-${i}`} />
+        ))}
+      </View>
+    );
   }, [hasMore, loadingMore]);
 
-  // 빈 상태 컴포넌트
-  const [filterLoading, setFilterLoading] = useState(false);
   const renderEmpty = useCallback(() => {
     if (initialLoading || filterLoading) return null;
     return (
@@ -188,7 +164,7 @@ export default function ListScreen() {
     );
   }, [initialLoading, filterLoading, debouncedSearch, c]);
 
-  // 초기 로딩 (스켈레톤 풀 스크린)
+  // 초기 로딩
   if (initialLoading && restaurants.length === 0) {
     return (
       <View style={[styles.container, { backgroundColor: c.background }]}>
@@ -238,135 +214,87 @@ export default function ListScreen() {
       </View>
 
       {/* 카테고리 필터 */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.categoryList}
-        contentContainerStyle={styles.categoryContent}
-      >
-        <TouchableOpacity
-          style={[
-            styles.categoryBtn,
-            { backgroundColor: c.chipBg },
-            selectedCategoryId === null && { backgroundColor: c.chipActiveBg },
-          ]}
-          onPress={() => handleCategoryChange(null)}
-        >
-          <Text
-            style={[
-              styles.categoryText,
-              { color: c.chipText },
-              selectedCategoryId === null && { color: c.chipActiveText, fontWeight: '600' },
-            ]}
-          >
-            전체
-          </Text>
-        </TouchableOpacity>
-        {placeCategoryList.map((cat) => (
-          <TouchableOpacity
-            key={cat.id}
-            style={[
-              styles.categoryBtn,
-              { backgroundColor: c.chipBg },
-              selectedCategoryId === cat.id && { backgroundColor: c.chipActiveBg },
-            ]}
-            onPress={() => handleCategoryChange(cat.id)}
-          >
-            <Text
-              style={[
-                styles.categoryText,
-                { color: c.chipText },
-                selectedCategoryId === cat.id && { color: c.chipActiveText, fontWeight: '600' },
-              ]}
-            >
-              {cat.name}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      {/* 카테고리별 서브 필터 (가격대 + 태그) */}
-      {selectedCategoryData && (
+      <View style={styles.filterArea}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          style={styles.subFilterList}
-          contentContainerStyle={styles.subFilterContent}
+          contentContainerStyle={styles.categoryContent}
         >
-          {selectedCategoryData.hasPriceRange && PRICE_RANGES.map((pr) => (
+          <TouchableOpacity
+            style={[styles.categoryBtn, { backgroundColor: selectedCategoryId === null ? c.chipActiveBg : c.chipBg }]}
+            onPress={() => { lightTap(); setSelectedCategoryId(null); setSelectedPriceRange(null); setSelectedTag(null); }}
+          >
+            <Text style={[styles.categoryText, { color: selectedCategoryId === null ? c.chipActiveText : c.chipText }, selectedCategoryId === null && { fontWeight: '600' }]}>
+              전체
+            </Text>
+          </TouchableOpacity>
+          {placeCategoryList.map((cat) => (
             <TouchableOpacity
-              key={pr}
-              style={[
-                styles.subFilterBtn,
-                { backgroundColor: c.chipBg },
-                selectedPriceRange === pr && { backgroundColor: c.primaryBg },
-              ]}
-              onPress={() => {
-                lightTap();
-                setSelectedPriceRange(prev => prev === pr ? null : pr);
-              }}
+              key={cat.id}
+              style={[styles.categoryBtn, { backgroundColor: selectedCategoryId === cat.id ? c.chipActiveBg : c.chipBg }]}
+              onPress={() => { lightTap(); setSelectedCategoryId(cat.id); setSelectedPriceRange(null); setSelectedTag(null); }}
             >
-              <Text
-                style={[
-                  styles.subFilterText,
-                  { color: c.chipText },
-                  selectedPriceRange === pr && { color: c.primary, fontWeight: '600' },
-                ]}
-              >
-                {PRICE_RANGE_LABELS[pr]}
+              <Text style={[styles.categoryText, { color: selectedCategoryId === cat.id ? c.chipActiveText : c.chipText }, selectedCategoryId === cat.id && { fontWeight: '600' }]}>
+                {cat.name}
               </Text>
-            </TouchableOpacity>
-          ))}
-          {selectedCategoryData.tagGroups.flatMap(g => g.tags).map((t) => (
-            <TouchableOpacity
-              key={t}
-              style={[
-                styles.subFilterBtn,
-                { backgroundColor: c.chipBg },
-                selectedTag === t && { backgroundColor: c.chipActiveBg },
-              ]}
-              onPress={() => {
-                lightTap();
-                setSelectedTag(prev => prev === t ? null : t);
-              }}
-            >
-              <Text style={[
-                styles.subFilterText,
-                { color: c.chipText },
-                selectedTag === t && { color: c.chipActiveText, fontWeight: '600' },
-              ]}>{t}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
-      )}
 
-      {/* 정렬 + 총 개수 */}
-      <View style={styles.sortRow}>
-        <Text style={[styles.resultCount, { color: c.textSecondary }]}>
-          {totalElements > 0 ? `전체 ${totalElements}개` : '0개'}
-        </Text>
-        <View style={styles.sortBtns}>
-          {(['latest', 'visits'] as const).map((s) => (
-            <TouchableOpacity
-              key={s}
-              style={[styles.sortBtn, sortBy === s && { backgroundColor: c.chipBg }]}
-              onPress={() => handleSortChange(s)}
-            >
-              <Text
-                style={[
-                  styles.sortText,
-                  { color: c.textDisabled },
-                  sortBy === s && { color: c.textPrimary, fontWeight: '600' },
-                ]}
+        {/* 서브 필터 (가격대 + 태그) */}
+        {selectedCategoryData && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.subFilterContent}
+          >
+            {selectedCategoryData.hasPriceRange && PRICE_RANGES.map((pr) => (
+              <TouchableOpacity
+                key={pr}
+                style={[styles.subFilterBtn, { backgroundColor: selectedPriceRange === pr ? c.primaryBg : c.chipBg }]}
+                onPress={() => { lightTap(); setSelectedPriceRange(prev => prev === pr ? null : pr); }}
               >
-                {s === 'latest' ? '최신순' : '방문 많은 순'}
-              </Text>
-            </TouchableOpacity>
-          ))}
+                <Text style={[styles.subFilterText, { color: selectedPriceRange === pr ? c.primary : c.chipText }, selectedPriceRange === pr && { fontWeight: '600' }]}>
+                  {PRICE_RANGE_LABELS[pr]}
+                </Text>
+              </TouchableOpacity>
+            ))}
+            {selectedCategoryData.tagGroups.flatMap(g => g.tags).map((t) => (
+              <TouchableOpacity
+                key={t}
+                style={[styles.subFilterBtn, { backgroundColor: selectedTag === t ? c.chipActiveBg : c.chipBg }]}
+                onPress={() => { lightTap(); setSelectedTag(prev => prev === t ? null : t); }}
+              >
+                <Text style={[styles.subFilterText, { color: selectedTag === t ? c.chipActiveText : c.chipText }, selectedTag === t && { fontWeight: '600' }]}>
+                  {t}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
+
+        {/* 정렬 + 총 개수 */}
+        <View style={styles.sortRow}>
+          <Text style={[styles.resultCount, { color: c.textSecondary }]}>
+            {totalElements > 0 ? `${totalElements}개` : '0개'}
+          </Text>
+          <View style={styles.sortBtns}>
+            {(['latest', 'visits'] as const).map((s) => (
+              <TouchableOpacity
+                key={s}
+                style={[styles.sortBtn, sortBy === s && { backgroundColor: c.chipBg }]}
+                onPress={() => { lightTap(); setSortBy(s); }}
+              >
+                <Text style={[styles.sortText, { color: sortBy === s ? c.textPrimary : c.textDisabled }, sortBy === s && { fontWeight: '600' }]}>
+                  {s === 'latest' ? '최신순' : '방문 많은 순'}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
       </View>
 
-      {/* 맛집 목록 (무한 스크롤) */}
+      {/* 장소 목록 */}
       <FlatList
         data={restaurants}
         keyExtractor={(item) => item.id.toString()}
@@ -404,7 +332,7 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, fontSize: 15, paddingVertical: 0 },
   clearBtn: { padding: 8 },
   searchSpinner: { marginLeft: 4 },
-  categoryList: { backgroundColor: 'transparent', flexGrow: 0, flexShrink: 0 },
+  filterArea: {},
   categoryContent: { paddingHorizontal: 14, paddingVertical: 10, gap: 6, alignItems: 'center' },
   categoryBtn: {
     paddingHorizontal: 16,
@@ -413,7 +341,6 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   categoryText: { fontSize: 14 },
-  subFilterList: { backgroundColor: 'transparent', flexGrow: 0, flexShrink: 0 },
   subFilterContent: { paddingHorizontal: 14, paddingBottom: 6, gap: 6, alignItems: 'center' },
   subFilterBtn: {
     paddingHorizontal: 14,
