@@ -36,9 +36,9 @@ export default function ListScreen() {
 
   // 로딩 상태
   const [initialLoading, setInitialLoading] = useState(true);
-  const [filterLoading, setFilterLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const filterLoadingRef = useRef(false);
 
   // 페이지네이션 상태
   const [page, setPage] = useState(0);
@@ -84,7 +84,7 @@ export default function ListScreen() {
       } else if (pageNum === 0 && !hasDataRef.current) {
         setInitialLoading(true);
       } else if (pageNum === 0) {
-        setFilterLoading(true);
+        filterLoadingRef.current = true;
       } else {
         setLoadingMore(true);
       }
@@ -117,8 +117,8 @@ export default function ListScreen() {
       if (pageNum > 0) setHasMore(false);
     } finally {
       fetchingRef.current = false;
+      filterLoadingRef.current = false;
       setInitialLoading(false);
-      setFilterLoading(false);
       setLoadingMore(false);
       setRefreshing(false);
     }
@@ -152,7 +152,7 @@ export default function ListScreen() {
   }, [hasMore, loadingMore]);
 
   const renderEmpty = useCallback(() => {
-    if (initialLoading || filterLoading) return null;
+    if (initialLoading || filterLoadingRef.current) return null;
     return (
       <View style={styles.empty}>
         <Ionicons name="search-outline" size={48} color={c.textDisabled} />
@@ -162,7 +162,7 @@ export default function ListScreen() {
         </Text>
       </View>
     );
-  }, [initialLoading, filterLoading, debouncedSearch, c]);
+  }, [initialLoading, debouncedSearch, c]);
 
   // 초기 로딩
   if (initialLoading && restaurants.length === 0) {

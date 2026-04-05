@@ -88,7 +88,7 @@ export const DEFAULT_PLACE_CATEGORIES: PlaceCategory[] = [
     ],
   },
   {
-    id: 2, name: '카페,디저트', icon: null, hasPriceRange: true,
+    id: 2, name: '카페,디저트', icon: null, hasPriceRange: false,
     tagGroups: [
       { key: '분위기', tags: ['조용한', '넓은', '루프탑', '감성적인', '작업하기 좋은'] },
       { key: '메뉴', tags: ['커피 맛집', '디저트 맛집', '브런치', '음료 다양'] },
