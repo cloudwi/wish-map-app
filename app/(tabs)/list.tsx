@@ -84,8 +84,9 @@ export default function ListScreen() {
       if (isRefresh) {
         setRefreshing(true);
       } else if (pageNum === 0 && !hasDataRef.current) {
-        // 최초 로딩만 스켈레톤 표시, 필터 변경 시에는 기존 데이터 유지
         setInitialLoading(true);
+      } else if (pageNum === 0) {
+        setFilterLoading(true);
       } else if (pageNum > 0) {
         setLoadingMore(true);
       }
@@ -119,6 +120,7 @@ export default function ListScreen() {
     } finally {
       fetchingRef.current = false;
       setInitialLoading(false);
+      setFilterLoading(false);
       setLoadingMore(false);
       setRefreshing(false);
     }
@@ -173,9 +175,10 @@ export default function ListScreen() {
     return null;
   }, [hasMore, loadingMore]);
 
-  // 빈 상태 컴포넌트 (로딩 중이면 표시하지 않음)
+  // 빈 상태 컴포넌트
+  const [filterLoading, setFilterLoading] = useState(false);
   const renderEmpty = useCallback(() => {
-    if (initialLoading) return null;
+    if (initialLoading || filterLoading) return null;
     return (
       <View style={styles.empty}>
         <Ionicons name="search-outline" size={48} color={c.textDisabled} />
@@ -185,7 +188,7 @@ export default function ListScreen() {
         </Text>
       </View>
     );
-  }, [initialLoading, debouncedSearch, c]);
+  }, [initialLoading, filterLoading, debouncedSearch, c]);
 
   // 초기 로딩 (스켈레톤 풀 스크린)
   if (initialLoading && restaurants.length === 0) {
