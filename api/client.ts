@@ -15,7 +15,9 @@ export const apiClient = axios.create({
 
 // 강제 업데이트 필요 여부
 let forceUpdateRequired = false;
+let forceUpdateStoreUrl = '';
 export const isForceUpdateRequired = () => forceUpdateRequired;
+export const getForceUpdateStoreUrl = () => forceUpdateStoreUrl;
 
 // Request interceptor - add auth token + app version
 apiClient.interceptors.request.use(
@@ -51,6 +53,7 @@ apiClient.interceptors.response.use(
     // 426: 강제 업데이트 필요
     if (error.response?.status === 426) {
       forceUpdateRequired = true;
+      forceUpdateStoreUrl = (error.response?.data as any)?.storeUrl || '';
       return Promise.reject(error);
     }
 

@@ -1,8 +1,9 @@
 import { StyleSheet, View, Text, TouchableOpacity, Modal, Linking, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
+import { getForceUpdateStoreUrl } from '../api/client';
 
-const STORE_URL = Platform.select({
+const FALLBACK_STORE_URL = Platform.select({
   ios: 'https://apps.apple.com/app/id6760577746',
   android: 'https://play.google.com/store/apps/details?id=com.wishmap.app',
 }) || '';
@@ -24,7 +25,7 @@ export function ForceUpdateModal({ visible }: ForceUpdateModalProps) {
         </Text>
         <TouchableOpacity
           style={[styles.btn, { backgroundColor: c.primary }]}
-          onPress={() => Linking.openURL(STORE_URL)}
+          onPress={() => Linking.openURL(getForceUpdateStoreUrl() || FALLBACK_STORE_URL)}
           activeOpacity={0.8}
         >
           <Text style={styles.btnText}>업데이트</Text>
