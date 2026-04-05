@@ -179,7 +179,7 @@ export default function ListScreen() {
       </View>
 
       {/* 카테고리 */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryContent}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow} contentContainerStyle={styles.categoryContent}>
         <TouchableOpacity
           style={[styles.categoryBtn, { backgroundColor: selectedCategoryId === null ? c.chipActiveBg : c.chipBg }]}
           onPress={() => { lightTap(); setSelectedCategoryId(null); setSelectedTag(null); }}
@@ -201,7 +201,7 @@ export default function ListScreen() {
 
       {/* 서브 필터 (태그) */}
       {selectedCategoryData && (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.subFilterContent}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow} contentContainerStyle={styles.subFilterContent}>
           {selectedCategoryData.tagGroups.flatMap(g => g.tags).map((t) => (
             <TouchableOpacity
               key={t}
@@ -268,6 +268,7 @@ const styles = StyleSheet.create({
   searchIcon: { marginRight: 10 },
   searchInput: { flex: 1, fontSize: 15, paddingVertical: 0 },
   clearBtn: { padding: 8 },
+  filterRow: { flexGrow: 0, flexShrink: 0 },
   categoryContent: { paddingHorizontal: 14, paddingTop: 10, paddingBottom: 6, gap: 6, alignItems: 'center' },
   categoryBtn: { paddingHorizontal: 16, paddingVertical: 9, borderRadius: 8, marginRight: 6 },
   categoryText: { fontSize: 14 },
