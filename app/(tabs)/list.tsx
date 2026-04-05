@@ -2,7 +2,7 @@ import { StyleSheet, View, Text, FlatList, TouchableOpacity, ActivityIndicator, 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { MapListTabHeader } from '../../components/TabHeader';
 import { Ionicons } from '@expo/vector-icons';
-import { Restaurant, PlaceCategory, DEFAULT_PLACE_CATEGORIES } from '../../types';
+import { Restaurant, PlaceCategory } from '../../types';
 import { restaurantApi } from '../../api/restaurant';
 import { placeCategoryApi } from '../../api/placeCategory';
 import { RestaurantCard } from '../../components/RestaurantCard';
@@ -47,7 +47,7 @@ export default function ListScreen() {
   useEffect(() => {
     placeCategoryApi.getPlaceCategories()
       .then(setPlaceCategoryList)
-      .catch(() => setPlaceCategoryList(DEFAULT_PLACE_CATEGORIES));
+      .catch(() => {});
   }, []);
 
   useEffect(() => {

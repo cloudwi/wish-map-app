@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import BottomSheet, { BottomSheetFlatList, BottomSheetView } from '@gorhom/bottom-sheet';
 import type * as LocationType from 'expo-location';
 import { type NaverMapViewRef } from '@mj-studio/react-native-naver-map';
-import { Restaurant, MapBounds, PlaceCategory, DEFAULT_PLACE_CATEGORIES } from '../../types';
+import { Restaurant, MapBounds, PlaceCategory } from '../../types';
 import { restaurantApi } from '../../api/restaurant';
 import { placeCategoryApi } from '../../api/placeCategory';
 import { PlaceResult } from '../../api/search';
@@ -59,7 +59,7 @@ export default function MapScreen() {
   useEffect(() => {
     placeCategoryApi.getPlaceCategories()
       .then(setPlaceCategories)
-      .catch(() => setPlaceCategories(DEFAULT_PLACE_CATEGORIES));
+      .catch(() => {});
   }, []);
 
   // 그룹 선택/해제 시 자동으로 맛집 다시 로드 + 카메라 이동

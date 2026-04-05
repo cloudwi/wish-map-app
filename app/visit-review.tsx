@@ -14,9 +14,7 @@ import { uploadImages } from '../utils/imageUpload';
 import { lightTap, successTap, mediumTap } from '../utils/haptics';
 import { showError, showSuccess } from '../utils/toast';
 import { getErrorMessage } from '../utils/getErrorMessage';
-import {
-  PlaceCategory, DEFAULT_PLACE_CATEGORIES, matchNaverCategory,
-} from '../types';
+import { PlaceCategory, matchNaverCategory } from '../types';
 
 const VISIT_DISTANCE_LIMIT = 100;
 
@@ -61,8 +59,7 @@ export default function VisitReviewScreen() {
         autoDetect(cats);
       })
       .catch(() => {
-        setPlaceCategories(DEFAULT_PLACE_CATEGORIES);
-        autoDetect(DEFAULT_PLACE_CATEGORIES);
+        // 서버 연결 실패 시 빈 상태
       });
   }, []);
 
