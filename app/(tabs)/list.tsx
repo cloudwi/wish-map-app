@@ -152,6 +152,8 @@ export default function ListScreen() {
     lightTap();
     setSelectedCategory(category);
     setSelectedPriceRange(null);
+    setSearchQuery('');
+    setDebouncedSearch('');
   }, []);
 
   // 정렬 변경 핸들러

@@ -134,36 +134,13 @@ export const DEFAULT_PLACE_CATEGORIES: PlaceCategory[] = [
   },
 ];
 
-// 네이버 카테고리 문자열 → PlaceCategory 자동 매칭
-const NAVER_CATEGORY_KEYWORDS: [string[], string][] = [
-  [['음식점', '한식', '중식', '일식', '양식', '치킨', '분식', '패스트푸드', '뷔페'], '음식점'],
-  [['카페', '디저트', '베이커리', '제과'], '카페,디저트'],
-  [['쇼핑', '유통', '마트', '백화점', '시장'], '쇼핑,유통'],
-  [['생활', '편의', '세탁', '철물', '수선', '열쇠', '인쇄'], '생활,편의'],
-  [['여행', '숙박', '호텔', '모텔', '펜션', '게스트하우스', '글램핑', '캠핑'], '여행,숙박'],
-  [['문화', '예술', '공연', '전시', '영화', '박물관', '미술관'], '문화,예술'],
-  [['교육', '학문', '학원', '도서관', '학교'], '교육,학문'],
-  [['의료', '건강', '병원', '약국', '한의원', '치과', '피부과'], '의료,건강'],
-];
-
+// 네이버 카테고리 문자열 → PlaceCategory 매칭 (대분류 기반)
 export function matchNaverCategory(naverCategory: string, categories: PlaceCategory[]): PlaceCategory | null {
   if (!naverCategory) return null;
-  const lower = naverCategory.toLowerCase();
 
-  // 1) 대분류 정확 매칭 (예: "카페,디저트>카페" → "카페,디저트")
+  // "카페,디저트>카페" → "카페,디저트"로 대분류 추출
   const majorPart = naverCategory.split('>')[0].trim();
-  const exact = categories.find(c => c.name === majorPart);
-  if (exact) return exact;
-
-  // 2) 키워드 매칭
-  for (const [keywords, categoryName] of NAVER_CATEGORY_KEYWORDS) {
-    if (keywords.some(kw => lower.includes(kw))) {
-      const matched = categories.find(c => c.name === categoryName);
-      if (matched) return matched;
-    }
-  }
-
-  return null;
+  return categories.find(c => c.name === majorPart) || null;
 }
 
 // Restaurant
