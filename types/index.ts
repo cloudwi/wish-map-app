@@ -81,6 +81,7 @@ export const DEFAULT_PLACE_CATEGORIES: PlaceCategory[] = [
   {
     id: 1, name: '음식점', icon: null, hasPriceRange: true,
     tagGroups: [
+      { key: '가격대', tags: ['1만원 이하', '1만원대', '2만원대', '3만원대', '3만원 이상'] },
       { key: '분위기', tags: ['혼밥 성지', '회식 추천', '데이트', '조용한', '활기찬'] },
       { key: '맛 특징', tags: ['매운맛', '달콤한', '담백한', '짜릿한', '고소한'] },
       { key: '편의', tags: ['주차 편해', '대기 없음', '늦게까지', '반려동물 OK'] },
