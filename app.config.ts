@@ -14,6 +14,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     supportsTablet: false,
     bundleIdentifier: 'com.wishmap.app',
     infoPlist: {
+      CFBundleDevelopmentRegion: 'ko',
       ITSAppUsesNonExemptEncryption: false,
       NSLocationWhenInUseUsageDescription:
         '위시맵은 주변 장소를 지도에 표시하고, 방문 인증 시 가게와의 거리(100m 이내)를 확인하기 위해 위치 정보를 사용합니다.',
