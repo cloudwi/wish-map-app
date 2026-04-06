@@ -33,7 +33,7 @@ export interface RestaurantListParams {
   category?: string;
   placeCategoryId?: number;
   search?: string;
-  tag?: string;
+  tags?: string[];
   sort?: 'latest' | 'visits';
   priceRange?: PriceRange;
   page?: number;
@@ -65,7 +65,7 @@ export const restaurantApi = {
         category: params.category || undefined,
         placeCategoryId: params.placeCategoryId || undefined,
         search: params.search || undefined,
-        tag: params.tag || undefined,
+        tags: params.tags?.length ? params.tags : undefined,
         sortBy: params.sort || 'latest',
         priceRange: params.priceRange || undefined,
         page: params.page ?? 0,

@@ -11,6 +11,9 @@ export const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  paramsSerializer: {
+    indexes: null, // tags=a&tags=b (Spring 호환)
+  },
 });
 
 // 강제 업데이트 필요 여부

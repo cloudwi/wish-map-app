@@ -1,8 +1,9 @@
-import { StyleSheet, View, Text, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, TextInput, ScrollView, Keyboard, TouchableWithoutFeedback } from 'react-native';
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { StyleSheet, View, Text, FlatList, TouchableOpacity, RefreshControl, TextInput, ScrollView, Keyboard, TouchableWithoutFeedback } from 'react-native';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
+import { setItem, getItem } from '../../utils/secureStorage';
 import { MapListTabHeader } from '../../components/TabHeader';
 import { Ionicons } from '@expo/vector-icons';
-import { Restaurant, PlaceCategory } from '../../types';
 import { restaurantApi } from '../../api/restaurant';
 import { placeCategoryApi } from '../../api/placeCategory';
 import { RestaurantCard } from '../../components/RestaurantCard';
@@ -10,6 +11,9 @@ import RestaurantCardSkeleton from '../../components/RestaurantCardSkeleton';
 import { useTheme } from '../../hooks/useTheme';
 import { useGroupStore } from '../../stores/groupStore';
 import { lightTap } from '../../utils/haptics';
+
+const STORAGE_KEY_CATEGORY = 'list_selected_category';
+const STORAGE_KEY_TAGS = 'list_selected_tags';
 
 const KOREA_BOUNDS = { minLat: 33, maxLat: 38.5, minLng: 124, maxLng: 132 };
 const PAGE_SIZE = 20;
@@ -19,128 +23,115 @@ type SortBy = 'latest' | 'visits';
 
 export default function ListScreen() {
   const c = useTheme();
+  const queryClient = useQueryClient();
   const { selectedGroupId } = useGroupStore();
 
-  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
-  const [placeCategoryList, setPlaceCategoryList] = useState<PlaceCategory[]>([]);
-  const [totalElements, setTotalElements] = useState(0);
-
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
-  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [sortBy, setSortBy] = useState<SortBy>('latest');
+  const [restoredFilter, setRestoredFilter] = useState(false);
 
-  const [initialLoading, setInitialLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-
-  const [page, setPage] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
-  const fetchingRef = useRef(false);
+  // 카테고리 목록
+  const { data: placeCategoryList = [] } = useQuery({
+    queryKey: ['placeCategories'],
+    queryFn: placeCategoryApi.getPlaceCategories,
+    staleTime: 1000 * 60 * 30, // 30분
+  });
 
   const selectedCategoryData = useMemo(
     () => placeCategoryList.find(cat => cat.id === selectedCategoryId),
     [placeCategoryList, selectedCategoryId]
   );
 
+  // 저장된 필터 복원
   useEffect(() => {
-    placeCategoryApi.getPlaceCategories()
-      .then(setPlaceCategoryList)
-      .catch(() => {});
-  }, []);
+    if (placeCategoryList.length === 0) return;
+    (async () => {
+      try {
+        const [savedCatId, savedTags] = await Promise.all([
+          getItem(STORAGE_KEY_CATEGORY),
+          getItem(STORAGE_KEY_TAGS),
+        ]);
+        if (savedCatId) {
+          const catId = Number(savedCatId);
+          if (placeCategoryList.some(cat => cat.id === catId)) {
+            setSelectedCategoryId(catId);
+          }
+        }
+        if (savedTags) {
+          setSelectedTags(JSON.parse(savedTags));
+        }
+      } catch {}
+      setRestoredFilter(true);
+    })();
+  }, [placeCategoryList]);
 
+  // 검색 디바운스
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchQuery.trim()), SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // 데이터 요청 - 파라미터 직접 전달 (ref 사용 안 함)
-  const fetchData = useCallback(async (params: {
-    catId: number | null;
-    search: string;
-    sort: SortBy;
-    tag: string | null;
-    groupId: number | null;
-    pageNum: number;
-    isRefresh?: boolean;
-  }) => {
-    const { catId, search, sort, tag, groupId, pageNum, isRefresh } = params;
-
-    if (pageNum > 0 && fetchingRef.current) return;
-    fetchingRef.current = true;
-
-    try {
-      if (isRefresh) setRefreshing(true);
-      else if (pageNum > 0) setLoadingMore(true);
-
-      let response;
-      if (groupId) {
-        response = await restaurantApi.getGroupRestaurants(groupId, KOREA_BOUNDS);
-      } else {
-        response = await restaurantApi.getRestaurantList({
-          placeCategoryId: catId || undefined,
-          search: search || undefined,
-          tag: tag || undefined,
-          sort,
-          page: pageNum,
-          size: PAGE_SIZE,
-        });
-      }
-
-      setRestaurants(prev => pageNum === 0 ? response.content : [...prev, ...response.content]);
-      setHasMore(!response.last);
-      setTotalElements(response.totalElements);
-      setPage(pageNum);
-    } catch {
-      if (pageNum > 0) setHasMore(false);
-    } finally {
-      fetchingRef.current = false;
-      setInitialLoading(false);
-      setLoadingMore(false);
-      setRefreshing(false);
-    }
-  }, []);
-
-  // 필터 변경 시 페이지 0부터 다시 요청
+  // 필터 변경 시 저장
   useEffect(() => {
-    fetchData({
-      catId: selectedCategoryId,
-      search: debouncedSearch,
-      sort: sortBy,
-      tag: selectedTag,
-      groupId: selectedGroupId,
-      pageNum: 0,
-    });
-  }, [selectedCategoryId, debouncedSearch, sortBy, selectedTag, selectedGroupId, fetchData]);
+    if (!restoredFilter) return;
+    setItem(STORAGE_KEY_CATEGORY, selectedCategoryId !== null ? String(selectedCategoryId) : '');
+  }, [selectedCategoryId, restoredFilter]);
+
+  useEffect(() => {
+    if (!restoredFilter) return;
+    setItem(STORAGE_KEY_TAGS, JSON.stringify(selectedTags));
+  }, [selectedTags, restoredFilter]);
+
+  // 맛집 무한스크롤 쿼리
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    isRefetching,
+  } = useInfiniteQuery({
+    queryKey: ['restaurants', selectedCategoryId, debouncedSearch, sortBy, selectedTags, selectedGroupId],
+    queryFn: async ({ pageParam = 0 }) => {
+      if (selectedGroupId) {
+        return restaurantApi.getGroupRestaurants(selectedGroupId, KOREA_BOUNDS);
+      }
+      return restaurantApi.getRestaurantList({
+        placeCategoryId: selectedCategoryId || undefined,
+        search: debouncedSearch || undefined,
+        tags: selectedTags.length > 0 ? selectedTags : undefined,
+        sort: sortBy,
+        page: pageParam,
+        size: PAGE_SIZE,
+      });
+    },
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, _, lastPageParam) =>
+      lastPage.last ? undefined : lastPageParam + 1,
+    enabled: restoredFilter,
+  });
+
+  const restaurants = useMemo(
+    () => data?.pages.flatMap(page => page.content) ?? [],
+    [data]
+  );
+
+  const totalElements = data?.pages[0]?.totalElements ?? 0;
 
   const onRefresh = useCallback(() => {
-    fetchingRef.current = false;
-    fetchData({
-      catId: selectedCategoryId,
-      search: debouncedSearch,
-      sort: sortBy,
-      tag: selectedTag,
-      groupId: selectedGroupId,
-      pageNum: 0,
-      isRefresh: true,
-    });
-  }, [selectedCategoryId, debouncedSearch, sortBy, selectedTag, selectedGroupId, fetchData]);
+    queryClient.resetQueries({ queryKey: ['restaurants', selectedCategoryId, debouncedSearch, sortBy, selectedTags, selectedGroupId] });
+  }, [queryClient, selectedCategoryId, debouncedSearch, sortBy, selectedTags, selectedGroupId]);
 
   const loadMore = useCallback(() => {
-    if (hasMore && !fetchingRef.current) {
-      fetchData({
-        catId: selectedCategoryId,
-        search: debouncedSearch,
-        sort: sortBy,
-        tag: selectedTag,
-        groupId: selectedGroupId,
-        pageNum: page + 1,
-      });
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
     }
-  }, [hasMore, page, selectedCategoryId, debouncedSearch, sortBy, selectedTag, selectedGroupId, fetchData]);
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  if (initialLoading && restaurants.length === 0) {
+  if (isLoading && restaurants.length === 0) {
     return (
       <View style={[styles.container, { backgroundColor: c.background }]}>
         <MapListTabHeader />
@@ -183,7 +174,7 @@ export default function ListScreen() {
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow} contentContainerStyle={styles.categoryContent}>
         <TouchableOpacity
           style={[styles.categoryBtn, { backgroundColor: selectedCategoryId === null ? c.chipActiveBg : c.chipBg }]}
-          onPress={() => { lightTap(); setSelectedCategoryId(null); setSelectedTag(null); }}
+          onPress={() => { lightTap(); setSelectedCategoryId(null); setSelectedTags([]); }}
         >
           <Text style={[styles.categoryText, { color: selectedCategoryId === null ? c.chipActiveText : c.chipText }, selectedCategoryId === null && { fontWeight: '600' }]}>전체</Text>
         </TouchableOpacity>
@@ -191,7 +182,7 @@ export default function ListScreen() {
           <TouchableOpacity
             key={cat.id}
             style={[styles.categoryBtn, { backgroundColor: selectedCategoryId === cat.id ? c.chipActiveBg : c.chipBg }]}
-            onPress={() => { lightTap(); setSelectedCategoryId(cat.id); setSelectedTag(null); }}
+            onPress={() => { lightTap(); setSelectedCategoryId(cat.id); setSelectedTags([]); }}
           >
             <Text style={[styles.categoryText, { color: selectedCategoryId === cat.id ? c.chipActiveText : c.chipText }, selectedCategoryId === cat.id && { fontWeight: '600' }]}>
               {cat.name}
@@ -200,18 +191,26 @@ export default function ListScreen() {
         ))}
       </ScrollView>
 
-      {/* 서브 필터 (태그) */}
+      {/* 서브 필터 (태그 - 다중 선택) */}
       {selectedCategoryData && (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow} contentContainerStyle={styles.subFilterContent}>
-          {selectedCategoryData.tagGroups.flatMap(g => g.tags).map((t) => (
-            <TouchableOpacity
-              key={t}
-              style={[styles.subFilterBtn, { backgroundColor: selectedTag === t ? c.chipActiveBg : c.chipBg }]}
-              onPress={() => { lightTap(); setSelectedTag(prev => prev === t ? null : t); }}
-            >
-              <Text style={[styles.subFilterText, { color: selectedTag === t ? c.chipActiveText : c.chipText }, selectedTag === t && { fontWeight: '600' }]}>{t}</Text>
-            </TouchableOpacity>
-          ))}
+          {selectedCategoryData.tagGroups.flatMap(g => g.tags).map((t) => {
+            const isActive = selectedTags.includes(t);
+            return (
+              <TouchableOpacity
+                key={t}
+                style={[styles.subFilterBtn, { backgroundColor: isActive ? c.chipActiveBg : c.chipBg }]}
+                onPress={() => {
+                  lightTap();
+                  setSelectedTags(prev =>
+                    prev.includes(t) ? prev.filter(tag => tag !== t) : [...prev, t]
+                  );
+                }}
+              >
+                <Text style={[styles.subFilterText, { color: isActive ? c.chipActiveText : c.chipText }, isActive && { fontWeight: '600' }]}>{t}</Text>
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
       )}
 
@@ -236,11 +235,11 @@ export default function ListScreen() {
         renderItem={({ item, index }) => <RestaurantCard item={item} index={index} />}
         contentContainerStyle={styles.listContent}
         keyboardDismissMode="on-drag"
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[c.primary]} />}
+        refreshControl={<RefreshControl refreshing={isRefetching && !isFetchingNextPage} onRefresh={onRefresh} colors={[c.primary]} />}
         onEndReached={loadMore}
         onEndReachedThreshold={0.3}
         ListEmptyComponent={
-          !initialLoading ? (
+          !isLoading ? (
             <View style={styles.empty}>
               <Ionicons name="search-outline" size={48} color={c.textDisabled} />
               <Text style={[styles.emptyTitle, { color: c.textSecondary }]}>장소를 찾을 수 없습니다</Text>
@@ -249,7 +248,7 @@ export default function ListScreen() {
           ) : null
         }
         ListFooterComponent={
-          hasMore && loadingMore ? (
+          isFetchingNextPage ? (
             <View style={styles.footerSkeleton}>
               {Array.from({ length: 2 }).map((_, i) => <RestaurantCardSkeleton key={`f-${i}`} />)}
             </View>

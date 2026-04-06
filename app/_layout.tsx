@@ -3,12 +3,22 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Toast from 'react-native-toast-message';
 import { toastConfig } from '../components/ToastConfig';
 import { themes } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
 import { isForceUpdateRequired } from '../api/client';
 import { ForceUpdateModal } from '../components/ForceUpdateModal';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5분
+      retry: 1,
+    },
+  },
+});
 
 export default function RootLayout() {
   const systemScheme = useColorScheme();
@@ -50,6 +60,7 @@ export default function RootLayout() {
   const c = isDark ? themes.dark : themes.light;
 
   return (
+    <QueryClientProvider client={queryClient}>
     <GestureHandlerRootView style={{ flex: 1 }}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <Stack
@@ -77,5 +88,6 @@ export default function RootLayout() {
       <Toast config={toastConfig} topOffset={60} />
       <ForceUpdateModal visible={forceUpdate} />
     </GestureHandlerRootView>
+    </QueryClientProvider>
   );
 }
