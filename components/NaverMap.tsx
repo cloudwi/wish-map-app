@@ -10,31 +10,44 @@ import {
   type Region,
   type NaverMapViewRef,
 } from '@mj-studio/react-native-naver-map';
-import { Restaurant, MapBounds } from '../types';
+import { Restaurant, MapBounds, PlaceCategory } from '../types';
 import { PlaceResult } from '../api/search';
 
 interface Props {
   restaurants: Restaurant[];
+  placeCategories?: PlaceCategory[];
   onMarkerClick: (restaurant: Restaurant) => void;
   onBoundsChange: (bounds: MapBounds, camera: { latitude: number; longitude: number; zoom: number }) => void;
   onTapMap?: (lat: number, lng: number) => void;
   userLocation?: { latitude: number; longitude: number } | null;
   selectedPlace?: PlaceResult | null;
   selectedId?: number | null;
+  selectedCategoryId?: number | null;
   tappedLocation?: { latitude: number; longitude: number } | null;
   initialLat?: number;
   initialLng?: number;
   initialZoom?: number;
 }
 
+function getCategoryIcon(placeCategoryId: number | null, placeCategories?: PlaceCategory[]): string {
+  if (placeCategoryId && placeCategories) {
+    const cat = placeCategories.find(c => c.id === placeCategoryId);
+    // icon은 Ionicons name (영문 소문자+하이픈)이어야 함. 이모지 등은 무시
+    if (cat?.icon && /^[a-z][a-z0-9-]*$/.test(cat.icon)) return cat.icon;
+  }
+  return 'restaurant';
+}
+
 const NaverMap = forwardRef<NaverMapViewRef, Props>(({
   restaurants,
+  placeCategories,
   onMarkerClick,
   onBoundsChange,
   onTapMap,
   userLocation,
   selectedPlace,
   selectedId,
+  selectedCategoryId,
   tappedLocation,
   initialLat = 37.5665,
   initialLng = 126.9780,
@@ -92,7 +105,7 @@ const NaverMap = forwardRef<NaverMapViewRef, Props>(({
             onTap={() => onMarkerClick(r)}
           >
             <View collapsable={false} style={[styles.dot, { width: size, height: size, borderRadius: size / 2, backgroundColor: color }]}>
-              <Ionicons name="restaurant" size={size * 0.5} color="rgba(255,255,255,0.9)" />
+              <Ionicons name={getCategoryIcon(r.placeCategoryId, placeCategories) as any} size={size * 0.5} color="rgba(255,255,255,0.9)" />
             </View>
           </NaverMapMarkerOverlay>
         );
@@ -111,7 +124,7 @@ const NaverMap = forwardRef<NaverMapViewRef, Props>(({
           zIndex={200}
         >
           <View collapsable={false} style={[styles.dot, { width: 28, height: 28, borderRadius: 14, backgroundColor: '#FF8A65' }]}>
-            <Ionicons name="restaurant" size={14} color="rgba(255,255,255,0.9)" />
+            <Ionicons name={getCategoryIcon(selectedCategoryId ?? null, placeCategories) as any} size={14} color="rgba(255,255,255,0.9)" />
           </View>
         </NaverMapMarkerOverlay>
       )}

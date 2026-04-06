@@ -20,6 +20,7 @@ interface SearchBarProps {
   placeCategories: PlaceCategory[];
   selectedCategoryId: number | null;
   onCategoryChange: (categoryId: number | null) => void;
+  onRegisterCustomPlace?: (categoryId: number, categoryName: string) => void;
 }
 
 export function SearchBar({
@@ -36,9 +37,12 @@ export function SearchBar({
   placeCategories,
   selectedCategoryId,
   onCategoryChange,
+  onRegisterCustomPlace,
 }: SearchBarProps) {
   const c = useTheme();
   const showResults = searchResults.length > 0;
+  const hasCustomCategories = placeCategories.some(cat => cat.customOnly);
+  const showCustomRegister = searchQuery.trim().length > 0 && !searching && hasCustomCategories;
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
 
   const selectedCategory = placeCategories.find(c => c.id === selectedCategoryId);
@@ -148,12 +152,29 @@ export function SearchBar({
         </View>
       )}
 
-      {showResults && !categoryDropdownOpen && (
+      {(showResults || showCustomRegister) && !categoryDropdownOpen && (
         <View style={[styles.searchResults, { backgroundColor: c.surface }]}>
           <FlatList
             data={searchResults}
             keyExtractor={(item, index) => `${item.id}-${index}`}
             keyboardShouldPersistTaps="handled"
+            ListHeaderComponent={showCustomRegister && onRegisterCustomPlace ? (
+              <View style={[styles.customRegisterSection, { borderBottomColor: searchResults.length > 0 ? c.divider : 'transparent' }]}>
+                <Text style={[styles.customRegisterTitle, { color: c.textSecondary }]}>현재 위치에 직접 등록</Text>
+                <View style={styles.categoryChips}>
+                  {placeCategories.filter(cat => cat.customOnly).map((cat) => (
+                    <TouchableOpacity
+                      key={cat.id}
+                      style={[styles.categoryChip, { backgroundColor: c.primaryBg, borderColor: c.primary }]}
+                      onPress={() => { lightTap(); onRegisterCustomPlace(cat.id, cat.name); }}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.categoryChipText, { color: c.primary }]}>{cat.name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            ) : null}
             renderItem={({ item, index }) => (
               <TouchableOpacity
                 style={[styles.resultItem, { borderBottomColor: c.divider }, index === searchResults.length - 1 && styles.resultItemLast]}
@@ -255,4 +276,29 @@ const styles = StyleSheet.create({
   resultContent: { flex: 1 },
   resultName: { fontSize: 15, fontWeight: '600', marginBottom: 2 },
   resultAddress: { fontSize: 13 },
+  customRegisterSection: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 0.5,
+  },
+  customRegisterTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 10,
+  },
+  categoryChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  categoryChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  categoryChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
 });

@@ -13,6 +13,9 @@ import { showError, showSuccess } from '../../utils/toast';
 import { lightTap, successTap } from '../../utils/haptics';
 import { TaggedContent } from '../../components/TaggedContent';
 import Skeleton from '../../components/Skeleton';
+import { CategoryPlaceholder } from '../../components/CategoryPlaceholder';
+import { placeCategoryApi } from '../../api/placeCategory';
+import { PlaceCategory } from '../../types';
 
 export default function RestaurantDetailScreen() {
   const c = useTheme();
@@ -26,6 +29,7 @@ export default function RestaurantDetailScreen() {
   const [visitLoading, setVisitLoading] = useState(false);
   const [searchImages, setSearchImages] = useState<string[]>([]);
   const [viewerImage, setViewerImage] = useState<string | null>(null);
+  const [placeCategories, setPlaceCategories] = useState<PlaceCategory[]>([]);
 
   const fetchData = useCallback(async () => {
     try {
@@ -46,6 +50,7 @@ export default function RestaurantDetailScreen() {
   }, [id]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => { placeCategoryApi.getPlaceCategories().then(setPlaceCategories).catch(() => {}); }, []);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -162,8 +167,12 @@ export default function RestaurantDetailScreen() {
                 ))}
               </ScrollView>
             ) : (
-              <View style={[styles.mainImage, styles.imagePlaceholder, { backgroundColor: c.imagePlaceholderBg }]}>
-                <Ionicons name="location-outline" size={48} color="#d4c4bc" />
+              <View style={[styles.mainImage, styles.imagePlaceholder]}>
+                <CategoryPlaceholder
+                  icon={placeCategories.find(cat => cat.id === restaurant.placeCategoryId)?.icon}
+                  size={Dimensions.get('window').width}
+                  iconScale={0.2}
+                />
               </View>
             );
           })()}

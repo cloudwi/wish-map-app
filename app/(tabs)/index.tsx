@@ -21,6 +21,8 @@ import { useTheme } from '../../hooks/useTheme';
 import { useGroupStore } from '../../stores/groupStore';
 import { useAuthStore } from '../../stores/authStore';
 import { lightTap, mediumTap } from '../../utils/haptics';
+import { showError } from '../../utils/toast';
+import { router } from 'expo-router';
 
 const INITIAL_BOUNDS: MapBounds = { minLat: 37.4, maxLat: 37.7, minLng: 126.8, maxLng: 127.2 };
 
@@ -254,9 +256,35 @@ export default function MapScreen() {
     setSelectedPlace(place);
   }, []);
 
+  const handleRegisterCustomPlace = useCallback((categoryId: number, categoryName: string) => {
+    if (!isAuthenticated) {
+      router.push('/login');
+      return;
+    }
+    if (!userLocation) {
+      showError('위치 필요', '현재 위치를 확인할 수 없습니다.');
+      return;
+    }
+    clearSearch();
+    setSearchFocused(false);
+    Keyboard.dismiss();
+    router.push({
+      pathname: '/visit-review',
+      params: {
+        placeName: categoryName,
+        placeLat: String(userLocation.latitude),
+        placeLng: String(userLocation.longitude),
+        placeId: '',
+        placeCategory: '',
+        restaurantId: '',
+        placeCategoryId: String(categoryId),
+      },
+    });
+  }, [isAuthenticated, userLocation, clearSearch]);
+
   const renderListItem = useCallback(({ item, index }: { item: Restaurant; index: number }) => (
-    <RestaurantCard item={item} index={index} />
-  ), []);
+    <RestaurantCard item={item} index={index} placeCategories={placeCategories} />
+  ), [placeCategories]);
 
   return (
     <View style={styles.container}>
@@ -265,12 +293,14 @@ export default function MapScreen() {
       <NaverMap
         ref={mapRef}
         restaurants={restaurants}
+        placeCategories={placeCategories}
         onMarkerClick={handleMarkerClick}
         onBoundsChange={handleBoundsChange}
         onTapMap={() => Keyboard.dismiss()}
         userLocation={userLocation}
         selectedPlace={selectedPlace}
         selectedId={selected?.id ?? null}
+        selectedCategoryId={selected?.placeCategoryId ?? null}
       />
 
       {/* 상태바 영역 반투명 오버레이 (배터리/시간/와이파이 가독성 향상) */}
@@ -299,6 +329,7 @@ export default function MapScreen() {
             fetchRestaurants(currentBoundsRef.current, catId);
           }
         }}
+        onRegisterCustomPlace={handleRegisterCustomPlace}
       />
 
       {/* 그룹 선택 칩 */}
@@ -378,6 +409,7 @@ export default function MapScreen() {
               onCallPhone={callPhone}
               onVisitSuccess={() => fetchRestaurants(currentBoundsRef.current)}
               weeklyChampion={selected?.weeklyChampion}
+              placeCategories={placeCategories}
             />
           </BottomSheetView>
         </BottomSheet>

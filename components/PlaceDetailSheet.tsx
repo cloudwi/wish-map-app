@@ -9,7 +9,8 @@ import { restaurantApi, PlaceStatsResponse } from '../api/restaurant';
 import { useAuthStore } from '../stores/authStore';
 import { useTheme } from '../hooks/useTheme';
 import { lightTap } from '../utils/haptics';
-import { PRICE_RANGE_LABELS } from '../types';
+import { PRICE_RANGE_LABELS, PlaceCategory } from '../types';
+import { CategoryPlaceholder } from './CategoryPlaceholder';
 
 const TAB_BAR_HEIGHT = 49;
 
@@ -20,9 +21,10 @@ interface PlaceDetailSheetProps {
   onCallPhone: (phone: string) => void;
   onVisitSuccess?: () => void;
   weeklyChampion?: string | null;
+  placeCategories?: PlaceCategory[];
 }
 
-export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, onVisitSuccess, weeklyChampion }: PlaceDetailSheetProps) {
+export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, onVisitSuccess, weeklyChampion, placeCategories }: PlaceDetailSheetProps) {
   const c = useTheme();
   const insets = useSafeAreaInsets();
   const { isAuthenticated } = useAuthStore();
@@ -72,8 +74,11 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
           {thumbnail ? (
             <Image source={{ uri: thumbnail }} style={styles.thumbnail} />
           ) : (
-            <View style={[styles.thumbnailPlaceholder, { backgroundColor: c.searchBg }]}>
-              <Ionicons name="location-outline" size={22} color={c.textDisabled} />
+            <View style={styles.thumbnailPlaceholder}>
+              <CategoryPlaceholder
+                icon={placeCategories?.find(cat => cat.id === stats?.placeCategoryId)?.icon}
+                size={52}
+              />
             </View>
           )}
           <View style={styles.headerInfo}>

@@ -38,6 +38,7 @@ export default function VisitReviewScreen() {
     placeId: string;
     placeCategory: string;
     restaurantId: string;
+    placeCategoryId: string;
   }>();
 
   const [placeCategories, setPlaceCategories] = useState<PlaceCategory[]>([]);
@@ -64,6 +65,14 @@ export default function VisitReviewScreen() {
   }, []);
 
   const autoDetect = (cats: PlaceCategory[]) => {
+    // 직접 등록: placeCategoryId가 전달된 경우 우선 사용
+    if (params.placeCategoryId) {
+      const catId = Number(params.placeCategoryId);
+      if (cats.some(c => c.id === catId)) {
+        setDetectedCategoryId(catId);
+        return;
+      }
+    }
     if (!params.placeCategory) return;
     const matched = matchNaverCategory(params.placeCategory, cats);
     if (matched) setDetectedCategoryId(matched.id);
@@ -215,6 +224,8 @@ export default function VisitReviewScreen() {
               <Text style={[styles.placeName, { color: c.textPrimary }]}>{params.placeName}</Text>
               {params.placeCategory ? (
                 <Text style={[styles.placeCategory, { color: c.textTertiary }]}>{params.placeCategory}</Text>
+              ) : !params.placeId ? (
+                <Text style={[styles.placeCategory, { color: c.primary }]}>직접 등록 장소</Text>
               ) : null}
             </View>
           </View>

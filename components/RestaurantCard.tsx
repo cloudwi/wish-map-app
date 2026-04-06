@@ -3,18 +3,20 @@ import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Restaurant } from '../types';
+import { Restaurant, PlaceCategory } from '../types';
 import { searchPlaceImage } from '../api/search';
 import { useTheme } from '../hooks/useTheme';
 import { lightTap } from '../utils/haptics';
+import { CategoryPlaceholder } from './CategoryPlaceholder';
 
 interface Props {
   item: Restaurant;
   badge?: React.ReactNode;
   index?: number;
+  placeCategories?: PlaceCategory[];
 }
 
-export function RestaurantCard({ item, badge, index = 0 }: Props) {
+export function RestaurantCard({ item, badge, index = 0, placeCategories }: Props) {
   const c = useTheme();
   const [imageUri, setImageUri] = useState<string | null>(item.thumbnailImage);
 
@@ -40,9 +42,10 @@ export function RestaurantCard({ item, badge, index = 0 }: Props) {
             cachePolicy="memory-disk"
           />
         ) : (
-          <View style={[styles.thumbnail, styles.thumbnailPlaceholder, { backgroundColor: c.imagePlaceholderBg }]}>
-            <Ionicons name="restaurant-outline" size={26} color="#d4c4bc" />
-          </View>
+          <CategoryPlaceholder
+            icon={placeCategories?.find(cat => cat.id === item.placeCategoryId)?.icon}
+            size={90}
+          />
         )}
         <View style={styles.content}>
           <View style={styles.titleRow}>

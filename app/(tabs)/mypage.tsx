@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Image, ScrollView, Alert, Switch, Linking, Platform, ActivityIndicator } from 'react-native';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { StyleSheet, View, Text, TouchableOpacity, Image, ScrollView, Alert, Switch, Linking, Platform, ActivityIndicator, AppState } from 'react-native';
 import { MypageTabHeader } from '../../components/TabHeader';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -56,6 +56,7 @@ export default function MyPageScreen() {
   const { mode: themeMode, setMode: setThemeMode } = useThemeStore();
   const { fetchGroups } = useGroupStore();
   const [pushEnabled, setPushEnabled] = useState(false);
+  const appStateRef = useRef(AppState.currentState);
   const [friendRequests, setFriendRequests] = useState<FriendResponse[]>([]);
   const [groupInvites, setGroupInvites] = useState<GroupInviteResponse[]>([]);
 
@@ -74,6 +75,31 @@ export default function MyPageScreen() {
   }, [isAuthenticated]);
 
   useFocusEffect(useCallback(() => { loadNotifications(); }, [loadNotifications]));
+
+  // 실제 시스템 푸시 알림 권한 상태 확인
+  const checkPushPermission = useCallback(async () => {
+    try {
+      const Notifications = require('expo-notifications');
+      const { status } = await Notifications.getPermissionsAsync();
+      setPushEnabled(status === 'granted');
+    } catch {
+      setPushEnabled(false);
+    }
+  }, []);
+
+  // 마운트 시 + 화면 포커스 시 권한 확인
+  useFocusEffect(useCallback(() => { checkPushPermission(); }, [checkPushPermission]));
+
+  // 설정에서 돌아올 때 (AppState 변경) 권한 재확인
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (nextState) => {
+      if (appStateRef.current.match(/inactive|background/) && nextState === 'active') {
+        checkPushPermission();
+      }
+      appStateRef.current = nextState;
+    });
+    return () => sub.remove();
+  }, [checkPushPermission]);
 
   const handleAcceptFriend = async (id: number) => {
     lightTap();
@@ -119,33 +145,42 @@ export default function MyPageScreen() {
     setThemeMode(next);
   };
 
-  const handleTogglePush = (value: boolean) => {
+  const handleTogglePush = async (value: boolean) => {
     if (value) {
+      // 먼저 직접 권한 요청 시도
+      try {
+        const Notifications = require('expo-notifications');
+        const { status: existing } = await Notifications.getPermissionsAsync();
+        if (existing === 'granted') {
+          setPushEnabled(true);
+          const { registerForPushNotifications } = require('../../utils/notifications');
+          registerForPushNotifications();
+          return;
+        }
+        const { status } = await Notifications.requestPermissionsAsync();
+        if (status === 'granted') {
+          setPushEnabled(true);
+          const { registerForPushNotifications } = require('../../utils/notifications');
+          registerForPushNotifications();
+          return;
+        }
+      } catch {}
+      // 권한 거부된 경우 설정으로 안내
       Alert.alert(
         '푸시 알림 켜기',
         '시스템 설정에서 알림을 허용해주세요.',
         [
           { text: '취소', style: 'cancel' },
-          {
-            text: '설정 열기',
-            onPress: () => {
-              setPushEnabled(true);
-              Linking.openSettings();
-            },
-          },
+          { text: '설정 열기', onPress: () => Linking.openSettings() },
         ],
       );
     } else {
       Alert.alert(
         '푸시 알림 끄기',
-        '알림을 받지 않으시겠습니까?',
+        '시스템 설정에서 알림을 꺼주세요.',
         [
           { text: '취소', style: 'cancel' },
-          {
-            text: '끄기',
-            style: 'destructive',
-            onPress: () => setPushEnabled(false),
-          },
+          { text: '설정 열기', onPress: () => Linking.openSettings() },
         ],
       );
     }

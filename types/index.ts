@@ -74,6 +74,7 @@ export interface PlaceCategory {
   name: string;
   icon: string | null;
   hasPriceRange: boolean;
+  customOnly: boolean;
   tagGroups: TagGroup[];
 }
 
