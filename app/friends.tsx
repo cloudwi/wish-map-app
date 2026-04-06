@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import {
   StyleSheet, View, Text, FlatList, TouchableOpacity,
   TextInput, Image, ActivityIndicator, Alert, Platform,
+  Keyboard, TouchableWithoutFeedback,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, router } from 'expo-router';
@@ -199,6 +200,7 @@ export default function FriendsScreen() {
   );
 
   return (
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
     <View style={[styles.container, { backgroundColor: c.background }]}>
       <Stack.Screen options={{
         title: '친구',
@@ -238,6 +240,7 @@ export default function FriendsScreen() {
             data={searchResults}
             keyExtractor={item => String(item.id)}
             renderItem={renderSearchResult}
+            keyboardDismissMode="on-drag"
             contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 20 }]}
             ListEmptyComponent={
               <View style={styles.centered}>
@@ -277,6 +280,7 @@ export default function FriendsScreen() {
               data={friends}
               keyExtractor={item => String(item.id)}
               renderItem={renderFriend}
+              keyboardDismissMode="on-drag"
               contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 20 }]}
               ListEmptyComponent={
                 <View style={styles.emptyWrap}>
@@ -293,6 +297,7 @@ export default function FriendsScreen() {
               data={requests}
               keyExtractor={item => String(item.id)}
               renderItem={renderRequest}
+              keyboardDismissMode="on-drag"
               contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 20 }]}
               ListEmptyComponent={
                 <View style={styles.emptyWrap}>
@@ -305,6 +310,7 @@ export default function FriendsScreen() {
         </>
       )}
     </View>
+    </TouchableWithoutFeedback>
   );
 }
 

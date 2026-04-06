@@ -1,4 +1,4 @@
-import { StyleSheet, View, Text, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, TextInput, ScrollView } from 'react-native';
+import { StyleSheet, View, Text, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, TextInput, ScrollView, Keyboard, TouchableWithoutFeedback } from 'react-native';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { MapListTabHeader } from '../../components/TabHeader';
 import { Ionicons } from '@expo/vector-icons';
@@ -156,6 +156,7 @@ export default function ListScreen() {
   }
 
   return (
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
     <View style={[styles.container, { backgroundColor: c.background }]}>
       <MapListTabHeader />
 
@@ -234,6 +235,7 @@ export default function ListScreen() {
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item, index }) => <RestaurantCard item={item} index={index} />}
         contentContainerStyle={styles.listContent}
+        keyboardDismissMode="on-drag"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[c.primary]} />}
         onEndReached={loadMore}
         onEndReachedThreshold={0.3}
@@ -258,6 +260,7 @@ export default function ListScreen() {
         windowSize={5}
       />
     </View>
+    </TouchableWithoutFeedback>
   );
 }
 

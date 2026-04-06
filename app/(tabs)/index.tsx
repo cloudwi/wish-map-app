@@ -267,6 +267,7 @@ export default function MapScreen() {
         restaurants={restaurants}
         onMarkerClick={handleMarkerClick}
         onBoundsChange={handleBoundsChange}
+        onTapMap={() => Keyboard.dismiss()}
         userLocation={userLocation}
         selectedPlace={selectedPlace}
         selectedId={selected?.id ?? null}
