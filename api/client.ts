@@ -53,15 +53,27 @@ apiClient.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
+    const status = error.response?.status;
+    const url = originalRequest?.url || '';
+
+    // API 에러 로깅 (4xx/5xx)
+    if (status && status >= 400 && status !== 401) {
+      console.warn(`[API] ${originalRequest?.method?.toUpperCase()} ${url} → ${status}`);
+    }
+    if (status && status >= 500) {
+      console.error(`[API] 서버 에러: ${url}`, error.response?.data);
+    }
+
     // 426: 강제 업데이트 필요
-    if (error.response?.status === 426) {
+    if (status === 426) {
       forceUpdateRequired = true;
       forceUpdateStoreUrl = (error.response?.data as any)?.storeUrl || '';
       return Promise.reject(error);
     }
 
     // 403: 유저가 DB에 없는 경우 (DB 초기화 등) → 강제 로그아웃
-    if (error.response?.status === 403) {
+    if (status === 403) {
+      console.warn('[AUTH] 403 강제 로그아웃');
       const token = await getItem('accessToken');
       if (token) {
         await deleteItem('accessToken');
@@ -103,6 +115,7 @@ apiClient.interceptors.response.use(
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return apiClient(originalRequest);
       } catch (refreshError) {
+        console.warn('[AUTH] 토큰 갱신 실패, 로그아웃 처리');
         isRefreshing = false;
         refreshSubscribers = [];
         await deleteItem('accessToken');

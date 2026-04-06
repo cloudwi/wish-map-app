@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,20 +22,32 @@ interface PlaceDetailSheetProps {
   onVisitSuccess?: () => void;
   weeklyChampion?: string | null;
   placeCategories?: PlaceCategory[];
+  refreshKey?: number;
 }
 
-export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, onVisitSuccess, weeklyChampion, placeCategories }: PlaceDetailSheetProps) {
+export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, onVisitSuccess, weeklyChampion, placeCategories, refreshKey }: PlaceDetailSheetProps) {
   const c = useTheme();
   const insets = useSafeAreaInsets();
   const { isAuthenticated } = useAuthStore();
   const [stats, setStats] = useState<PlaceStatsResponse | null | undefined>(undefined);
   const [thumbnail, setThumbnail] = useState<string | null>(null);
+  const [registering, setRegistering] = useState(false);
 
-  useEffect(() => {
+  const refreshStats = useCallback(() => {
     if (!place.id) { setStats(null); return; }
-    setStats(undefined);
     restaurantApi.getPlaceStats(place.id).then(setStats).catch(() => setStats(null));
   }, [place.id]);
+
+  // place 변경 시 초기화 + 조회, refreshKey 변경 시 조용히 재조회
+  useEffect(() => {
+    setStats(undefined);
+    refreshStats();
+  }, [refreshStats]);
+
+  useEffect(() => {
+    if (refreshKey) refreshStats();
+  }, [refreshKey]);
+
 
   useEffect(() => {
     setThumbnail(null);
@@ -56,8 +68,10 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
         placeId: place.id || '',
         placeCategory: place.category || '',
         restaurantId: stats?.restaurantId ? String(stats.restaurantId) : '',
+        placeCategoryId: stats?.placeCategoryId ? String(stats.placeCategoryId) : '',
       },
     });
+    onClose();
   };
 
   const address = place.roadAddress || place.address;
@@ -69,7 +83,39 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
         <TouchableOpacity
           style={styles.headerTap}
           activeOpacity={0.7}
-          onPress={() => { if (stats?.restaurantId) { lightTap(); router.push(`/restaurant/${stats.restaurantId}`); } }}
+          onPress={async () => {
+            lightTap();
+            if (stats?.restaurantId) {
+              router.push(`/restaurant/${stats.restaurantId}`);
+              return;
+            }
+            if (!isAuthenticated) { router.push('/login'); return; }
+            if (registering) return;
+            try {
+              setRegistering(true);
+              const created = await restaurantApi.createRestaurant({
+                name: place.name,
+                lat: place.lat,
+                lng: place.lng,
+                naverPlaceId: place.id || undefined,
+                category: place.category || undefined,
+              });
+              setStats({ restaurantId: created.id, visitCount: 0, avgRating: null, visitedToday: false, priceRange: null, placeCategoryId: created.placeCategoryId ?? null, recentReviews: [] });
+              router.push(`/restaurant/${created.id}`);
+            } catch (e: any) {
+              // 이미 등록된 장소면 stats 재조회
+              if (place.id) {
+                const refreshed = await restaurantApi.getPlaceStats(place.id).catch(() => null);
+                if (refreshed?.restaurantId) {
+                  setStats(refreshed);
+                  router.push(`/restaurant/${refreshed.restaurantId}`);
+                  return;
+                }
+              }
+            } finally {
+              setRegistering(false);
+            }
+          }}
         >
           {thumbnail ? (
             <Image source={{ uri: thumbnail }} style={styles.thumbnail} />

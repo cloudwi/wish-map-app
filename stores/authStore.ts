@@ -32,20 +32,24 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await setItem('accessToken', response.accessToken);
       await setItem('refreshToken', response.refreshToken);
       set({ user: response.user, isAuthenticated: true });
+      console.info(`[AUTH] 로그인 성공: provider=${provider}, userId=${response.user.id}`);
       await get().checkTermsAgreement();
       set({ isLoading: false });
     } catch (error) {
+      console.warn(`[AUTH] 로그인 실패: provider=${provider}`, error);
       set({ isLoading: false });
       throw error;
     }
   },
 
   logout: async () => {
-    try { await authApi.logout(); } catch (e) { console.warn('Logout API failed:', e); }
+    const userId = get().user?.id;
+    try { await authApi.logout(); } catch {}
     finally {
       await deleteItem('accessToken');
       await deleteItem('refreshToken');
       set({ user: null, isAuthenticated: false });
+      console.info(`[AUTH] 로그아웃: userId=${userId}`);
     }
   },
 

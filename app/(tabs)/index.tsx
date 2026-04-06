@@ -22,7 +22,7 @@ import { useGroupStore } from '../../stores/groupStore';
 import { useAuthStore } from '../../stores/authStore';
 import { lightTap, mediumTap } from '../../utils/haptics';
 import { showError } from '../../utils/toast';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 
 const INITIAL_BOUNDS: MapBounds = { minLat: 37.4, maxLat: 37.7, minLng: 126.8, maxLng: 127.2 };
 
@@ -43,6 +43,12 @@ export default function MapScreen() {
   const { groups, selectedGroupId, fetchGroups } = useGroupStore();
   const [placeCategories, setPlaceCategories] = useState<PlaceCategory[]>([]);
   const [categoryFilter, setCategoryFilter] = useState<number | null>(null);
+  const [statsRefreshKey, setStatsRefreshKey] = useState(0);
+
+  // 화면 포커스 시 stats 재조회 트리거 (방문 인증 후 돌아올 때)
+  useFocusEffect(useCallback(() => {
+    setStatsRefreshKey(k => k + 1);
+  }, []));
 
   const bottomSheetRef = useRef<BottomSheet>(null);
   const detailSheetRef = useRef<BottomSheet>(null);
@@ -410,6 +416,7 @@ export default function MapScreen() {
               onVisitSuccess={() => fetchRestaurants(currentBoundsRef.current)}
               weeklyChampion={selected?.weeklyChampion}
               placeCategories={placeCategories}
+              refreshKey={statsRefreshKey}
             />
           </BottomSheetView>
         </BottomSheet>

@@ -79,13 +79,17 @@ export interface PlaceCategory {
 }
 
 
-// 네이버 카테고리 문자열 → PlaceCategory 매칭 (대분류 기반)
+// 네이버 카테고리 문자열 → PlaceCategory 매칭 (1차 분류 기반)
 export function matchNaverCategory(naverCategory: string, categories: PlaceCategory[]): PlaceCategory | null {
   if (!naverCategory) return null;
 
-  // "카페,디저트>카페" → "카페,디저트"로 대분류 추출
   const majorPart = naverCategory.split('>')[0].trim();
-  return categories.find(c => c.name === majorPart) || null;
+
+  // PlaceCategory 이름에 1차 분류가 포함되어 있으면 매칭
+  return categories.find(c => c.name === majorPart)
+    || categories.find(c => c.name.includes(majorPart) || majorPart.includes(c.name))
+    || categories.find(c => c.name === '음식점')
+    || null;
 }
 
 // Restaurant

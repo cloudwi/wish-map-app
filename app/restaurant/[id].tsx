@@ -1,21 +1,19 @@
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Platform, RefreshControl, Linking, Dimensions, Modal, Pressable } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, FlatList, TouchableOpacity, Platform, RefreshControl, Linking, Dimensions, Modal, Pressable, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
-import { useState, useEffect, useCallback } from 'react';
-import { useLocalSearchParams, Stack, router } from 'expo-router';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useLocalSearchParams, Stack, router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { RestaurantDetail, Comment } from '../../types';
+import { RestaurantDetail, Comment, PlaceCategory } from '../../types';
 import { restaurantApi } from '../../api/restaurant';
 import { commentApi } from '../../api/comment';
 import { searchPlaceImages } from '../../api/search';
 import { useAuthStore } from '../../stores/authStore';
 import { useTheme } from '../../hooks/useTheme';
-import { showError, showSuccess } from '../../utils/toast';
-import { lightTap, successTap } from '../../utils/haptics';
+import { lightTap } from '../../utils/haptics';
 import { TaggedContent } from '../../components/TaggedContent';
 import Skeleton from '../../components/Skeleton';
 import { CategoryPlaceholder } from '../../components/CategoryPlaceholder';
 import { placeCategoryApi } from '../../api/placeCategory';
-import { PlaceCategory } from '../../types';
 
 export default function RestaurantDetailScreen() {
   const c = useTheme();
@@ -24,38 +22,67 @@ export default function RestaurantDetailScreen() {
 
   const [restaurant, setRestaurant] = useState<RestaurantDetail | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
+  const [commentPage, setCommentPage] = useState(0);
+  const [hasMoreComments, setHasMoreComments] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [visitLoading, setVisitLoading] = useState(false);
   const [searchImages, setSearchImages] = useState<string[]>([]);
   const [viewerImage, setViewerImage] = useState<string | null>(null);
   const [placeCategories, setPlaceCategories] = useState<PlaceCategory[]>([]);
 
-  const fetchData = useCallback(async () => {
+  const fetchRestaurant = useCallback(async () => {
     try {
-      const restaurantData = await restaurantApi.getRestaurantDetail(Number(id));
-      setRestaurant(restaurantData);
-      if (!restaurantData.thumbnailImage && restaurantData.images.length === 0) {
-        searchPlaceImages(restaurantData.name, 3).then(setSearchImages);
+      const data = await restaurantApi.getRestaurantDetail(Number(id));
+      setRestaurant(data);
+      if (!data.thumbnailImage && data.images.length === 0) {
+        searchPlaceImages(data.name, 3).then(setSearchImages);
       }
     } catch (error) {
       console.error('Failed to fetch restaurant:', error);
     }
-    try {
-      const commentsData = await commentApi.getComments(Number(id));
-      setComments(commentsData.content);
-    } catch {}
-    setLoading(false);
-    setRefreshing(false);
   }, [id]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  const fetchComments = useCallback(async (page: number, reset = false) => {
+    try {
+      const data = await commentApi.getComments(Number(id), page, 20);
+      setComments(prev => reset ? data.content : [...prev, ...data.content]);
+      setHasMoreComments(!data.last);
+      setCommentPage(page);
+    } catch {}
+  }, [id]);
+
+  useEffect(() => {
+    (async () => {
+      await fetchRestaurant();
+      await fetchComments(0, true);
+      setLoading(false);
+    })();
+  }, [fetchRestaurant, fetchComments]);
+
   useEffect(() => { placeCategoryApi.getPlaceCategories().then(setPlaceCategories).catch(() => {}); }, []);
 
-  const onRefresh = useCallback(() => {
+  // 화면 복귀 시 restaurant만 조용히 재조회 (깜박임 없이 isVisited 등 갱신)
+  useFocusEffect(useCallback(() => {
+    if (!loading) fetchRestaurant();
+  }, [loading, fetchRestaurant]));
+
+  const onRefresh = useCallback(async () => {
+    if (refreshing) return;
     setRefreshing(true);
-    fetchData();
-  }, [fetchData]);
+    try {
+      await Promise.all([fetchRestaurant(), fetchComments(0, true)]);
+    } catch {} finally {
+      setRefreshing(false);
+    }
+  }, [refreshing, fetchRestaurant, fetchComments]);
+
+  const loadMoreComments = useCallback(async () => {
+    if (!hasMoreComments || loadingMore) return;
+    setLoadingMore(true);
+    await fetchComments(commentPage + 1);
+    setLoadingMore(false);
+  }, [hasMoreComments, loadingMore, commentPage, fetchComments]);
 
   const handleOpenNaverMap = async () => {
     if (!restaurant) return;
@@ -72,39 +99,24 @@ export default function RestaurantDetailScreen() {
     }
   };
 
-  const handleVisit = async () => {
+  const handleVisit = () => {
     if (!isAuthenticated) {
       router.push('/login');
       return;
     }
-    try {
-      setVisitLoading(true);
-      const Location = require('expo-location') as typeof import('expo-location');
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        showError('위치 권한 필요', '설정에서 위치 권한을 허용해주세요.');
-        return;
-      }
-      const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
-      });
-      await restaurantApi.verifyVisit(
-        Number(id),
-        location.coords.latitude,
-        location.coords.longitude
-      );
-      successTap();
-      setRestaurant(prev => prev ? {
-        ...prev,
-        isVisited: true,
-        visitCount: (prev.visitCount ?? 0) + 1,
-      } : null);
-    } catch (error: any) {
-      const message = error?.response?.data?.message || '방문 인증 중 오류가 발생했습니다.';
-      showError('방문 인증 실패', message);
-    } finally {
-      setVisitLoading(false);
-    }
+    lightTap();
+    router.push({
+      pathname: '/visit-review',
+      params: {
+        placeName: restaurant?.name || '',
+        placeLat: String(restaurant?.lat || ''),
+        placeLng: String(restaurant?.lng || ''),
+        placeId: restaurant?.naverPlaceId || '',
+        placeCategory: restaurant?.category || '',
+        restaurantId: String(restaurant?.id || ''),
+        placeCategoryId: restaurant?.placeCategoryId ? String(restaurant.placeCategoryId) : '',
+      },
+    });
   };
 
   const activeComments = comments.filter(r => !r.isDeleted && (r.content || r.tags?.length > 0 || r.images?.length > 0));
@@ -142,120 +154,133 @@ export default function RestaurantDetailScreen() {
           headerStyle: { backgroundColor: c.headerBg },
           headerTintColor: c.textPrimary,
           headerShadowVisible: false,
+          headerBackButtonDisplayMode: 'minimal',
         }}
       />
 
       <View style={[styles.container, { backgroundColor: c.surface }]}>
-        <ScrollView
-          style={styles.scrollView}
+        <FlatList
+          data={activeComments}
+          keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={{ paddingBottom: 80 }}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[c.primary]} />
           }
-        >
-          {/* 메인 이미지 */}
-          {(() => {
-            const allImages = restaurant.images.length > 0
-              ? restaurant.images
-              : restaurant.thumbnailImage
-                ? [restaurant.thumbnailImage]
-                : searchImages;
-            return allImages.length > 0 ? (
-              <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false}>
-                {allImages.map((uri, i) => (
-                  <Image key={i} source={{ uri }} style={[styles.mainImage, { backgroundColor: c.imagePlaceholderBg }]} contentFit="cover" />
-                ))}
-              </ScrollView>
-            ) : (
-              <View style={[styles.mainImage, styles.imagePlaceholder]}>
-                <CategoryPlaceholder
-                  icon={placeCategories.find(cat => cat.id === restaurant.placeCategoryId)?.icon}
-                  size={Dimensions.get('window').width}
-                  iconScale={0.2}
-                />
-              </View>
-            );
-          })()}
-
-          {/* 기본 정보 */}
-          <View style={[styles.infoSection, { borderBottomColor: c.background }]}>
-            <View style={styles.header}>
-              <View style={styles.titleRow}>
-                <Text style={[styles.name, { color: c.textPrimary }]}>{restaurant.name}</Text>
-                {restaurant.category && (
-                  <Text style={[styles.category, { backgroundColor: c.categoryBadgeBg, color: c.categoryBadgeText }]}>{restaurant.category}</Text>
-                )}
-              </View>
-              <View style={styles.actions}>
-                <Text style={[styles.visitCountBadge, { color: c.textSecondary }]}>방문 {restaurant.visitCount}회</Text>
-              </View>
-            </View>
-
-            <TouchableOpacity
-              style={styles.naverMapLink}
-              onPress={handleOpenNaverMap}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="navigate-outline" size={16} color="#1EC800" />
-              <Text style={[styles.naverMapLinkText, { color: c.textSecondary }]}>길찾기</Text>
-              <Ionicons name="open-outline" size={12} color={c.textDisabled} />
-            </TouchableOpacity>
-
-            {restaurant.description && (
-              <Text style={[styles.description, { color: c.textPrimary }]}>{restaurant.description}</Text>
-            )}
-
-            <View style={styles.metaRow}>
-              <Text style={[styles.metaText, { color: c.textTertiary }]}>
-                제안: {restaurant.suggestedBy.nickname}
-              </Text>
-              <Text style={[styles.metaText, { color: c.textTertiary }]}>
-                {new Date(restaurant.createdAt).toLocaleDateString()}
-              </Text>
-            </View>
-          </View>
-
-          {/* 방문 기록 */}
-          {activeComments.length > 0 && (
-            <View style={[styles.visitLogSection, { borderTopColor: c.background }]}>
-              <Text style={[styles.sectionTitle, { color: c.textPrimary }]}>
-                방문 기록 {activeComments.length}개
-              </Text>
-
-              {activeComments.map((item) => (
-                <View key={item.id} style={[styles.visitLogItem, { borderBottomColor: c.divider }]}>
-                  <View style={styles.visitLogHeader}>
-                    <View style={styles.visitLogAuthorRow}>
-                      <Text style={[styles.visitLogAuthor, { color: c.textPrimary }]}>{item.user.nickname}</Text>
-                      {item.userVisitCount > 0 && (
-                        <View style={[styles.visitBadge, { backgroundColor: c.chipBg }]}>
-                          <Text style={[styles.visitBadgeText, { color: c.textTertiary }]}>
-                            {item.userVisitCount}번 방문
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                    <Text style={[styles.visitLogDate, { color: c.textTertiary }]}>
-                      {new Date(item.createdAt).toLocaleDateString()}
-                    </Text>
+          onEndReached={loadMoreComments}
+          onEndReachedThreshold={0.3}
+          ListHeaderComponent={
+            <>
+              {/* 메인 이미지 */}
+              {(() => {
+                const allImages = restaurant.images.length > 0
+                  ? restaurant.images
+                  : restaurant.thumbnailImage
+                    ? [restaurant.thumbnailImage]
+                    : searchImages;
+                return allImages.length > 0 ? (
+                  <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false}>
+                    {allImages.map((uri, i) => (
+                      <Image key={i} source={{ uri }} style={[styles.mainImage, { backgroundColor: c.imagePlaceholderBg }]} contentFit="cover" />
+                    ))}
+                  </ScrollView>
+                ) : (
+                  <View style={[styles.mainImage, styles.imagePlaceholder]}>
+                    <CategoryPlaceholder
+                      icon={placeCategories.find(cat => cat.id === restaurant.placeCategoryId)?.icon}
+                      size={Dimensions.get('window').width}
+                      iconScale={0.2}
+                    />
                   </View>
-                  {item.images?.length > 0 && (
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.visitLogImageRow}>
-                      {item.images.map((img, idx) => (
-                        <TouchableOpacity key={idx} onPress={() => setViewerImage(img)} activeOpacity={0.9}>
-                          <Image source={{ uri: img }} style={styles.visitLogImage} contentFit="cover" />
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-                  )}
-                  {(item.content || item.tags?.length > 0) && (
-                    <TaggedContent content={item.content} tags={item.tags} />
+                );
+              })()}
+
+              {/* 기본 정보 */}
+              <View style={[styles.infoSection, { borderBottomColor: c.background }]}>
+                <View style={styles.header}>
+                  <View style={styles.titleRow}>
+                    <Text style={[styles.name, { color: c.textPrimary }]}>{restaurant.name}</Text>
+                    {restaurant.category && (
+                      <Text style={[styles.category, { backgroundColor: c.categoryBadgeBg, color: c.categoryBadgeText }]}>{restaurant.category}</Text>
+                    )}
+                  </View>
+                  <View style={styles.actions}>
+                    <Text style={[styles.visitCountBadge, { color: c.textSecondary }]}>방문 {restaurant.visitCount}회</Text>
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  style={styles.naverMapLink}
+                  onPress={handleOpenNaverMap}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="navigate-outline" size={16} color="#1EC800" />
+                  <Text style={[styles.naverMapLinkText, { color: c.textSecondary }]}>길찾기</Text>
+                  <Ionicons name="open-outline" size={12} color={c.textDisabled} />
+                </TouchableOpacity>
+
+                {restaurant.description && (
+                  <Text style={[styles.description, { color: c.textPrimary }]}>{restaurant.description}</Text>
+                )}
+
+                <View style={styles.metaRow}>
+                  <Text style={[styles.metaText, { color: c.textTertiary }]}>
+                    제안: {restaurant.suggestedBy.nickname}
+                  </Text>
+                  <Text style={[styles.metaText, { color: c.textTertiary }]}>
+                    {new Date(restaurant.createdAt).toLocaleDateString()}
+                  </Text>
+                </View>
+              </View>
+
+              {/* 방문 기록 타이틀 */}
+              {activeComments.length > 0 && (
+                <View style={[styles.visitLogSection, { borderTopColor: c.background }]}>
+                  <Text style={[styles.sectionTitle, { color: c.textPrimary }]}>
+                    방문 기록 {activeComments.length}개
+                  </Text>
+                </View>
+              )}
+            </>
+          }
+          renderItem={({ item }) => (
+            <View style={[styles.visitLogItem, { borderBottomColor: c.divider, marginHorizontal: 20 }]}>
+              <View style={styles.visitLogHeader}>
+                <View style={styles.visitLogAuthorRow}>
+                  <Text style={[styles.visitLogAuthor, { color: c.textPrimary }]}>{item.user.nickname}</Text>
+                  {item.userVisitCount > 0 && (
+                    <View style={[styles.visitBadge, { backgroundColor: c.chipBg }]}>
+                      <Text style={[styles.visitBadgeText, { color: c.textTertiary }]}>
+                        {item.userVisitCount}번 방문
+                      </Text>
+                    </View>
                   )}
                 </View>
-              ))}
+                <Text style={[styles.visitLogDate, { color: c.textTertiary }]}>
+                  {new Date(item.createdAt).toLocaleDateString()}
+                </Text>
+              </View>
+              {item.images?.length > 0 && (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.visitLogImageRow}>
+                  {item.images.map((img, idx) => (
+                    <TouchableOpacity key={idx} onPress={() => setViewerImage(img)} activeOpacity={0.9}>
+                      <Image source={{ uri: img }} style={styles.visitLogImage} contentFit="cover" />
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              )}
+              {(item.content || item.tags?.length > 0) && (
+                <TaggedContent content={item.content} tags={item.tags} />
+              )}
             </View>
           )}
-        </ScrollView>
+          ListFooterComponent={
+            loadingMore ? (
+              <View style={styles.loadingMoreWrap}>
+                <ActivityIndicator size="small" color={c.textDisabled} />
+              </View>
+            ) : null
+          }
+        />
 
         {/* 하단 고정: 방문 인증 */}
         <View style={[styles.bottomBar, { backgroundColor: c.surface, borderTopColor: c.divider }]}>
@@ -267,12 +292,10 @@ export default function RestaurantDetailScreen() {
                 : { backgroundColor: c.primary },
             ]}
             onPress={handleVisit}
-            disabled={restaurant.isVisited || visitLoading}
+            disabled={restaurant.isVisited}
             activeOpacity={0.8}
           >
-            {visitLoading ? (
-              <ActivityIndicator size="small" color={restaurant.isVisited ? c.textSecondary : '#fff'} />
-            ) : restaurant.isVisited ? (
+            {restaurant.isVisited ? (
               <>
                 <Ionicons name="checkmark-circle" size={16} color="#4CAF50" />
                 <Text style={[styles.bottomButtonText, { color: c.textSecondary }]}>오늘 인증 완료</Text>
@@ -306,7 +329,6 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  scrollView: { flex: 1 },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
   mainImage: { width: SCREEN_WIDTH, height: 280 },
@@ -327,8 +349,9 @@ const styles = StyleSheet.create({
   metaText: { fontSize: 12 },
 
   // 방문 기록
-  visitLogSection: { padding: 20, borderTopWidth: 8 },
-  sectionTitle: { fontSize: 18, fontWeight: '700', marginBottom: 16 },
+  visitLogSection: { paddingHorizontal: 20, paddingTop: 20, borderTopWidth: 8 },
+  sectionTitle: { fontSize: 18, fontWeight: '700' },
+  loadingMoreWrap: { paddingVertical: 20, alignItems: 'center' },
   visitLogItem: { paddingVertical: 16, borderBottomWidth: 0.5 },
   visitLogHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   visitLogAuthorRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },

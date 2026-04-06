@@ -178,13 +178,12 @@ export default function VisitReviewScreen() {
 
       successTap();
       showSuccess('방문 인증 완료!');
-      router.replace(`/restaurant/${result.restaurantId}`);
+      router.back();
     } catch (error: unknown) {
       const msg = getErrorMessage(error, '방문 인증 중 오류가 발생했습니다.');
       if (msg.includes('이미') && msg.includes('방문')) {
         showError('이미 방문 완료', '오늘 이미 방문 인증한 장소입니다.');
-        const rid = params.restaurantId ? Number(params.restaurantId) : null;
-        if (rid) router.replace(`/restaurant/${rid}`);
+        router.back();
       } else {
         showError('방문 인증 실패', msg);
       }
@@ -195,21 +194,10 @@ export default function VisitReviewScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: c.background }]}>
-      {/* 헤더 */}
-      <View style={[styles.header, { paddingTop: insets.top + 8, backgroundColor: c.background, borderBottomColor: c.divider }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.7}>
-          <Ionicons name="chevron-back" size={24} color={c.textPrimary} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: c.textPrimary }]}>방문 인증</Text>
-        <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>
-          <Text style={[styles.skipText, { color: c.textTertiary }]}>취소</Text>
-        </TouchableOpacity>
-      </View>
-
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={insets.top + 56}
+        keyboardVerticalOffset={insets.top + 44}
       >
         <ScrollView
           ref={scrollRef}
@@ -336,16 +324,6 @@ export default function VisitReviewScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    borderBottomWidth: 0.5,
-  },
-  backBtn: { marginRight: 8 },
-  headerTitle: { flex: 1, fontSize: 17, fontWeight: '600' },
-  skipText: { fontSize: 14, fontWeight: '500' },
   body: { flex: 1 },
   bodyContent: { padding: 16 },
   placeCard: {

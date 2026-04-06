@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { Restaurant, PlaceCategory } from '../types';
 import { searchPlaceImage } from '../api/search';
 import { useTheme } from '../hooks/useTheme';
@@ -19,12 +18,15 @@ interface Props {
 export function RestaurantCard({ item, badge, index = 0, placeCategories }: Props) {
   const c = useTheme();
   const [imageUri, setImageUri] = useState<string | null>(item.thumbnailImage);
+  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
     if (!item.thumbnailImage) {
       searchPlaceImage(item.name).then(setImageUri);
     }
   }, [item.name, item.thumbnailImage]);
+
+  const showPlaceholder = !imageUri || imageError;
 
   return (
     <View>
@@ -33,18 +35,19 @@ export function RestaurantCard({ item, badge, index = 0, placeCategories }: Prop
         onPress={() => { lightTap(); router.push(`/restaurant/${item.id}`); }}
         activeOpacity={0.8}
       >
-        {imageUri ? (
+        {showPlaceholder ? (
+          <CategoryPlaceholder
+            icon={placeCategories?.find(cat => cat.id === item.placeCategoryId)?.icon}
+            size={90}
+          />
+        ) : (
           <Image
             source={{ uri: imageUri }}
             style={[styles.thumbnail, { backgroundColor: c.imagePlaceholderBg }]}
             contentFit="cover"
             transition={200}
             cachePolicy="memory-disk"
-          />
-        ) : (
-          <CategoryPlaceholder
-            icon={placeCategories?.find(cat => cat.id === item.placeCategoryId)?.icon}
-            size={90}
+            onError={() => setImageError(true)}
           />
         )}
         <View style={styles.content}>
@@ -75,10 +78,6 @@ const styles = StyleSheet.create({
   thumbnail: {
     width: 90,
     height: 90,
-  },
-  thumbnailPlaceholder: {
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   content: {
     flex: 1,

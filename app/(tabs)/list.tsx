@@ -1,6 +1,6 @@
 import { StyleSheet, View, Text, FlatList, TouchableOpacity, RefreshControl, TextInput, ScrollView, Keyboard, TouchableWithoutFeedback } from 'react-native';
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { setItem, getItem } from '../../utils/secureStorage';
 import { MapListTabHeader } from '../../components/TabHeader';
 import { Ionicons } from '@expo/vector-icons';
@@ -92,7 +92,9 @@ export default function ListScreen() {
     hasNextPage,
     isFetchingNextPage,
     isLoading,
+    isFetching,
     isRefetching,
+    isPlaceholderData,
   } = useInfiniteQuery({
     queryKey: ['restaurants', selectedCategoryId, debouncedSearch, sortBy, selectedTags, selectedGroupId],
     queryFn: async ({ pageParam = 0 }) => {
@@ -110,14 +112,20 @@ export default function ListScreen() {
     },
     initialPageParam: 0,
     getNextPageParam: (lastPage, _, lastPageParam) =>
-      lastPage.last ? undefined : lastPageParam + 1,
+      selectedGroupId ? undefined : (lastPage.last ? undefined : lastPageParam + 1),
     enabled: restoredFilter,
+    placeholderData: keepPreviousData,
   });
 
-  const restaurants = useMemo(
-    () => data?.pages.flatMap(page => page.content) ?? [],
-    [data]
-  );
+  const restaurants = useMemo(() => {
+    const all = data?.pages.flatMap(page => page.content) ?? [];
+    const seen = new Set<number>();
+    return all.filter(item => {
+      if (seen.has(item.id)) return false;
+      seen.add(item.id);
+      return true;
+    });
+  }, [data]);
 
   const totalElements = data?.pages[0]?.totalElements ?? 0;
 
@@ -232,14 +240,14 @@ export default function ListScreen() {
       <FlatList
         data={restaurants}
         keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item, index }) => <RestaurantCard item={item} index={index} />}
+        renderItem={({ item, index }) => <RestaurantCard item={item} index={index} placeCategories={placeCategoryList} />}
         contentContainerStyle={styles.listContent}
         keyboardDismissMode="on-drag"
         refreshControl={<RefreshControl refreshing={isRefetching && !isFetchingNextPage} onRefresh={onRefresh} colors={[c.primary]} />}
         onEndReached={loadMore}
         onEndReachedThreshold={0.3}
         ListEmptyComponent={
-          !isLoading ? (
+          !isLoading && !isFetching && !isPlaceholderData ? (
             <View style={styles.empty}>
               <Ionicons name="search-outline" size={48} color={c.textDisabled} />
               <Text style={[styles.emptyTitle, { color: c.textSecondary }]}>장소를 찾을 수 없습니다</Text>
