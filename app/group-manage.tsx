@@ -230,6 +230,20 @@ export default function GroupManageScreen() {
           </View>
         )}
 
+        {/* 점심 투표 */}
+        <TouchableOpacity
+          style={[styles.locationRow, { backgroundColor: c.cardBg, borderBottomColor: c.divider }]}
+          onPress={() => { lightTap(); router.push({ pathname: '/lunch-vote', params: { groupId: String(selectedGroup.id), groupName: selectedGroup.name } }); }}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="restaurant-outline" size={18} color={c.primary} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 14, fontWeight: '500', color: c.textPrimary }}>점심 투표</Text>
+            <Text style={{ fontSize: 12, color: c.textTertiary, marginTop: 2 }}>오늘 점심 어디 갈까요?</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={c.textDisabled} />
+        </TouchableOpacity>
+
         {/* 기본 위치 설정 (그룹장만) */}
         {isLeader && (
           <TouchableOpacity

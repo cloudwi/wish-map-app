@@ -40,17 +40,10 @@ export default function MySuggestionsScreen() {
           data={restaurants}
           keyExtractor={(item) => item.id.toString()}
           renderItem={({ item, index }) => (
-            <View>
-              <RestaurantCard
-                item={item}
-                index={index}
-              />
-              {item.lastVisitedAt && (
-                <Text style={[styles.visitDate, { color: c.textTertiary }]}>
-                  마지막 방문 {new Date(item.lastVisitedAt).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}
-                </Text>
-              )}
-            </View>
+            <RestaurantCard
+              item={item}
+              index={index}
+            />
           )}
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={

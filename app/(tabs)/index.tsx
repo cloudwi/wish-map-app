@@ -44,6 +44,7 @@ export default function MapScreen() {
   const [placeCategories, setPlaceCategories] = useState<PlaceCategory[]>([]);
   const [categoryFilter, setCategoryFilter] = useState<number | null>(null);
   const [statsRefreshKey, setStatsRefreshKey] = useState(0);
+  const [recommendedPlace, setRecommendedPlace] = useState<Restaurant | null>(null);
 
   // 화면 포커스 시 stats 재조회 트리거 (방문 인증 후 돌아올 때)
   useFocusEffect(useCallback(() => {
@@ -288,6 +289,17 @@ export default function MapScreen() {
     });
   }, [isAuthenticated, userLocation, clearSearch]);
 
+  const handleRecommend = useCallback(() => {
+    mediumTap();
+    if (restaurants.length === 0) {
+      showError('추천 불가', '주변에 등록된 장소가 없습니다.');
+      return;
+    }
+    const pick = restaurants[Math.floor(Math.random() * restaurants.length)];
+    setRecommendedPlace(pick);
+    mapRef.current?.animateCameraTo({ latitude: pick.lat, longitude: pick.lng, zoom: 16 });
+  }, [restaurants]);
+
   const renderListItem = useCallback(({ item, index }: { item: Restaurant; index: number }) => (
     <RestaurantCard item={item} index={index} placeCategories={placeCategories} />
   ), [placeCategories]);
@@ -350,6 +362,40 @@ export default function MapScreen() {
           >
             <Ionicons name="refresh-outline" size={16} color="#fff" />
             <Text style={styles.researchText}>현재 지도에서 재검색</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* 추천 버튼 */}
+      <TouchableOpacity
+        style={[styles.recommendBtn, { backgroundColor: c.primary, top: insets.top + (isAuthenticated ? 100 : 60) }]}
+        onPress={handleRecommend}
+        activeOpacity={0.85}
+      >
+        <Ionicons name="dice-outline" size={20} color="#fff" />
+      </TouchableOpacity>
+
+      {/* 추천 결과 카드 */}
+      {recommendedPlace && (
+        <View style={[styles.recommendCard, { backgroundColor: c.cardBg, top: insets.top + (isAuthenticated ? 144 : 104) }]}>
+          <TouchableOpacity
+            style={styles.recommendCardContent}
+            onPress={() => { handleMarkerClick(recommendedPlace); setRecommendedPlace(null); }}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="restaurant" size={20} color={c.primary} />
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.recommendName, { color: c.textPrimary }]} numberOfLines={1}>{recommendedPlace.name}</Text>
+              <Text style={[styles.recommendMeta, { color: c.textTertiary }]} numberOfLines={1}>
+                {recommendedPlace.category ? `${recommendedPlace.category} · ` : ''}방문 {recommendedPlace.visitCount}회
+              </Text>
+            </View>
+            <TouchableOpacity onPress={handleRecommend} style={styles.rerollBtn}>
+              <Ionicons name="refresh" size={18} color={c.primary} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setRecommendedPlace(null)}>
+              <Ionicons name="close" size={18} color={c.textDisabled} />
+            </TouchableOpacity>
           </TouchableOpacity>
         </View>
       )}
@@ -484,4 +530,42 @@ const styles = StyleSheet.create({
   listTitle: { fontSize: 15, fontWeight: '600' },
   listContent: { paddingHorizontal: 16, paddingBottom: 120 },
   emptyText: { textAlign: 'center', paddingVertical: 30, fontSize: 14 },
+
+  // 추천
+  recommendBtn: {
+    position: 'absolute',
+    right: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+    zIndex: 9,
+  },
+  recommendCard: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 4,
+    zIndex: 11,
+  },
+  recommendCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    gap: 10,
+  },
+  recommendName: { fontSize: 15, fontWeight: '600' },
+  recommendMeta: { fontSize: 12, marginTop: 2 },
+  rerollBtn: { padding: 4 },
 });

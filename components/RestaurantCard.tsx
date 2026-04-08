@@ -61,6 +61,11 @@ export function RestaurantCard({ item, badge, index = 0, placeCategories }: Prop
             )}
             <Text style={[styles.likes, { color: c.primary }]}>방문 {item.visitCount}회</Text>
           </View>
+          {item.lastVisitedAt && (
+            <Text style={[styles.visitDate, { color: c.textTertiary }]}>
+              마지막 방문 {new Date(item.lastVisitedAt).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}
+            </Text>
+          )}
         </View>
       </TouchableOpacity>
     </View>
@@ -108,5 +113,9 @@ const styles = StyleSheet.create({
   },
   likes: {
     fontSize: 13,
+  },
+  visitDate: {
+    fontSize: 11,
+    marginTop: 6,
   },
 });

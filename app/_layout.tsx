@@ -48,9 +48,14 @@ export default function RootLayout() {
       registerForPushNotifications();
     }
 
-    const sub = addNotificationResponseListener(() => {
+    const sub = addNotificationResponseListener((response: any) => {
       const { router } = require('expo-router');
-      router.push('/notifications');
+      const data = response?.notification?.request?.content?.data;
+      if (data?.type === 'LUNCH_VOTE_CREATED' || data?.type === 'LUNCH_VOTE_CLOSED') {
+        router.push({ pathname: '/lunch-vote', params: { groupId: data.referenceId } });
+      } else {
+        router.push('/notifications');
+      }
     });
     return () => sub?.remove?.();
   }, []);
@@ -84,6 +89,7 @@ export default function RootLayout() {
         <Stack.Screen name="friends" options={{ title: '친구' }} />
         <Stack.Screen name="visit-review" options={{ title: '방문 인증' }} />
         <Stack.Screen name="group-manage" options={{ headerShown: false }} />
+        <Stack.Screen name="lunch-vote" options={{ title: '점심 투표' }} />
       </Stack>
       <Toast config={toastConfig} topOffset={60} autoHide visibilityTime={2000} position="bottom" bottomOffset={100} swipeable={false} />
       <ForceUpdateModal visible={forceUpdate} />
