@@ -98,7 +98,7 @@ export default function VisitReviewScreen() {
         mediaTypes: ['images'],
         allowsMultipleSelection: true,
         selectionLimit: 5 - images.length,
-        quality: 0.7,
+        quality: 0.9,
       });
       if (!result.canceled) {
         const newImages = [...images, ...result.assets.map(a => a.uri)].slice(0, 5);

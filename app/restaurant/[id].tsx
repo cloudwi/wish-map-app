@@ -331,7 +331,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
-  mainImage: { width: SCREEN_WIDTH, height: 280 },
+  mainImage: { width: SCREEN_WIDTH, aspectRatio: 4 / 3 },
   imagePlaceholder: { justifyContent: 'center', alignItems: 'center' },
 
   infoSection: { padding: 20, borderBottomWidth: 8 },
@@ -360,7 +360,7 @@ const styles = StyleSheet.create({
   visitBadgeText: { fontSize: 11, fontWeight: '500' },
   visitLogDate: { fontSize: 11 },
   visitLogImageRow: { marginBottom: 10 },
-  visitLogImage: { width: 140, height: 140, borderRadius: 10, marginRight: 8 },
+  visitLogImage: { height: 160, aspectRatio: 3 / 4, borderRadius: 10, marginRight: 8 },
 
   // 이미지 뷰어
   viewerOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center', alignItems: 'center' },
