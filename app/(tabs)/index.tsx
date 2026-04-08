@@ -291,14 +291,24 @@ export default function MapScreen() {
 
   const handleRecommend = useCallback(() => {
     mediumTap();
-    if (restaurants.length === 0) {
-      showError('추천 불가', '주변에 등록된 장소가 없습니다.');
+    if (!userLocation) {
+      showError('위치 필요', '현재 위치를 확인할 수 없습니다.');
       return;
     }
-    const pick = restaurants[Math.floor(Math.random() * restaurants.length)];
+    // 300m 이내 맛집만 필터
+    const nearby = restaurants.filter((r) => {
+      const dLat = (r.lat - userLocation.latitude) * 111000;
+      const dLng = (r.lng - userLocation.longitude) * 111000 * Math.cos(userLocation.latitude * Math.PI / 180);
+      return Math.sqrt(dLat * dLat + dLng * dLng) <= 300;
+    });
+    if (nearby.length === 0) {
+      showError('추천 불가', '300m 이내에 등록된 장소가 없습니다.');
+      return;
+    }
+    const pick = nearby[Math.floor(Math.random() * nearby.length)];
     setRecommendedPlace(pick);
     mapRef.current?.animateCameraTo({ latitude: pick.lat, longitude: pick.lng, zoom: 16 });
-  }, [restaurants]);
+  }, [restaurants, userLocation]);
 
   const renderListItem = useCallback(({ item, index }: { item: Restaurant; index: number }) => (
     <RestaurantCard item={item} index={index} placeCategories={placeCategories} />

@@ -245,11 +245,11 @@ export default function LunchVoteScreen() {
       <Modal visible={showAddModal} animationType="slide" presentationStyle="pageSheet">
         <View style={[styles.modalContainer, { backgroundColor: c.background }]}>
           <View style={[styles.modalHeader, { borderBottomColor: c.border }]}>
-            <TouchableOpacity onPress={() => setShowAddModal(false)}>
-              <Ionicons name="close" size={24} color={c.textPrimary} />
+            <TouchableOpacity onPress={() => setShowAddModal(false)} style={{ padding: 4 }}>
+              <Ionicons name="close" size={26} color={c.textPrimary} />
             </TouchableOpacity>
             <Text style={[styles.modalTitle, { color: c.textPrimary }]}>맛집 추가</Text>
-            <View style={{ width: 24 }} />
+            <View style={{ width: 34 }} />
           </View>
           <View style={[styles.searchWrap, { backgroundColor: c.searchBg }]}>
             <Ionicons name="search-outline" size={18} color={c.textTertiary} />
@@ -284,7 +284,9 @@ export default function LunchVoteScreen() {
                 >
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.searchItemName, { color: c.textPrimary }]}>{item.name}</Text>
-                    {item.category && <Text style={[styles.searchItemCategory, { color: c.textTertiary }]}>{item.category}</Text>}
+                    <Text style={[styles.searchItemCategory, { color: c.textTertiary }]}>
+                      {item.category ? `${item.category} · ` : ''}방문 {item.visitCount}회
+                    </Text>
                   </View>
                   {alreadyAdded ? (
                     <Ionicons name="checkmark-circle" size={22} color={c.textDisabled} />
@@ -350,16 +352,15 @@ function CandidateCard({ candidate, isMyVote, isClosed, isWinner, onVote, c }: {
           )}
         </View>
         <View style={styles.voteCountWrap}>
+          {isMyVote && !isClosed && (
+            <View style={[styles.myVoteBadge, { backgroundColor: c.primary }]}>
+              <Ionicons name="checkmark" size={10} color="#fff" />
+            </View>
+          )}
           <Text style={[styles.voteCountNum, { color: isMyVote ? c.primary : c.textSecondary }]}>{candidate.voteCount}</Text>
           <Text style={[styles.voteCountLabel, { color: c.textDisabled }]}>표</Text>
         </View>
       </View>
-      {isMyVote && !isClosed && (
-        <View style={[styles.myVoteBadge, { backgroundColor: c.primary }]}>
-          <Ionicons name="checkmark" size={12} color="#fff" />
-          <Text style={styles.myVoteBadgeText}>내 투표</Text>
-        </View>
-      )}
     </TouchableOpacity>
   );
 }
@@ -398,11 +399,10 @@ const styles = StyleSheet.create({
   candidateName: { fontSize: 15, fontWeight: '600', flex: 1 },
   candidateCategory: { fontSize: 12 },
   voterNames: { fontSize: 11, marginTop: 2 },
-  voteCountWrap: { alignItems: 'center', minWidth: 36 },
+  voteCountWrap: { alignItems: 'center', minWidth: 36, gap: 2 },
   voteCountNum: { fontSize: 20, fontWeight: '700' },
   voteCountLabel: { fontSize: 11 },
-  myVoteBadge: { position: 'absolute', top: -10, right: 8, flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
-  myVoteBadgeText: { fontSize: 10, fontWeight: '600', color: '#fff' },
+  myVoteBadge: { width: 18, height: 18, borderRadius: 9, justifyContent: 'center', alignItems: 'center' },
   emptyCandidates: { padding: 40, alignItems: 'center' },
   emptyCandidatesText: { fontSize: 14 },
 
