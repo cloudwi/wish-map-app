@@ -180,7 +180,7 @@ export default function RestaurantDetailScreen() {
                 return allImages.length > 0 ? (
                   <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false}>
                     {allImages.map((uri, i) => (
-                      <Image key={i} source={{ uri }} style={[styles.mainImage, { backgroundColor: c.imagePlaceholderBg }]} contentFit="cover" />
+                      <Image key={i} source={{ uri }} style={[styles.mainImage, { backgroundColor: c.imagePlaceholderBg }]} contentFit="contain" />
                     ))}
                   </ScrollView>
                 ) : (

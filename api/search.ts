@@ -42,7 +42,7 @@ export async function searchPlaceImage(query: string): Promise<string | null> {
       if (!item) { imageCache.set(query, null); return null; }
       // thumbnail: 네이버 HTTPS 프록시 (항상 안전), b150→b400으로 고화질
       const url = (item.thumbnail || item.link || '')
-        .replace('type=b150', 'type=m1000') || null;
+        .replace('type=b150', 'type=b400') || null;
       imageCache.set(query, url);
       return url;
     } catch {

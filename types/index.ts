@@ -106,6 +106,7 @@ export interface Restaurant {
   weeklyChampion: string | null;
   priceRange: PriceRange | null;
   placeCategoryId: number | null;
+  lastVisitedAt: string | null;
 }
 
 export interface RestaurantDetail extends Restaurant {

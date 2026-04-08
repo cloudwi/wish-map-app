@@ -1,4 +1,5 @@
 import { StyleSheet, View, Text, FlatList, TouchableOpacity } from 'react-native';
+
 import { useState, useEffect } from 'react';
 import { router, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -39,10 +40,17 @@ export default function MySuggestionsScreen() {
           data={restaurants}
           keyExtractor={(item) => item.id.toString()}
           renderItem={({ item, index }) => (
-            <RestaurantCard
-              item={item}
-              index={index}
-            />
+            <View>
+              <RestaurantCard
+                item={item}
+                index={index}
+              />
+              {item.lastVisitedAt && (
+                <Text style={[styles.visitDate, { color: c.textTertiary }]}>
+                  마지막 방문 {new Date(item.lastVisitedAt).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}
+                </Text>
+              )}
+            </View>
           )}
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={
@@ -72,4 +80,5 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: 16, fontWeight: '600' },
   suggestBtn: { backgroundColor: '#E8590C', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8 },
   suggestBtnText: { color: '#fff', fontSize: 15, fontWeight: '600' },
+  visitDate: { fontSize: 12, paddingHorizontal: 16, paddingBottom: 12, marginTop: -4 },
 });

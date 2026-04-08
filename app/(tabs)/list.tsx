@@ -19,8 +19,6 @@ const KOREA_BOUNDS = { minLat: 33, maxLat: 38.5, minLng: 124, maxLng: 132 };
 const PAGE_SIZE = 20;
 const SEARCH_DEBOUNCE_MS = 400;
 
-type SortBy = 'latest' | 'visits';
-
 export default function ListScreen() {
   const c = useTheme();
   const queryClient = useQueryClient();
@@ -30,7 +28,7 @@ export default function ListScreen() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [sortBy, setSortBy] = useState<SortBy>('latest');
+  const sortBy = 'visits';
   const [restoredFilter, setRestoredFilter] = useState(false);
 
   // 카테고리 목록
@@ -222,18 +220,9 @@ export default function ListScreen() {
         </ScrollView>
       )}
 
-      {/* 정렬 */}
+      {/* 결과 수 */}
       <View style={styles.sortRow}>
         <Text style={[styles.resultCount, { color: c.textSecondary }]}>{totalElements}개</Text>
-        <View style={styles.sortBtns}>
-          {(['latest', 'visits'] as const).map((s) => (
-            <TouchableOpacity key={s} style={[styles.sortBtn, sortBy === s && { backgroundColor: c.chipBg }]} onPress={() => { lightTap(); setSortBy(s); }}>
-              <Text style={[styles.sortText, { color: sortBy === s ? c.textPrimary : c.textDisabled }, sortBy === s && { fontWeight: '600' }]}>
-                {s === 'latest' ? '최신순' : '방문 많은 순'}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
       </View>
 
       {/* 리스트 */}
