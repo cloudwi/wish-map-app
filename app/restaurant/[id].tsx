@@ -124,6 +124,15 @@ export default function RestaurantDetailScreen() {
   if (loading) {
     return (
       <View style={[styles.container, { backgroundColor: c.surface }]}>
+        <Stack.Screen
+          options={{
+            title: '',
+            headerStyle: { backgroundColor: c.headerBg },
+            headerTintColor: c.textPrimary,
+            headerShadowVisible: false,
+            headerBackButtonDisplayMode: 'minimal',
+          }}
+        />
         <Skeleton width="100%" height={280} borderRadius={0} />
         <View style={styles.skeletonInfo}>
           <View style={styles.skeletonTitleRow}>
@@ -140,6 +149,15 @@ export default function RestaurantDetailScreen() {
   if (!restaurant) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: c.surface }]}>
+        <Stack.Screen
+          options={{
+            title: '',
+            headerStyle: { backgroundColor: c.headerBg },
+            headerTintColor: c.textPrimary,
+            headerShadowVisible: false,
+            headerBackButtonDisplayMode: 'minimal',
+          }}
+        />
         <Ionicons name="alert-circle-outline" size={48} color={c.textDisabled} />
         <Text style={{ color: c.textSecondary, marginTop: 12 }}>장소 정보를 찾을 수 없습니다.</Text>
       </View>

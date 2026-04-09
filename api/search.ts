@@ -63,7 +63,9 @@ export async function searchPlaceImages(query: string, count = 5): Promise<strin
     const { data } = await apiClient.get('/search/images', {
       params: { query, display: count },
     });
-    return (data.items || []).map((item: any) => item.link || item.thumbnail).filter(Boolean);
+    return (data.items || [])
+      .map((item: any) => (item.thumbnail || item.link || '').replace('type=b150', 'type=m1500'))
+      .filter(Boolean);
   } catch {
     return [];
   }

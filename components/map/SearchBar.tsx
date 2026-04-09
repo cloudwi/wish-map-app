@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { StyleSheet, View, Text, TextInput, ActivityIndicator, TouchableOpacity, FlatList } from 'react-native';
+import { StyleSheet, View, Text, TextInput, ActivityIndicator, TouchableOpacity, FlatList, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { PlaceResult } from '../../api/search';
 import { useTheme } from '../../hooks/useTheme';
@@ -108,47 +108,49 @@ export function SearchBar({
       {/* 카테고리 드롭다운 */}
       {categoryDropdownOpen && (
         <View style={[styles.dropdown, { backgroundColor: c.surface, shadowColor: '#000' }]}>
-          <TouchableOpacity
-            style={[styles.dropdownItem, { borderBottomColor: c.divider }]}
-            onPress={() => handleCategorySelect(null)}
-            activeOpacity={0.6}
-          >
-            <Text style={[
-              styles.dropdownText,
-              { color: c.textPrimary },
-              selectedCategoryId == null && { color: c.primary, fontWeight: '600' },
-            ]}>전체</Text>
-            {selectedCategoryId == null && <Ionicons name="checkmark" size={16} color={c.primary} />}
-          </TouchableOpacity>
-          {placeCategories.map((cat) => {
-            const isSelected = selectedCategoryId === cat.id;
-            return (
-              <TouchableOpacity
-                key={cat.id}
-                style={[styles.dropdownItem, { borderBottomColor: c.divider }]}
-                onPress={() => handleCategorySelect(cat.id)}
-                activeOpacity={0.6}
-              >
-                <Text style={[
-                  styles.dropdownText,
-                  { color: c.textPrimary },
-                  isSelected && { color: c.primary, fontWeight: '600' },
-                ]}>
-                  {cat.name}
-                </Text>
-                {isSelected && <Ionicons name="checkmark" size={16} color={c.primary} />}
-              </TouchableOpacity>
-            );
-          })}
-          {selectedCategoryId != null && (
+          <ScrollView style={styles.dropdownScroll} bounces={false}>
             <TouchableOpacity
-              style={[styles.dropdownItem, { borderBottomWidth: 0 }]}
+              style={[styles.dropdownItem, { borderBottomColor: c.divider }]}
               onPress={() => handleCategorySelect(null)}
               activeOpacity={0.6}
             >
-              <Text style={[styles.dropdownText, { color: c.error }]}>필터 해제</Text>
+              <Text style={[
+                styles.dropdownText,
+                { color: c.textPrimary },
+                selectedCategoryId == null && { color: c.primary, fontWeight: '600' },
+              ]}>전체</Text>
+              {selectedCategoryId == null && <Ionicons name="checkmark" size={16} color={c.primary} />}
             </TouchableOpacity>
-          )}
+            {[...placeCategories].sort((a, b) => (b.customOnly ? 1 : 0) - (a.customOnly ? 1 : 0)).map((cat) => {
+              const isSelected = selectedCategoryId === cat.id;
+              return (
+                <TouchableOpacity
+                  key={cat.id}
+                  style={[styles.dropdownItem, { borderBottomColor: c.divider }]}
+                  onPress={() => handleCategorySelect(cat.id)}
+                  activeOpacity={0.6}
+                >
+                  <Text style={[
+                    styles.dropdownText,
+                    { color: c.textPrimary },
+                    isSelected && { color: c.primary, fontWeight: '600' },
+                  ]}>
+                    {cat.name}
+                  </Text>
+                  {isSelected && <Ionicons name="checkmark" size={16} color={c.primary} />}
+                </TouchableOpacity>
+              );
+            })}
+            {selectedCategoryId != null && (
+              <TouchableOpacity
+                style={[styles.dropdownItem, { borderBottomWidth: 0 }]}
+                onPress={() => handleCategorySelect(null)}
+                activeOpacity={0.6}
+              >
+                <Text style={[styles.dropdownText, { color: c.error }]}>필터 해제</Text>
+              </TouchableOpacity>
+            )}
+          </ScrollView>
         </View>
       )}
 
@@ -240,6 +242,10 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 4,
     overflow: 'hidden',
+    maxHeight: 360,
+  },
+  dropdownScroll: {
+    flexGrow: 0,
   },
   dropdownItem: {
     flexDirection: 'row',
