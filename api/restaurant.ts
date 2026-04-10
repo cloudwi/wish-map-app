@@ -43,7 +43,7 @@ export interface RestaurantListParams {
 
 export const restaurantApi = {
   // 지도 범위 내 장소 목록 (지도 탭용)
-  getRestaurants: async (bounds: MapBounds, priceRange?: PriceRange, placeCategoryId?: number, page = 0, size = 50): Promise<PageResponse<Restaurant>> => {
+  getRestaurants: async (bounds: MapBounds, priceRange?: PriceRange, placeCategoryId?: number, page = 0, size = 500): Promise<PageResponse<Restaurant>> => {
     const response = await apiClient.get<PageResponse<Restaurant>>('/restaurants', {
       params: {
         minLat: bounds.minLat,
@@ -174,7 +174,7 @@ export const restaurantApi = {
         minLng: bounds.minLng,
         maxLng: bounds.maxLng,
         priceRange: priceRange || undefined,
-        size: 50,
+        size: 500,
       },
     });
     return response.data;

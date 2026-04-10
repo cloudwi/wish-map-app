@@ -43,6 +43,14 @@ export default function MapScreen() {
   const [placeCategories, setPlaceCategories] = useState<PlaceCategory[]>([]);
   const [categoryFilter, setCategoryFilter] = useState<number | null>(null);
   const [statsRefreshKey, setStatsRefreshKey] = useState(0);
+  const PAGE_SIZE = 20;
+  const [listPage, setListPage] = useState(1);
+  const visibleRestaurants = useMemo(() => restaurants.slice(0, listPage * PAGE_SIZE), [restaurants, listPage]);
+  const handleLoadMore = useCallback(() => {
+    if (visibleRestaurants.length < restaurants.length) {
+      setListPage(p => p + 1);
+    }
+  }, [visibleRestaurants.length, restaurants.length]);
 
   // 화면 포커스 시 stats 재조회 트리거 (방문 인증 후 돌아올 때)
   useFocusEffect(useCallback(() => {
@@ -121,6 +129,7 @@ export default function MapScreen() {
         ? await restaurantApi.getGroupRestaurants(groupId, effectiveBounds)
         : await restaurantApi.getRestaurants(bounds, undefined, effectiveCategoryId || undefined);
       setRestaurants(response.content);
+      setListPage(1);
       setShowResearchBtn(false);
     } catch {
       // silently fail – map will show empty state
@@ -411,14 +420,21 @@ export default function MapScreen() {
             <Text style={[styles.listTitle, { color: c.textPrimary }]}>주변 장소 {restaurants.length}개</Text>
           </View>
           <BottomSheetFlatList
-            data={restaurants}
+            data={visibleRestaurants}
             keyExtractor={(item: Restaurant) => item.id.toString()}
             renderItem={renderListItem}
             contentContainerStyle={styles.listContent}
+            onEndReached={handleLoadMore}
+            onEndReachedThreshold={0.5}
             ListEmptyComponent={
               <Text style={[styles.emptyText, { color: c.textSecondary }]}>
                 {loading ? '장소를 불러오는 중...' : '이 지역에 등록된 장소가 없습니다'}
               </Text>
+            }
+            ListFooterComponent={
+              visibleRestaurants.length < restaurants.length ? (
+                <ActivityIndicator size="small" color={c.textDisabled} style={{ paddingVertical: 16 }} />
+              ) : null
             }
           />
         </View>

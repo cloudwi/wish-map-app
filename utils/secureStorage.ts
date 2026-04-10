@@ -10,7 +10,9 @@ export async function setItem(key: string, value: string): Promise<void> {
   if (Platform.OS === 'web') {
     localStorage.setItem(key, value);
   } else {
-    await SecureStore.setItemAsync(key, value);
+    try {
+      await SecureStore.setItemAsync(key, value);
+    } catch {}
   }
 }
 
@@ -18,13 +20,19 @@ export async function getItem(key: string): Promise<string | null> {
   if (Platform.OS === 'web') {
     return localStorage.getItem(key);
   }
-  return SecureStore.getItemAsync(key);
+  try {
+    return await SecureStore.getItemAsync(key);
+  } catch {
+    return null;
+  }
 }
 
 export async function deleteItem(key: string): Promise<void> {
   if (Platform.OS === 'web') {
     localStorage.removeItem(key);
   } else {
-    await SecureStore.deleteItemAsync(key);
+    try {
+      await SecureStore.deleteItemAsync(key);
+    } catch {}
   }
 }

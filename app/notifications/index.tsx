@@ -206,7 +206,11 @@ export default function NotificationsScreen() {
       ) : (
         <FlatList
           data={items}
-          keyExtractor={(item) => item.type === 'friend' ? `f-${item.data.id}` : `g-${item.data.groupId}`}
+          keyExtractor={(item) => {
+            if (item.type === 'friend') return `f-${item.data.id}`;
+            if (item.type === 'group') return `g-${item.data.groupId}`;
+            return `n-${(item.data as NotificationResponse).id}`;
+          }}
           renderItem={renderItem}
           contentContainerStyle={items.length === 0 ? styles.emptyContainer : styles.list}
           ListEmptyComponent={

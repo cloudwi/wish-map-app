@@ -1,4 +1,4 @@
-import { StyleSheet, View, Text, ScrollView, FlatList, TouchableOpacity, Platform, RefreshControl, Linking, Dimensions, Modal, Pressable, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, FlatList, TouchableOpacity, Platform, RefreshControl, Linking, Dimensions, Modal, Pressable, ActivityIndicator, Share } from 'react-native';
 import { Image } from 'expo-image';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLocalSearchParams, Stack, router, useFocusEffect } from 'expo-router';
@@ -119,6 +119,19 @@ export default function RestaurantDetailScreen() {
     });
   };
 
+  const handleShare = async () => {
+    if (!restaurant) return;
+    lightTap();
+    const url = restaurant.naverPlaceId
+      ? `https://m.place.naver.com/place/${restaurant.naverPlaceId}/home`
+      : `https://map.naver.com/v5/search/${encodeURIComponent(restaurant.name)}`;
+    try {
+      await Share.share({
+        message: `${restaurant.name}${restaurant.category ? ` (${restaurant.category})` : ''}\n${url}`,
+      });
+    } catch {}
+  };
+
   const activeComments = comments.filter(r => !r.isDeleted && (r.content || r.tags?.length > 0 || r.images?.length > 0));
 
   if (loading) {
@@ -173,6 +186,14 @@ export default function RestaurantDetailScreen() {
           headerTintColor: c.textPrimary,
           headerShadowVisible: false,
           headerBackButtonDisplayMode: 'minimal',
+          headerRight: ({ tintColor }) => (
+            <TouchableOpacity
+              onPress={handleShare}
+              style={{ width: 36, height: 36, justifyContent: 'center', alignItems: 'center' }}
+            >
+              <Ionicons name="share-outline" size={24} color={tintColor} />
+            </TouchableOpacity>
+          ),
         }}
       />
 

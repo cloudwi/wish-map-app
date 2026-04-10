@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
+import { SymbolView } from 'expo-symbols';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PlaceResult, searchPlaceImage } from '../api/search';
@@ -151,8 +152,14 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
             )}
           </View>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.closeBtn, { backgroundColor: c.closeButtonBg }]} onPress={onClose}>
-          <Ionicons name="close" size={18} color={c.textSecondary} />
+        <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
+          <SymbolView
+            name="xmark.circle.fill"
+            size={34}
+            type="hierarchical"
+            tintColor={c.textDisabled}
+            fallback={<Ionicons name="close-circle" size={28} color={c.textDisabled} />}
+          />
         </TouchableOpacity>
       </View>
 
@@ -230,7 +237,7 @@ const styles = StyleSheet.create({
   visitCount: { fontSize: 12, fontWeight: '600' },
   lastVisitText: { fontSize: 11, marginTop: 4 },
   championText: { fontSize: 12, fontWeight: '500', marginBottom: 8 },
-  closeBtn: { width: 30, height: 30, borderRadius: 15, justifyContent: 'center', alignItems: 'center' },
+  closeBtn: { width: 34, height: 34, justifyContent: 'center', alignItems: 'center' },
   subInfo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
   infoRow: { flexDirection: 'row', alignItems: 'center', gap: 4, flex: 1 },
   infoText: { fontSize: 11, flex: 1 },
