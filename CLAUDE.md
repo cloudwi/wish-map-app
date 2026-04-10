@@ -38,7 +38,6 @@ app/
 ├── group-manage.tsx     # 그룹 관리 (생성/초대/추방/양도)
 ├── restaurant/[id].tsx  # 맛집 상세
 ├── friends.tsx          # 친구
-├── bookmarks.tsx        # 북마크
 ├── my-suggestions.tsx   # 내 제안
 ├── blocked-users.tsx    # 차단 사용자
 ├── notifications/       # 알림
@@ -49,7 +48,6 @@ components/
 ├── PlaceDetailSheet.tsx  # 장소 상세 바텀시트 (정보 표시 + 방문인증 navigate)
 ├── RestaurantCard.tsx    # 맛집 카드
 ├── TaggedContent.tsx     # 태그 파싱/표시 컴포넌트
-├── CollectionSheet.tsx   # 컬렉션 바텀시트
 ├── ToastConfig.tsx       # 커스텀 토스트 (성공/에러/정보)
 ├── TermsAgreementModal.tsx  # 약관 동의 모달
 ├── ReportModal.tsx       # 신고 모달

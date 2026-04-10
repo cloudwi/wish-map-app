@@ -29,7 +29,7 @@ export default function ListScreen() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const sortBy = 'visits';
+  const [sortBy, setSortBy] = useState<'visits' | 'recentVisit'>('visits');
   const [restoredFilter, setRestoredFilter] = useState(false);
 
   // 카테고리 목록
@@ -221,9 +221,23 @@ export default function ListScreen() {
         </ScrollView>
       )}
 
-      {/* 결과 수 */}
+      {/* 결과 수 + 정렬 */}
       <View style={styles.sortRow}>
         <Text style={[styles.resultCount, { color: c.textSecondary }]}>{totalElements}개</Text>
+        <View style={styles.sortBtns}>
+          <TouchableOpacity
+            style={[styles.sortBtn, sortBy === 'visits' && { backgroundColor: c.chipActiveBg }]}
+            onPress={() => { lightTap(); setSortBy('visits'); }}
+          >
+            <Text style={[styles.sortText, { color: sortBy === 'visits' ? c.chipActiveText : c.textTertiary }, sortBy === 'visits' && { fontWeight: '600' }]}>방문순</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.sortBtn, sortBy === 'recentVisit' && { backgroundColor: c.chipActiveBg }]}
+            onPress={() => { lightTap(); setSortBy('recentVisit'); }}
+          >
+            <Text style={[styles.sortText, { color: sortBy === 'recentVisit' ? c.chipActiveText : c.textTertiary }, sortBy === 'recentVisit' && { fontWeight: '600' }]}>최근 방문순</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* 리스트 */}

@@ -12,7 +12,9 @@ export async function setItem(key: string, value: string): Promise<void> {
   } else {
     try {
       await SecureStore.setItemAsync(key, value);
-    } catch {}
+    } catch (e) {
+      console.warn(`[SecureStore] setItem failed for key "${key}":`, e);
+    }
   }
 }
 
@@ -22,7 +24,8 @@ export async function getItem(key: string): Promise<string | null> {
   }
   try {
     return await SecureStore.getItemAsync(key);
-  } catch {
+  } catch (e) {
+    console.warn(`[SecureStore] getItem failed for key "${key}":`, e);
     return null;
   }
 }

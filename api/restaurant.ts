@@ -6,7 +6,6 @@ import {
   CreateRestaurantRequest,
   PageResponse,
   MapBounds,
-  LikeGroup,
   PriceRange,
 } from '../types';
 
@@ -122,28 +121,6 @@ export const restaurantApi = {
     return response.data;
   },
 
-  // --- 컬렉션 ---
-
-  // 내 컬렉션 목록
-  getCollections: async (restaurantId?: number): Promise<LikeGroup[]> => {
-    const response = await apiClient.get<LikeGroup[]>('/restaurants/collections', {
-      params: restaurantId ? { restaurantId } : undefined,
-    });
-    return response.data;
-  },
-
-  // 새 컬렉션 생성
-  createCollection: async (name: string): Promise<LikeGroup> => {
-    const response = await apiClient.post<LikeGroup>('/restaurants/collections', { name });
-    return response.data;
-  },
-
-  // 맛집의 컬렉션 할당 변경
-  updateRestaurantCollections: async (restaurantId: number, groupIds: number[]): Promise<{ isLiked: boolean; likeCount: number }> => {
-    const response = await apiClient.put<{ isLiked: boolean; likeCount: number }>(`/restaurants/${restaurantId}/collections`, { groupIds });
-    return response.data;
-  },
-
   // 장소 통계 (방문 수, 평균 별점, 최근 리뷰)
   getPlaceStats: async (naverPlaceId: string): Promise<PlaceStatsResponse | null> => {
     try {
@@ -155,14 +132,6 @@ export const restaurantApi = {
       if (axios.isAxiosError(error) && error.response?.status === 404) return null;
       throw error;
     }
-  },
-
-  // 컬렉션 내 맛집 목록
-  getCollectionRestaurants: async (groupId: number, page = 0, size = 20): Promise<PageResponse<Restaurant>> => {
-    const response = await apiClient.get<PageResponse<Restaurant>>(`/restaurants/collections/${groupId}/restaurants`, {
-      params: { page, size },
-    });
-    return response.data;
   },
 
   // 그룹 필터: 그룹 구성원이 방문/제보한 맛집

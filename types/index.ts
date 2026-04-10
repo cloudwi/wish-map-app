@@ -88,7 +88,6 @@ export interface Restaurant {
   naverPlaceId: string | null;
   category: string | null;
   thumbnailImage: string | null;
-  likeCount: number;
   visitCount: number;
   weeklyChampion: string | null;
   priceRange: PriceRange | null;
@@ -102,7 +101,6 @@ export interface RestaurantDetail extends Restaurant {
   images: string[];
   suggestedBy: UserSummary;
   commentCount: number;
-  isLiked: boolean;
   isVisited: boolean;
   createdAt: string;
   updatedAt: string;
@@ -138,14 +136,6 @@ export interface Comment {
   isEdited: boolean;
   isDeleted: boolean;
   isMine: boolean;
-}
-
-// Collection (Like Group)
-export interface LikeGroup {
-  id: number;
-  name: string;
-  restaurantCount: number;
-  hasRestaurant: boolean;
 }
 
 // API Response

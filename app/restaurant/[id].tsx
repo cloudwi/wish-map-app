@@ -248,6 +248,11 @@ export default function RestaurantDetailScreen() {
                   <View style={styles.actions}>
                     <Text style={[styles.visitCountBadge, { color: c.textSecondary }]}>방문 {restaurant.visitCount}회</Text>
                   </View>
+                  {restaurant.lastVisitedAt && (
+                    <Text style={[styles.lastVisitText, { color: c.textTertiary }]}>
+                      최근 방문 {new Date(restaurant.lastVisitedAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })} {new Date(restaurant.lastVisitedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                    </Text>
+                  )}
                 </View>
 
                 <TouchableOpacity
@@ -382,6 +387,7 @@ const styles = StyleSheet.create({
   name: { fontSize: 24, fontWeight: '700', flex: 1 },
   category: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, fontSize: 12 },
   actions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  lastVisitText: { fontSize: 12, marginTop: 6 },
   visitCountBadge: { fontSize: 14, fontWeight: '600' },
 
   naverMapLink: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 12 },
