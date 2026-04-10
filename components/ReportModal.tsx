@@ -6,6 +6,7 @@ import { reportApi, ReportTargetType, ReportReason } from '../api/report';
 import { showSuccess, showError } from '../utils/toast';
 import { getErrorMessage } from '../utils/getErrorMessage';
 import { lightTap } from '../utils/haptics';
+import { KEYBOARD_DONE_ID, KeyboardDoneBar } from './KeyboardDoneBar';
 
 interface ReportModalProps {
   visible: boolean;
@@ -97,6 +98,7 @@ export function ReportModal({ visible, onClose, targetType, targetId }: ReportMo
             onChangeText={setDescription}
             multiline
             maxLength={200}
+            inputAccessoryViewID={KEYBOARD_DONE_ID}
           />
 
           <TouchableOpacity
@@ -111,6 +113,7 @@ export function ReportModal({ visible, onClose, targetType, targetId }: ReportMo
               <Text style={styles.submitText}>신고하기</Text>
             )}
           </TouchableOpacity>
+          <KeyboardDoneBar />
         </View>
       </View>
     </Modal>

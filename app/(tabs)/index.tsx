@@ -37,14 +37,12 @@ export default function MapScreen() {
   const initialLoadDone = useRef(false);
 
   const { searchQuery, searchResults, searching, handleSearch, searchNow, clearSearch } = useSearch();
-  const [searchFocused, setSearchFocused] = useState(false);
   const [selectedPlace, setSelectedPlace] = useState<PlaceResult | null>(null);
   const { isAuthenticated } = useAuthStore();
   const { groups, selectedGroupId, fetchGroups } = useGroupStore();
   const [placeCategories, setPlaceCategories] = useState<PlaceCategory[]>([]);
   const [categoryFilter, setCategoryFilter] = useState<number | null>(null);
   const [statsRefreshKey, setStatsRefreshKey] = useState(0);
-  const [recommendedPlace, setRecommendedPlace] = useState<Restaurant | null>(null);
 
   // 화면 포커스 시 stats 재조회 트리거 (방문 인증 후 돌아올 때)
   useFocusEffect(useCallback(() => {
@@ -182,7 +180,6 @@ export default function MapScreen() {
   const handleSelectPlace = (place: PlaceResult) => {
     lightTap();
     clearSearch();
-    setSearchFocused(false);
     setSelected(null);
 
     setSelectedPlace(place);
@@ -273,7 +270,6 @@ export default function MapScreen() {
       return;
     }
     clearSearch();
-    setSearchFocused(false);
     Keyboard.dismiss();
     router.push({
       pathname: '/visit-review',
@@ -291,6 +287,8 @@ export default function MapScreen() {
 
   const handleRecommend = useCallback(() => {
     mediumTap();
+    clearSearch();
+    Keyboard.dismiss();
     if (!userLocation) {
       showError('위치 필요', '현재 위치를 확인할 수 없습니다.');
       return;
@@ -306,9 +304,9 @@ export default function MapScreen() {
       return;
     }
     const pick = nearby[Math.floor(Math.random() * nearby.length)];
-    setRecommendedPlace(pick);
+    handleMarkerClick(pick);
     mapRef.current?.animateCameraTo({ latitude: pick.lat, longitude: pick.lng, zoom: 16 });
-  }, [restaurants, userLocation]);
+  }, [restaurants, userLocation, clearSearch, handleMarkerClick]);
 
   const renderListItem = useCallback(({ item, index }: { item: Restaurant; index: number }) => (
     <RestaurantCard item={item} index={index} placeCategories={placeCategories} />
@@ -347,8 +345,6 @@ export default function MapScreen() {
         onSearchNow={() => { searchNow(); setSearchFocused(true); }}
         onClearSearch={clearSearch}
         onSelectPlace={handleSelectPlace}
-        onFocus={() => setSearchFocused(true)}
-        onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
         placeCategories={placeCategories}
         selectedCategoryId={categoryFilter}
         onCategoryChange={(catId) => {
@@ -384,31 +380,6 @@ export default function MapScreen() {
       >
         <Ionicons name="dice-outline" size={20} color="#fff" />
       </TouchableOpacity>
-
-      {/* 추천 결과 카드 */}
-      {recommendedPlace && (
-        <View style={[styles.recommendCard, { backgroundColor: c.cardBg, top: insets.top + (isAuthenticated ? 144 : 104) }]}>
-          <TouchableOpacity
-            style={styles.recommendCardContent}
-            onPress={() => { handleMarkerClick(recommendedPlace); setRecommendedPlace(null); }}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="restaurant" size={20} color={c.primary} />
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.recommendName, { color: c.textPrimary }]} numberOfLines={1}>{recommendedPlace.name}</Text>
-              <Text style={[styles.recommendMeta, { color: c.textTertiary }]} numberOfLines={1}>
-                {recommendedPlace.category ? `${recommendedPlace.category} · ` : ''}방문 {recommendedPlace.visitCount}회
-              </Text>
-            </View>
-            <TouchableOpacity onPress={handleRecommend} style={styles.rerollBtn}>
-              <Ionicons name="refresh" size={18} color={c.primary} />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => setRecommendedPlace(null)}>
-              <Ionicons name="close" size={18} color={c.textDisabled} />
-            </TouchableOpacity>
-          </TouchableOpacity>
-        </View>
-      )}
 
       {/* 오른쪽 버튼: 줌 + 내 위치 */}
       <MapControls
@@ -477,6 +448,7 @@ export default function MapScreen() {
           </BottomSheetView>
         </BottomSheet>
       )}
+
     </View>
   );
 }
@@ -557,25 +529,4 @@ const styles = StyleSheet.create({
     elevation: 3,
     zIndex: 9,
   },
-  recommendCard: {
-    position: 'absolute',
-    left: 16,
-    right: 16,
-    borderRadius: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 4,
-    zIndex: 11,
-  },
-  recommendCardContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 14,
-    gap: 10,
-  },
-  recommendName: { fontSize: 15, fontWeight: '600' },
-  recommendMeta: { fontSize: 12, marginTop: 2 },
-  rerollBtn: { padding: 4 },
 });

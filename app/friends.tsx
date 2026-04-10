@@ -14,6 +14,7 @@ import { friendApi, FriendResponse, FriendStatus, UserSearchResult } from '../ap
 import { lightTap } from '../utils/haptics';
 import { showError } from '../utils/toast';
 
+
 type Tab = 'friends' | 'requests';
 
 export default function FriendsScreen() {

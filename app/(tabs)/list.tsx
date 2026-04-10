@@ -12,6 +12,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { useGroupStore } from '../../stores/groupStore';
 import { lightTap } from '../../utils/haptics';
 
+
 const STORAGE_KEY_CATEGORY = 'list_selected_category';
 const STORAGE_KEY_TAGS = 'list_selected_tags';
 
@@ -143,7 +144,7 @@ export default function ListScreen() {
         <MapListTabHeader />
         <View style={[styles.searchWrap, { backgroundColor: c.searchBg }]}>
           <Ionicons name="search-outline" size={18} color={c.textTertiary} style={styles.searchIcon} />
-          <TextInput style={[styles.searchInput, { color: c.textPrimary }]} placeholder="장소 이름 검색" placeholderTextColor={c.textDisabled} editable={false} />
+          <TextInput style={[styles.searchInput, { color: c.textPrimary }]} placeholder="장소 이름 검색" placeholderTextColor={c.textDisabled} editable={false} returnKeyType="search" />
         </View>
         <View style={styles.skeletonWrap}>
           {Array.from({ length: 6 }).map((_, i) => <RestaurantCardSkeleton key={i} />)}

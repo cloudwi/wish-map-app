@@ -14,7 +14,8 @@ import { uploadImages } from '../utils/imageUpload';
 import { lightTap, successTap, mediumTap } from '../utils/haptics';
 import { showError, showSuccess } from '../utils/toast';
 import { getErrorMessage } from '../utils/getErrorMessage';
-import { PlaceCategory, matchNaverCategory } from '../types';
+import { PlaceCategory } from '../types';
+import { KEYBOARD_DONE_ID, KeyboardDoneBar } from '../components/KeyboardDoneBar';
 
 const VISIT_DISTANCE_LIMIT = 100;
 
@@ -65,17 +66,11 @@ export default function VisitReviewScreen() {
   }, []);
 
   const autoDetect = (cats: PlaceCategory[]) => {
-    // 직접 등록: placeCategoryId가 전달된 경우 우선 사용
-    if (params.placeCategoryId) {
-      const catId = Number(params.placeCategoryId);
-      if (cats.some(c => c.id === catId)) {
-        setDetectedCategoryId(catId);
-        return;
-      }
+    if (!params.placeCategoryId) return;
+    const catId = Number(params.placeCategoryId);
+    if (cats.some(c => c.id === catId)) {
+      setDetectedCategoryId(catId);
     }
-    if (!params.placeCategory) return;
-    const matched = matchNaverCategory(params.placeCategory, cats);
-    if (matched) setDetectedCategoryId(matched.id);
   };
 
   const toggleTag = (tag: string) => {
@@ -263,6 +258,7 @@ export default function VisitReviewScreen() {
               multiline
               textAlignVertical="top"
               onFocus={() => setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 300)}
+              inputAccessoryViewID={KEYBOARD_DONE_ID}
             />
             <Text style={[styles.charCount, { color: c.textDisabled }]}>{comment.length}/200</Text>
           </View>
@@ -318,6 +314,7 @@ export default function VisitReviewScreen() {
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
+      <KeyboardDoneBar />
     </View>
   );
 }

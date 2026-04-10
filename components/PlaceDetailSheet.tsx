@@ -100,7 +100,7 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
                 naverPlaceId: place.id || undefined,
                 category: place.category || undefined,
               });
-              setStats({ restaurantId: created.id, visitCount: 0, avgRating: null, visitedToday: false, priceRange: null, placeCategoryId: created.placeCategoryId ?? null, recentReviews: [] });
+              setStats({ restaurantId: created.id, visitCount: 0, avgRating: null, visitedToday: false, priceRange: null, placeCategoryId: created.placeCategoryId ?? null, recentReviews: [], lastVisitedAt: null });
               router.push(`/restaurant/${created.id}`);
             } catch (e: any) {
               // 이미 등록된 장소면 stats 재조회
@@ -144,6 +144,11 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
                 <Text style={[styles.visitCount, { color: c.textSecondary }]}>방문 {stats.visitCount}회</Text>
               )}
             </View>
+            {stats?.lastVisitedAt && (
+              <Text style={[styles.lastVisitText, { color: c.textTertiary }]}>
+                최근 방문 {new Date(stats.lastVisitedAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })} {new Date(stats.lastVisitedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+              </Text>
+            )}
           </View>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.closeBtn, { backgroundColor: c.closeButtonBg }]} onPress={onClose}>
@@ -223,6 +228,7 @@ const styles = StyleSheet.create({
   badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 4 },
   badgeText: { fontSize: 11, fontWeight: '500' },
   visitCount: { fontSize: 12, fontWeight: '600' },
+  lastVisitText: { fontSize: 11, marginTop: 4 },
   championText: { fontSize: 12, fontWeight: '500', marginBottom: 8 },
   closeBtn: { width: 30, height: 30, borderRadius: 15, justifyContent: 'center', alignItems: 'center' },
   subInfo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },

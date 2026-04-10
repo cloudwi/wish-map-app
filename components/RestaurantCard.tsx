@@ -63,7 +63,7 @@ export function RestaurantCard({ item, badge, index = 0, placeCategories }: Prop
           </View>
           {item.lastVisitedAt && (
             <Text style={[styles.visitDate, { color: c.textTertiary }]}>
-              마지막 방문 {new Date(item.lastVisitedAt).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}
+              최근 방문 {new Date(item.lastVisitedAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })} {new Date(item.lastVisitedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
             </Text>
           )}
         </View>

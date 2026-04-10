@@ -79,19 +79,6 @@ export interface PlaceCategory {
 }
 
 
-// 네이버 카테고리 문자열 → PlaceCategory 매칭 (1차 분류 기반)
-export function matchNaverCategory(naverCategory: string, categories: PlaceCategory[]): PlaceCategory | null {
-  if (!naverCategory) return null;
-
-  const majorPart = naverCategory.split('>')[0].trim();
-
-  // PlaceCategory 이름에 1차 분류가 포함되어 있으면 매칭
-  return categories.find(c => c.name === majorPart)
-    || categories.find(c => c.name.includes(majorPart) || majorPart.includes(c.name))
-    || categories.find(c => c.name === '음식점')
-    || null;
-}
-
 // Restaurant
 export interface Restaurant {
   id: number;

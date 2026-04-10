@@ -45,7 +45,8 @@ export default function LoginScreen() {
   const navigateAfterLogin = () => {
     const { hasAgreedToTerms } = useAuthStore.getState();
     if (hasAgreedToTerms) {
-      router.replace('/(tabs)');
+      // 모달로 push된 경우 back()으로 이전 상태 유지, 아니면 replace
+      router.canGoBack() ? router.back() : router.replace('/(tabs)');
     } else {
       setShowTerms(true);
     }
@@ -54,7 +55,7 @@ export default function LoginScreen() {
   const handleTermsAgree = () => {
     setTermsAgreed();
     setShowTerms(false);
-    router.replace('/(tabs)');
+    router.canGoBack() ? router.back() : router.replace('/(tabs)');
   };
 
   const handleTermsCancel = async () => {

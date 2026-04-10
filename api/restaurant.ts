@@ -26,6 +26,7 @@ export interface PlaceStatsResponse {
   priceRange: PriceRange | null;
   placeCategoryId: number | null;
   recentReviews: ReviewSummary[];
+  lastVisitedAt: string | null;
 }
 
 export interface RestaurantListParams {

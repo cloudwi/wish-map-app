@@ -17,6 +17,7 @@ import { lightTap, successTap, mediumTap } from '../utils/haptics';
 import { showError, showSuccess } from '../utils/toast';
 import { CategoryPlaceholder } from '../components/CategoryPlaceholder';
 
+
 export default function LunchVoteScreen() {
   const c = useTheme();
   const insets = useSafeAreaInsets();

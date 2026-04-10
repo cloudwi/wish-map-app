@@ -72,6 +72,8 @@ export function SearchBar({
           onBlur={onBlur}
           returnKeyType="search"
           onSubmitEditing={onSearchNow}
+          autoCorrect={false}
+          autoComplete="off"
         />
         {searching && <ActivityIndicator size="small" color={c.primary} />}
         {searchQuery.length > 0 && !searching && (
