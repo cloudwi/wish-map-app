@@ -88,7 +88,9 @@ export default function RestaurantDetailScreen() {
     if (!restaurant) return;
     lightTap();
     const appUrl = `nmap://place?lat=${restaurant.lat}&lng=${restaurant.lng}&name=${encodeURIComponent(restaurant.name)}&appname=com.wishmap.app`;
-    const webUrl = restaurant.naverPlaceId
+    // naverPlaceId가 순수 숫자인 경우만 플레이스 URL 사용 (좌표 형식 제외)
+    const isPlaceId = restaurant.naverPlaceId && /^\d+$/.test(restaurant.naverPlaceId);
+    const webUrl = isPlaceId
       ? `https://m.place.naver.com/place/${restaurant.naverPlaceId}/home`
       : `https://map.naver.com/v5/search/${encodeURIComponent(restaurant.name)}`;
     try {
@@ -122,7 +124,8 @@ export default function RestaurantDetailScreen() {
   const handleShare = async () => {
     if (!restaurant) return;
     lightTap();
-    const url = restaurant.naverPlaceId
+    const isPlaceId = restaurant.naverPlaceId && /^\d+$/.test(restaurant.naverPlaceId);
+    const url = isPlaceId
       ? `https://m.place.naver.com/place/${restaurant.naverPlaceId}/home`
       : `https://map.naver.com/v5/search/${encodeURIComponent(restaurant.name)}`;
     try {

@@ -23,6 +23,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { lightTap, mediumTap } from '../../utils/haptics';
 import { showError } from '../../utils/toast';
 import { router, useFocusEffect } from 'expo-router';
+import { RecommendSlot } from '../../components/RecommendSlot';
 
 const INITIAL_BOUNDS: MapBounds = { minLat: 37.4, maxLat: 37.7, minLng: 126.8, maxLng: 127.2 };
 
@@ -51,6 +52,10 @@ export default function MapScreen() {
       setListPage(p => p + 1);
     }
   }, [visibleRestaurants.length, restaurants.length]);
+
+  const [slotVisible, setSlotVisible] = useState(false);
+  const [slotCandidates, setSlotCandidates] = useState<Restaurant[]>([]);
+  const [slotWinner, setSlotWinner] = useState<Restaurant | null>(null);
 
   // 화면 포커스 시 stats 재조회 트리거 (방문 인증 후 돌아올 때)
   useFocusEffect(useCallback(() => {
@@ -217,7 +222,7 @@ export default function MapScreen() {
     const placeIdMatch = place.link?.match(/bizes\/(\d+)/);
     const webUrl = placeIdMatch
       ? `https://m.place.naver.com/place/${placeIdMatch[1]}/home`
-      : `https://m.place.naver.com/search?query=${encodeURIComponent(place.name)}`;
+      : `https://map.naver.com/v5/search/${encodeURIComponent(place.name)}`;
     try {
       const supported = await Linking.canOpenURL(appUrl);
       await Linking.openURL(supported ? appUrl : webUrl);
@@ -302,20 +307,28 @@ export default function MapScreen() {
       showError('위치 필요', '현재 위치를 확인할 수 없습니다.');
       return;
     }
-    // 300m 이내 맛집만 필터
+    // 300m 이내 음식점만 필터
     const nearby = restaurants.filter((r) => {
+      if (r.placeCategoryId !== 1) return false; // 음식점만
       const dLat = (r.lat - userLocation.latitude) * 111000;
       const dLng = (r.lng - userLocation.longitude) * 111000 * Math.cos(userLocation.latitude * Math.PI / 180);
       return Math.sqrt(dLat * dLat + dLng * dLng) <= 300;
     });
     if (nearby.length === 0) {
-      showError('추천 불가', '300m 이내에 등록된 장소가 없습니다.');
+      showError('추천 불가', '300m 이내에 등록된 음식점이 없습니다.');
       return;
     }
     const pick = nearby[Math.floor(Math.random() * nearby.length)];
-    handleMarkerClick(pick);
-    mapRef.current?.animateCameraTo({ latitude: pick.lat, longitude: pick.lng, zoom: 16 });
-  }, [restaurants, userLocation, clearSearch, handleMarkerClick]);
+    setSlotCandidates(nearby);
+    setSlotWinner(pick);
+    setSlotVisible(true);
+  }, [restaurants, userLocation, clearSearch]);
+
+  const handleSlotResult = useCallback((restaurant: Restaurant) => {
+    setSlotVisible(false);
+    handleMarkerClick(restaurant);
+    mapRef.current?.animateCameraTo({ latitude: restaurant.lat, longitude: restaurant.lng, zoom: 16 });
+  }, [handleMarkerClick]);
 
   const renderListItem = useCallback(({ item, index }: { item: Restaurant; index: number }) => (
     <RestaurantCard item={item} index={index} placeCategories={placeCategories} />
@@ -381,20 +394,12 @@ export default function MapScreen() {
         </View>
       )}
 
-      {/* 추천 버튼 */}
-      <TouchableOpacity
-        style={[styles.recommendBtn, { backgroundColor: c.primary, top: insets.top + (isAuthenticated ? 100 : 60) }]}
-        onPress={handleRecommend}
-        activeOpacity={0.85}
-      >
-        <Ionicons name="dice-outline" size={20} color="#fff" />
-      </TouchableOpacity>
-
-      {/* 오른쪽 버튼: 줌 + 내 위치 */}
+      {/* 오른쪽 버튼: 줌 + 내 위치 + 추천 */}
       <MapControls
         mapRef={mapRef}
         currentCameraRef={currentCameraRef}
         onLocationUpdate={setUserLocation}
+        onRecommend={handleRecommend}
       />
 
       {loading && (
@@ -465,6 +470,13 @@ export default function MapScreen() {
         </BottomSheet>
       )}
 
+      <RecommendSlot
+        visible={slotVisible}
+        candidates={slotCandidates}
+        winner={slotWinner}
+        onResult={handleSlotResult}
+        onClose={() => setSlotVisible(false)}
+      />
     </View>
   );
 }
@@ -528,21 +540,4 @@ const styles = StyleSheet.create({
   listTitle: { fontSize: 15, fontWeight: '600' },
   listContent: { paddingHorizontal: 16, paddingBottom: 120 },
   emptyText: { textAlign: 'center', paddingVertical: 30, fontSize: 14 },
-
-  // 추천
-  recommendBtn: {
-    position: 'absolute',
-    right: 16,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 3,
-    zIndex: 9,
-  },
 });

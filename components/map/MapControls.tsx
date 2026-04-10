@@ -11,9 +11,10 @@ interface MapControlsProps {
   mapRef: React.RefObject<NaverMapViewRef | null>;
   currentCameraRef: React.MutableRefObject<{ latitude: number; longitude: number; zoom: number }>;
   onLocationUpdate?: (location: { latitude: number; longitude: number }) => void;
+  onRecommend?: () => void;
 }
 
-export function MapControls({ mapRef, currentCameraRef, onLocationUpdate }: MapControlsProps) {
+export function MapControls({ mapRef, currentCameraRef, onLocationUpdate, onRecommend }: MapControlsProps) {
   const c = useTheme();
   const [locating, setLocating] = useState(false);
 
@@ -81,6 +82,15 @@ export function MapControls({ mapRef, currentCameraRef, onLocationUpdate }: MapC
           color={locating ? c.primary : c.textSecondary}
         />
       </TouchableOpacity>
+      {onRecommend && (
+        <TouchableOpacity
+          style={[styles.mapBtn, { backgroundColor: c.primary }]}
+          onPress={onRecommend}
+          activeOpacity={0.85}
+        >
+          <Ionicons name="dice-outline" size={22} color="#fff" />
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
