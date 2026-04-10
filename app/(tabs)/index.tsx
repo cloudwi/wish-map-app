@@ -46,7 +46,15 @@ export default function MapScreen() {
   const [statsRefreshKey, setStatsRefreshKey] = useState(0);
   const PAGE_SIZE = 20;
   const [listPage, setListPage] = useState(1);
-  const visibleRestaurants = useMemo(() => restaurants.slice(0, listPage * PAGE_SIZE), [restaurants, listPage]);
+  const sortedRestaurants = useMemo(() => {
+    if (!userLocation) return restaurants;
+    return [...restaurants].sort((a, b) => {
+      const dA = Math.sqrt(((a.lat - userLocation.latitude) * 111000) ** 2 + ((a.lng - userLocation.longitude) * 111000 * Math.cos(userLocation.latitude * Math.PI / 180)) ** 2);
+      const dB = Math.sqrt(((b.lat - userLocation.latitude) * 111000) ** 2 + ((b.lng - userLocation.longitude) * 111000 * Math.cos(userLocation.latitude * Math.PI / 180)) ** 2);
+      return dA - dB;
+    });
+  }, [restaurants, userLocation]);
+  const visibleRestaurants = useMemo(() => sortedRestaurants.slice(0, listPage * PAGE_SIZE), [sortedRestaurants, listPage]);
   const handleLoadMore = useCallback(() => {
     if (visibleRestaurants.length < restaurants.length) {
       setListPage(p => p + 1);

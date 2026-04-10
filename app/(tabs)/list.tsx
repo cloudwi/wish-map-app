@@ -8,9 +8,11 @@ import { restaurantApi } from '../../api/restaurant';
 import { placeCategoryApi } from '../../api/placeCategory';
 import { RestaurantCard } from '../../components/RestaurantCard';
 import RestaurantCardSkeleton from '../../components/RestaurantCardSkeleton';
+import { StatsSection } from '../../components/StatsSection';
 import { useTheme } from '../../hooks/useTheme';
 import { useGroupStore } from '../../stores/groupStore';
 import { lightTap } from '../../utils/haptics';
+import type * as LocationType from 'expo-location';
 
 
 const STORAGE_KEY_CATEGORY = 'list_selected_category';
@@ -29,7 +31,8 @@ export default function ListScreen() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [sortBy, setSortBy] = useState<'visits' | 'recentVisit'>('visits');
+  const [sortBy, setSortBy] = useState<'visits' | 'recentVisit' | 'distance'>('visits');
+  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [restoredFilter, setRestoredFilter] = useState(false);
 
   // 카테고리 목록
@@ -66,6 +69,21 @@ export default function ListScreen() {
       setRestoredFilter(true);
     })();
   }, [placeCategoryList]);
+
+  // 거리순 정렬 시 위치 가져오기
+  useEffect(() => {
+    if (sortBy !== 'distance') return;
+    (async () => {
+      try {
+        const Location = require('expo-location') as typeof LocationType;
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') return;
+        let loc = await Location.getLastKnownPositionAsync();
+        if (!loc) loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        setUserLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
+      } catch {}
+    })();
+  }, [sortBy]);
 
   // 검색 디바운스
   useEffect(() => {
@@ -104,7 +122,7 @@ export default function ListScreen() {
         placeCategoryId: selectedCategoryId || undefined,
         search: debouncedSearch || undefined,
         tags: selectedTags.length > 0 ? selectedTags : undefined,
-        sort: sortBy,
+        sort: sortBy === 'distance' ? 'visits' : sortBy,
         page: pageParam,
         size: PAGE_SIZE,
       });
@@ -125,6 +143,21 @@ export default function ListScreen() {
       return true;
     });
   }, [data]);
+
+  const calcDistance = (lat1: number, lng1: number, lat2: number, lng2: number) => {
+    const dLat = (lat2 - lat1) * 111000;
+    const dLng = (lng2 - lng1) * 111000 * Math.cos(lat1 * Math.PI / 180);
+    return Math.sqrt(dLat * dLat + dLng * dLng);
+  };
+
+  const displayRestaurants = useMemo(() => {
+    if (sortBy !== 'distance' || !userLocation) return restaurants;
+    return [...restaurants].sort((a, b) => {
+      const distA = calcDistance(userLocation.latitude, userLocation.longitude, a.lat, a.lng);
+      const distB = calcDistance(userLocation.latitude, userLocation.longitude, b.lat, b.lng);
+      return distA - distB;
+    });
+  }, [restaurants, sortBy, userLocation]);
 
   const totalElements = data?.pages[0]?.totalElements ?? 0;
 
@@ -176,6 +209,8 @@ export default function ListScreen() {
           </TouchableOpacity>
         )}
       </View>
+
+      <StatsSection placeCategories={placeCategoryList} />
 
       {/* 카테고리 */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow} contentContainerStyle={styles.categoryContent}>
@@ -237,14 +272,27 @@ export default function ListScreen() {
           >
             <Text style={[styles.sortText, { color: sortBy === 'recentVisit' ? c.chipActiveText : c.textTertiary }, sortBy === 'recentVisit' && { fontWeight: '600' }]}>최근 방문순</Text>
           </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.sortBtn, sortBy === 'distance' && { backgroundColor: c.chipActiveBg }]}
+            onPress={() => { lightTap(); setSortBy('distance'); }}
+          >
+            <Text style={[styles.sortText, { color: sortBy === 'distance' ? c.chipActiveText : c.textTertiary }, sortBy === 'distance' && { fontWeight: '600' }]}>거리순</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
       {/* 리스트 */}
       <FlatList
-        data={restaurants}
+        data={displayRestaurants}
         keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item, index }) => <RestaurantCard item={item} index={index} placeCategories={placeCategoryList} />}
+        renderItem={({ item, index }) => {
+          const distanceBadge = sortBy === 'distance' && userLocation ? (() => {
+            const dist = calcDistance(userLocation.latitude, userLocation.longitude, item.lat, item.lng);
+            const label = dist < 1000 ? `${Math.round(dist)}m` : `${(dist / 1000).toFixed(1)}km`;
+            return <Text style={{ fontSize: 11, color: c.textTertiary }}>{label}</Text>;
+          })() : undefined;
+          return <RestaurantCard item={item} index={index} placeCategories={placeCategoryList} badge={distanceBadge} />;
+        }}
         contentContainerStyle={styles.listContent}
         keyboardDismissMode="on-drag"
         refreshControl={<RefreshControl refreshing={isRefetching && !isFetchingNextPage} onRefresh={onRefresh} colors={[c.primary]} />}
