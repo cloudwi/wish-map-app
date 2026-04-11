@@ -1,19 +1,21 @@
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
-const warnedKeys = new Set<string>();
+let warned = false;
+// SecureStore 실패 시 메모리 fallback (시뮬레이터 코드 사이닝 없을 때)
+const memoryStore = new Map<string, string>();
 
-function warnOnce(key: string, op: string) {
-  const id = `${op}:${key}`;
-  if (warnedKeys.has(id)) return;
-  warnedKeys.add(id);
-  console.warn(`[SecureStore] ${op} unavailable (keychain access denied)`);
+function warnOnce() {
+  if (warned) return;
+  warned = true;
+  if (__DEV__) console.warn('[SecureStore] Keychain 접근 불가 — 메모리 fallback 사용 중 (시뮬레이터 한정, 프로덕션 정상)');
 }
 
 /**
  * SecureStore wrapper
  * - iOS/Android: expo-secure-store (암호화 저장)
  * - Web: localStorage (폴백)
+ * - SecureStore 실패 시: 메모리 fallback (앱 재시작 시 초기화)
  */
 export async function setItem(key: string, value: string): Promise<void> {
   if (Platform.OS === 'web') {
@@ -22,7 +24,8 @@ export async function setItem(key: string, value: string): Promise<void> {
     try {
       await SecureStore.setItemAsync(key, value);
     } catch {
-      warnOnce(key, 'setItem');
+      warnOnce();
+      memoryStore.set(key, value);
     }
   }
 }
@@ -34,8 +37,8 @@ export async function getItem(key: string): Promise<string | null> {
   try {
     return await SecureStore.getItemAsync(key);
   } catch {
-    warnOnce(key, 'getItem');
-    return null;
+    warnOnce();
+    return memoryStore.get(key) ?? null;
   }
 }
 
@@ -46,7 +49,8 @@ export async function deleteItem(key: string): Promise<void> {
     try {
       await SecureStore.deleteItemAsync(key);
     } catch {
-      warnOnce(key, 'deleteItem');
+      warnOnce();
+      memoryStore.delete(key);
     }
   }
 }

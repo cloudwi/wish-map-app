@@ -157,7 +157,7 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
             name="xmark.circle.fill"
             size={34}
             type="hierarchical"
-            tintColor={c.textDisabled}
+            tintColor={c.textSecondary}
             fallback={<Ionicons name="close-circle" size={28} color={c.textDisabled} />}
           />
         </TouchableOpacity>

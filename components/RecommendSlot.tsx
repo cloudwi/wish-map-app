@@ -59,21 +59,26 @@ export function RecommendSlot({ visible, candidates, winner, onResult, onClose }
       resultScale.value = 0.8;
 
       // 페이드 인
-      opacity.value = withTiming(1, { duration: 200 });
+      opacity.value = withTiming(1, { duration: 150 });
 
-      // 슬롯 애니메이션: 빠르게 → 감속
+      // 슬롯 애니메이션: 즉시 시작 → 가속 → 등속 → 감속
       translateY.value = withDelay(
-        300,
+        100,
         withSequence(
-          // 빠르게 돌기 (전체의 60%까지)
-          withTiming(targetY * 0.6, {
-            duration: 1200,
-            easing: Easing.in(Easing.linear),
+          // 가속하며 시작 (전체의 30%)
+          withTiming(targetY * 0.3, {
+            duration: 600,
+            easing: Easing.in(Easing.quad),
           }),
-          // 감속하며 멈추기 (나머지 40%)
+          // 등속으로 빠르게 (전체의 30~70%)
+          withTiming(targetY * 0.7, {
+            duration: 800,
+            easing: Easing.linear,
+          }),
+          // 감속하며 멈추기 (나머지 30%)
           withTiming(targetY, {
-            duration: 1200,
-            easing: Easing.out(Easing.cubic),
+            duration: 1000,
+            easing: Easing.out(Easing.exp),
           }, () => {
             runOnJS(onSpinComplete)();
           }),
