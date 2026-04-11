@@ -113,7 +113,7 @@ export default function ListScreen() {
     isRefetching,
     isPlaceholderData,
   } = useInfiniteQuery({
-    queryKey: ['restaurants', selectedCategoryId, debouncedSearch, sortBy, selectedTags, selectedGroupId],
+    queryKey: ['restaurants', selectedCategoryId, debouncedSearch, sortBy, selectedTags, selectedGroupId, sortBy === 'distance' ? userLocation : null],
     queryFn: async ({ pageParam = 0 }) => {
       if (selectedGroupId) {
         return restaurantApi.getGroupRestaurants(selectedGroupId, KOREA_BOUNDS);
@@ -122,15 +122,17 @@ export default function ListScreen() {
         placeCategoryId: selectedCategoryId || undefined,
         search: debouncedSearch || undefined,
         tags: selectedTags.length > 0 ? selectedTags : undefined,
-        sort: sortBy === 'distance' ? 'visits' : sortBy,
-        page: sortBy === 'distance' ? 0 : pageParam,
-        size: sortBy === 'distance' ? 500 : PAGE_SIZE,
+        sort: sortBy,
+        page: pageParam,
+        size: PAGE_SIZE,
+        userLat: sortBy === 'distance' && userLocation ? userLocation.latitude : undefined,
+        userLng: sortBy === 'distance' && userLocation ? userLocation.longitude : undefined,
       });
     },
     initialPageParam: 0,
     getNextPageParam: (lastPage, _, lastPageParam) =>
       selectedGroupId ? undefined : (lastPage.last ? undefined : lastPageParam + 1),
-    enabled: restoredFilter,
+    enabled: restoredFilter && (sortBy !== 'distance' || userLocation !== null),
     placeholderData: keepPreviousData,
   });
 
@@ -150,20 +152,13 @@ export default function ListScreen() {
     return Math.sqrt(dLat * dLat + dLng * dLng);
   };
 
-  const displayRestaurants = useMemo(() => {
-    if (sortBy !== 'distance' || !userLocation) return restaurants;
-    return [...restaurants].sort((a, b) => {
-      const distA = calcDistance(userLocation.latitude, userLocation.longitude, a.lat, a.lng);
-      const distB = calcDistance(userLocation.latitude, userLocation.longitude, b.lat, b.lng);
-      return distA - distB;
-    });
-  }, [restaurants, sortBy, userLocation]);
+  const displayRestaurants = restaurants;
 
   const totalElements = data?.pages[0]?.totalElements ?? 0;
 
   const onRefresh = useCallback(() => {
-    queryClient.resetQueries({ queryKey: ['restaurants', selectedCategoryId, debouncedSearch, sortBy, selectedTags, selectedGroupId] });
-  }, [queryClient, selectedCategoryId, debouncedSearch, sortBy, selectedTags, selectedGroupId]);
+    queryClient.resetQueries({ queryKey: ['restaurants', selectedCategoryId, debouncedSearch, sortBy, selectedTags, selectedGroupId, sortBy === 'distance' ? userLocation : null] });
+  }, [queryClient, selectedCategoryId, debouncedSearch, sortBy, selectedTags, selectedGroupId, userLocation]);
 
   const loadMore = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) {
