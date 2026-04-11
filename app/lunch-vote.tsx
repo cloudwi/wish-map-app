@@ -11,7 +11,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../hooks/useTheme';
 import { lunchVoteApi, LunchVoteResponse, LunchVoteCandidateResponse } from '../api/lunchVote';
-import { restaurantApi } from '../api/restaurant';
+import { placeApi } from '../api/place';
 import { Restaurant } from '../types';
 import { lightTap, successTap, mediumTap } from '../utils/haptics';
 import { showError, showSuccess } from '../utils/toast';
@@ -101,7 +101,7 @@ export default function LunchVoteScreen() {
     if (query.trim().length < 1) { setSearchResults([]); return; }
     setSearching(true);
     try {
-      const res = await restaurantApi.getRestaurants({ search: query.trim(), size: 20 });
+      const res = await placeApi.getRestaurants({ search: query.trim(), size: 20 });
       setSearchResults(res.content);
     } catch { setSearchResults([]); }
     finally { setSearching(false); }

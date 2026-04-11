@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLocalSearchParams, Stack, router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { RestaurantDetail, Comment, PlaceCategory } from '../../types';
-import { restaurantApi } from '../../api/restaurant';
+import { placeApi } from '../../api/place';
 import { commentApi } from '../../api/comment';
 import { searchPlaceImages } from '../../api/search';
 import { useAuthStore } from '../../stores/authStore';
@@ -33,7 +33,7 @@ export default function RestaurantDetailScreen() {
 
   const fetchRestaurant = useCallback(async () => {
     try {
-      const data = await restaurantApi.getRestaurantDetail(Number(id));
+      const data = await placeApi.getRestaurantDetail(Number(id));
       setRestaurant(data);
       if (!data.thumbnailImage && data.images.length === 0) {
         searchPlaceImages(data.name, 3).then(setSearchImages);

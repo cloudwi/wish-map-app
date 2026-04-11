@@ -6,7 +6,7 @@ import { SymbolView } from 'expo-symbols';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PlaceResult, searchPlaceImage } from '../api/search';
-import { restaurantApi, PlaceStatsResponse } from '../api/restaurant';
+import { placeApi, PlaceStatsResponse } from '../api/place';
 import { useAuthStore } from '../stores/authStore';
 import { useTheme } from '../hooks/useTheme';
 import { lightTap } from '../utils/haptics';
@@ -36,7 +36,7 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
 
   const refreshStats = useCallback(() => {
     if (!place.id) { setStats(null); return; }
-    restaurantApi.getPlaceStats(place.id).then(setStats).catch(() => setStats(null));
+    placeApi.getPlaceStats(place.id).then(setStats).catch(() => setStats(null));
   }, [place.id]);
 
   // place 변경 시 초기화 + 조회, refreshKey 변경 시 조용히 재조회
@@ -94,7 +94,7 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
             if (registering) return;
             try {
               setRegistering(true);
-              const created = await restaurantApi.createRestaurant({
+              const created = await placeApi.createRestaurant({
                 name: place.name,
                 lat: place.lat,
                 lng: place.lng,
@@ -106,7 +106,7 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
             } catch (e: any) {
               // 이미 등록된 장소면 stats 재조회
               if (place.id) {
-                const refreshed = await restaurantApi.getPlaceStats(place.id).catch(() => null);
+                const refreshed = await placeApi.getPlaceStats(place.id).catch(() => null);
                 if (refreshed?.restaurantId) {
                   setStats(refreshed);
                   router.push(`/restaurant/${refreshed.restaurantId}`);

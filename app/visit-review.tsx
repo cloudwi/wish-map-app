@@ -8,7 +8,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
-import { restaurantApi } from '../api/restaurant';
+import { placeApi } from '../api/place';
 import { placeCategoryApi } from '../api/placeCategory';
 import { uploadImages } from '../utils/imageUpload';
 import { lightTap, successTap, mediumTap } from '../utils/haptics';
@@ -157,7 +157,7 @@ export default function VisitReviewScreen() {
         return;
       }
 
-      const result = await restaurantApi.quickVisit({
+      const result = await placeApi.quickVisit({
         name: params.placeName,
         lat: Number(params.placeLat),
         lng: Number(params.placeLng),

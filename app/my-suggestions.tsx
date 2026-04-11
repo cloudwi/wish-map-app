@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { router, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Restaurant } from '../types';
-import { restaurantApi } from '../api/restaurant';
+import { placeApi } from '../api/place';
 import { RestaurantCard } from '../components/RestaurantCard';
 import RestaurantCardSkeleton from '../components/RestaurantCardSkeleton';
 import { useTheme } from '../hooks/useTheme';
@@ -16,7 +16,7 @@ export default function MySuggestionsScreen() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    restaurantApi.getMyRestaurants()
+    placeApi.getMyRestaurants()
       .then(res => setRestaurants(res.content))
       .catch(console.error)
       .finally(() => setLoading(false));

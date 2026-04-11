@@ -3,7 +3,7 @@ import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-nati
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { restaurantApi } from '../api/restaurant';
+import { placeApi } from '../api/place';
 import { useTheme } from '../hooks/useTheme';
 import { lightTap } from '../utils/haptics';
 
@@ -12,7 +12,7 @@ export function StatsSection() {
   const [weeklyTop, setWeeklyTop] = useState<any[]>([]);
 
   useEffect(() => {
-    restaurantApi.getWeeklyTop().then(setWeeklyTop).catch(() => {});
+    placeApi.getWeeklyTop().then(setWeeklyTop).catch(() => {});
   }, []);
 
   if (weeklyTop.length === 0) return null;

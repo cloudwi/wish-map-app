@@ -7,7 +7,7 @@ import BottomSheet, { BottomSheetFlatList, BottomSheetView } from '@gorhom/botto
 import type * as LocationType from 'expo-location';
 import { type NaverMapViewRef } from '@mj-studio/react-native-naver-map';
 import { Restaurant, MapBounds, PlaceCategory } from '../../types';
-import { restaurantApi } from '../../api/restaurant';
+import { placeApi } from '../../api/place';
 import { placeCategoryApi } from '../../api/placeCategory';
 import { PlaceResult } from '../../api/search';
 import NaverMap from '../../components/NaverMap';
@@ -139,8 +139,8 @@ export default function MapScreen() {
       }
 
       const response = groupId
-        ? await restaurantApi.getGroupRestaurants(groupId, effectiveBounds)
-        : await restaurantApi.getRestaurants({ bounds, placeCategoryId: effectiveCategoryId || undefined, size: 500 });
+        ? await placeApi.getGroupRestaurants(groupId, effectiveBounds)
+        : await placeApi.getRestaurants({ bounds, placeCategoryId: effectiveCategoryId || undefined, size: 500 });
       setRestaurants(response.content);
       setListPage(1);
       setShowResearchBtn(false);

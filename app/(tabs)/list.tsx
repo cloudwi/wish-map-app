@@ -4,7 +4,7 @@ import { useQuery, useInfiniteQuery, useQueryClient, keepPreviousData } from '@t
 import { setItem, getItem } from '../../utils/secureStorage';
 import { MapListTabHeader } from '../../components/TabHeader';
 import { Ionicons } from '@expo/vector-icons';
-import { restaurantApi } from '../../api/restaurant';
+import { placeApi } from '../../api/place';
 import { placeCategoryApi } from '../../api/placeCategory';
 import { RestaurantCard } from '../../components/RestaurantCard';
 import RestaurantCardSkeleton from '../../components/RestaurantCardSkeleton';
@@ -116,9 +116,9 @@ export default function ListScreen() {
     queryKey: ['restaurants', selectedCategoryId, debouncedSearch, sortBy, selectedTags, selectedGroupId, sortBy === 'distance' ? userLocation : null],
     queryFn: async ({ pageParam = 0 }) => {
       if (selectedGroupId) {
-        return restaurantApi.getGroupRestaurants(selectedGroupId, KOREA_BOUNDS);
+        return placeApi.getGroupRestaurants(selectedGroupId, KOREA_BOUNDS);
       }
-      return restaurantApi.getRestaurants({
+      return placeApi.getRestaurants({
         placeCategoryId: selectedCategoryId || undefined,
         search: debouncedSearch || undefined,
         tags: selectedTags.length > 0 ? selectedTags : undefined,

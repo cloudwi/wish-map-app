@@ -42,10 +42,10 @@ export interface RestaurantListParams {
   size?: number;
 }
 
-export const restaurantApi = {
+export const placeApi = {
   // 장소 조회 (지도/리스트 통합)
   getRestaurants: async (params: RestaurantListParams = {}): Promise<PageResponse<Restaurant>> => {
-    const response = await apiClient.get<PageResponse<Restaurant>>('/restaurants', {
+    const response = await apiClient.get<PageResponse<Restaurant>>('/places', {
       params: {
         minLat: params.bounds?.minLat,
         maxLat: params.bounds?.maxLat,
@@ -68,19 +68,19 @@ export const restaurantApi = {
 
   // 맛집 상세
   getRestaurantDetail: async (id: number): Promise<RestaurantDetail> => {
-    const response = await apiClient.get<RestaurantDetail>(`/restaurants/${id}`);
+    const response = await apiClient.get<RestaurantDetail>(`/places/${id}`);
     return response.data;
   },
 
   // 맛집 제안
   createRestaurant: async (data: CreateRestaurantRequest): Promise<RestaurantDetail> => {
-    const response = await apiClient.post<RestaurantDetail>('/restaurants', data);
+    const response = await apiClient.post<RestaurantDetail>('/places', data);
     return response.data;
   },
 
   // 내 제안 목록
   getMyRestaurants: async (page = 0, size = 20): Promise<PageResponse<Restaurant>> => {
-    const response = await apiClient.get<PageResponse<Restaurant>>('/restaurants/my', {
+    const response = await apiClient.get<PageResponse<Restaurant>>('/places/my', {
       params: { page, size },
     });
     return response.data;
@@ -88,7 +88,7 @@ export const restaurantApi = {
 
   // 방문 인증
   verifyVisit: async (id: number, lat: number, lng: number): Promise<{ visited: boolean }> => {
-    const response = await apiClient.post<{ visited: boolean }>(`/restaurants/${id}/visit`, { lat, lng });
+    const response = await apiClient.post<{ visited: boolean }>(`/places/${id}/visit`, { lat, lng });
     return response.data;
   },
 
@@ -108,14 +108,14 @@ export const restaurantApi = {
     placeCategoryId?: number;
     imageUrls?: string[];
   }): Promise<{ restaurantId: number; visited: boolean; isNew: boolean }> => {
-    const response = await apiClient.post<{ restaurantId: number; visited: boolean; isNew: boolean }>('/restaurants/quick-visit', data);
+    const response = await apiClient.post<{ restaurantId: number; visited: boolean; isNew: boolean }>('/places/quick-visit', data);
     return response.data;
   },
 
   // 장소 통계 (방문 수, 평균 별점, 최근 리뷰)
   getPlaceStats: async (naverPlaceId: string): Promise<PlaceStatsResponse | null> => {
     try {
-      const response = await apiClient.get<PlaceStatsResponse>('/restaurants/place-stats', {
+      const response = await apiClient.get<PlaceStatsResponse>('/places/place-stats', {
         params: { naverPlaceId },
       });
       return response.data;
@@ -127,19 +127,19 @@ export const restaurantApi = {
 
   // 통계: 이번 주 방문 TOP3
   getWeeklyTop: async (): Promise<{ id: number; name: string; category: string | null; thumbnailImage: string | null; visitCount: number; placeCategoryId: number | null }[]> => {
-    const response = await apiClient.get('/restaurants/stats/weekly-top');
+    const response = await apiClient.get('/places/stats/weekly-top');
     return response.data;
   },
 
   // 통계: 인기 장소 TOP5
   getPopular: async (): Promise<{ id: number; name: string; category: string | null; thumbnailImage: string | null; totalVisitCount: number; placeCategoryId: number | null }[]> => {
-    const response = await apiClient.get('/restaurants/stats/popular');
+    const response = await apiClient.get('/places/stats/popular');
     return response.data;
   },
 
   // 통계: 카테고리별 장소 수
   getCategorySummary: async (): Promise<{ placeCategoryId: number; name: string; restaurantCount: number }[]> => {
-    const response = await apiClient.get('/restaurants/stats/category-summary');
+    const response = await apiClient.get('/places/stats/category-summary');
     return response.data;
   },
 
