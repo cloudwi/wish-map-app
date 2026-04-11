@@ -123,8 +123,8 @@ export default function ListScreen() {
         search: debouncedSearch || undefined,
         tags: selectedTags.length > 0 ? selectedTags : undefined,
         sort: sortBy === 'distance' ? 'visits' : sortBy,
-        page: pageParam,
-        size: PAGE_SIZE,
+        page: sortBy === 'distance' ? 0 : pageParam,
+        size: sortBy === 'distance' ? 500 : PAGE_SIZE,
       });
     },
     initialPageParam: 0,
@@ -210,7 +210,7 @@ export default function ListScreen() {
         )}
       </View>
 
-      <StatsSection placeCategories={placeCategoryList} />
+      <StatsSection />
 
       {/* 카테고리 */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow} contentContainerStyle={styles.categoryContent}>

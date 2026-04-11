@@ -13,6 +13,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ios: {
     supportsTablet: false,
     bundleIdentifier: 'com.wishmap.app',
+    entitlements: {
+      'keychain-access-groups': ['$(AppIdentifierPrefix)com.wishmap.app'],
+    },
     infoPlist: {
       CFBundleDevelopmentRegion: 'ko',
       ITSAppUsesNonExemptEncryption: false,

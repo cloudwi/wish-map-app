@@ -1,6 +1,15 @@
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
+const warnedKeys = new Set<string>();
+
+function warnOnce(key: string, op: string) {
+  const id = `${op}:${key}`;
+  if (warnedKeys.has(id)) return;
+  warnedKeys.add(id);
+  console.warn(`[SecureStore] ${op} unavailable (keychain access denied)`);
+}
+
 /**
  * SecureStore wrapper
  * - iOS/Android: expo-secure-store (암호화 저장)
@@ -12,8 +21,8 @@ export async function setItem(key: string, value: string): Promise<void> {
   } else {
     try {
       await SecureStore.setItemAsync(key, value);
-    } catch (e) {
-      console.warn(`[SecureStore] setItem failed for key "${key}":`, e);
+    } catch {
+      warnOnce(key, 'setItem');
     }
   }
 }
@@ -24,8 +33,8 @@ export async function getItem(key: string): Promise<string | null> {
   }
   try {
     return await SecureStore.getItemAsync(key);
-  } catch (e) {
-    console.warn(`[SecureStore] getItem failed for key "${key}":`, e);
+  } catch {
+    warnOnce(key, 'getItem');
     return null;
   }
 }
@@ -36,6 +45,8 @@ export async function deleteItem(key: string): Promise<void> {
   } else {
     try {
       await SecureStore.deleteItemAsync(key);
-    } catch {}
+    } catch {
+      warnOnce(key, 'deleteItem');
+    }
   }
 }
