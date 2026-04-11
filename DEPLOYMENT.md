@@ -67,6 +67,12 @@ ALTER TABLE restaurant_images RENAME TO place_images;
 - 네이티브 쿼리 테이블명 변경
 - 백엔드 `/restaurants` 엔드포인트 제거
 
+### 테이블명 정리 (추가)
+- `lunch_votes` → `menu_votes` (점심 투표가 아닌 메뉴 투표)
+- `lunch_vote_candidates` → `menu_vote_candidates`
+- `lunch_vote_selections` → `menu_vote_selections`
+- 관련 엔티티/서비스/컨트롤러/프론트 코드도 함께 변경
+
 ### 코드 정리
 - `Restaurant` → `Place` 타입/엔티티명 변경 (프론트/백엔드)
 - `RestaurantController` → `PlaceController` 클래스명 변경
