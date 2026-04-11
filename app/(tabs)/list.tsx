@@ -112,6 +112,7 @@ export default function ListScreen() {
     isFetching,
     isRefetching,
     isPlaceholderData,
+    refetch,
   } = useInfiniteQuery({
     queryKey: ['restaurants', selectedCategoryId, debouncedSearch, sortBy, selectedTags, selectedGroupId, sortBy === 'distance' ? userLocation : null],
     queryFn: async ({ pageParam = 0 }) => {
@@ -157,8 +158,8 @@ export default function ListScreen() {
   const totalElements = data?.pages[0]?.totalElements ?? 0;
 
   const onRefresh = useCallback(() => {
-    queryClient.resetQueries({ queryKey: ['restaurants', selectedCategoryId, debouncedSearch, sortBy, selectedTags, selectedGroupId, sortBy === 'distance' ? userLocation : null] });
-  }, [queryClient, selectedCategoryId, debouncedSearch, sortBy, selectedTags, selectedGroupId, userLocation]);
+    refetch();
+  }, [refetch]);
 
   const loadMore = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) {
