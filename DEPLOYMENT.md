@@ -33,9 +33,12 @@ eas submit --platform ios
 ### 3단계: 강제 업데이트 활성화 (앱스토어 배포 완료 후!)
 ⚠️ **반드시 앱스토어에 1.1.0이 배포 완료된 후 실행**
 
-`V33`을 수정하거나 새 마이그레이션 추가:
+⚠️ **주의: 백엔드는 푸시하면 바로 배포됨!** 앱스토어 배포 전에 절대 푸시하지 말 것
+
+V34는 이미 `add_lunch_votes_prod.sql`로 사용됨. **V35**로 생성:
 ```sql
--- V34__force_update_1_1_0.sql
+-- wish-map-api/src/main/resources/db/migration/V35__force_update_1_1_0.sql
+-- ⚠️ 앱스토어에 1.1.0 배포 완료 확인 후에만 이 파일을 생성하고 푸시할 것!
 UPDATE app_version_control
 SET min_version = '1.1.0',
     latest_version = '1.1.0',
