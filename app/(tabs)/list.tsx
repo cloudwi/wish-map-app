@@ -118,7 +118,7 @@ export default function ListScreen() {
       if (selectedGroupId) {
         return restaurantApi.getGroupRestaurants(selectedGroupId, KOREA_BOUNDS);
       }
-      return restaurantApi.getRestaurantList({
+      return restaurantApi.getRestaurants({
         placeCategoryId: selectedCategoryId || undefined,
         search: debouncedSearch || undefined,
         tags: selectedTags.length > 0 ? selectedTags : undefined,

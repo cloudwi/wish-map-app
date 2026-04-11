@@ -43,32 +43,19 @@ export interface RestaurantListParams {
 }
 
 export const restaurantApi = {
-  // 지도 범위 내 장소 목록 (지도 탭용)
-  getRestaurants: async (bounds: MapBounds, priceRange?: PriceRange, placeCategoryId?: number, page = 0, size = 500): Promise<PageResponse<Restaurant>> => {
+  // 장소 조회 (지도/리스트 통합)
+  getRestaurants: async (params: RestaurantListParams = {}): Promise<PageResponse<Restaurant>> => {
     const response = await apiClient.get<PageResponse<Restaurant>>('/restaurants', {
       params: {
-        minLat: bounds.minLat,
-        maxLat: bounds.maxLat,
-        minLng: bounds.minLng,
-        maxLng: bounds.maxLng,
-        priceRange: priceRange || undefined,
-        placeCategoryId: placeCategoryId || undefined,
-        page,
-        size,
-      },
-    });
-    return response.data;
-  },
-
-  // 장소 리스트 (리스트 탭용 - 서버사이드 필터/검색/정렬)
-  getRestaurantList: async (params: RestaurantListParams = {}): Promise<PageResponse<Restaurant>> => {
-    const response = await apiClient.get<PageResponse<Restaurant>>('/restaurants', {
-      params: {
+        minLat: params.bounds?.minLat,
+        maxLat: params.bounds?.maxLat,
+        minLng: params.bounds?.minLng,
+        maxLng: params.bounds?.maxLng,
         category: params.category || undefined,
         placeCategoryId: params.placeCategoryId || undefined,
         search: params.search || undefined,
         tags: params.tags?.length ? params.tags : undefined,
-        sortBy: params.sort || 'latest',
+        sortBy: params.sort || undefined,
         priceRange: params.priceRange || undefined,
         userLat: params.userLat || undefined,
         userLng: params.userLng || undefined,

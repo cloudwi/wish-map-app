@@ -140,7 +140,7 @@ export default function MapScreen() {
 
       const response = groupId
         ? await restaurantApi.getGroupRestaurants(groupId, effectiveBounds)
-        : await restaurantApi.getRestaurants(bounds, undefined, effectiveCategoryId || undefined);
+        : await restaurantApi.getRestaurants({ bounds, placeCategoryId: effectiveCategoryId || undefined, size: 500 });
       setRestaurants(response.content);
       setListPage(1);
       setShowResearchBtn(false);

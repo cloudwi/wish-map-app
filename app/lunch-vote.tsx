@@ -101,7 +101,7 @@ export default function LunchVoteScreen() {
     if (query.trim().length < 1) { setSearchResults([]); return; }
     setSearching(true);
     try {
-      const res = await restaurantApi.getRestaurantList({ search: query.trim(), size: 20 });
+      const res = await restaurantApi.getRestaurants({ search: query.trim(), size: 20 });
       setSearchResults(res.content);
     } catch { setSearchResults([]); }
     finally { setSearching(false); }
