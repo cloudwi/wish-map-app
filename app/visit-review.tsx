@@ -15,7 +15,7 @@ import { lightTap, successTap, mediumTap } from '../utils/haptics';
 import { showError, showSuccess } from '../utils/toast';
 import { getErrorMessage } from '../utils/getErrorMessage';
 import { PlaceCategory } from '../types';
-import { KEYBOARD_DONE_ID, KeyboardDoneBar } from '../components/KeyboardDoneBar';
+import { KEYBOARD_DONE_ID } from '../components/KeyboardDoneBar';
 
 const VISIT_DISTANCE_LIMIT = 100;
 
@@ -347,7 +347,6 @@ export default function VisitReviewScreen() {
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
-      <KeyboardDoneBar />
     </View>
   );
 }
