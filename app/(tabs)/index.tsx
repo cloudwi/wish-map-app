@@ -14,7 +14,7 @@ import NaverMap from '../../components/NaverMap';
 import { RestaurantCard } from '../../components/RestaurantCard';
 import { PlaceDetailSheet } from '../../components/PlaceDetailSheet';
 import { SearchBar } from '../../components/map/SearchBar';
-import { GroupChip } from '../../components/map/GroupChip';
+import { FilterChips, TrendFilter } from '../../components/map/FilterChips';
 import { MapControls } from '../../components/map/MapControls';
 import { useSearch } from '../../hooks/useSearch';
 import { useTheme } from '../../hooks/useTheme';
@@ -43,6 +43,7 @@ export default function MapScreen() {
   const { groups, selectedGroupId, fetchGroups } = useGroupStore();
   const [placeCategories, setPlaceCategories] = useState<PlaceCategory[]>([]);
   const [categoryFilter, setCategoryFilter] = useState<number | null>(null);
+  const [trendFilter, setTrendFilter] = useState<TrendFilter | null>(null);
   const [statsRefreshKey, setStatsRefreshKey] = useState(0);
   const PAGE_SIZE = 20;
   const [listPage, setListPage] = useState(1);
@@ -118,6 +119,13 @@ export default function MapScreen() {
     }
   }, [selectedGroupId]);
 
+  // 트렌드 필터 변경 시 자동 조회
+  useEffect(() => {
+    if (currentBoundsRef.current) {
+      fetchRestaurants(currentBoundsRef.current);
+    }
+  }, [trendFilter]);
+
   const fetchRestaurants = useCallback(async (bounds: MapBounds, placeCategoryId?: number | null) => {
     try {
       const { selectedGroupId: groupId, groups: storeGroups } = useGroupStore.getState();
@@ -138,9 +146,20 @@ export default function MapScreen() {
         }
       }
 
+      // 트렌드 필터 적용
+      const trendCategoryId = trendFilter?.placeCategoryId;
+      const trendTags = trendFilter?.tags;
+      const trendPriceRange = trendFilter?.priceRange;
+
       const response = groupId
         ? await placeApi.getGroupRestaurants(groupId, effectiveBounds)
-        : await placeApi.getRestaurants({ bounds, placeCategoryId: effectiveCategoryId || undefined, size: 500 });
+        : await placeApi.getRestaurants({
+            bounds,
+            placeCategoryId: trendCategoryId || effectiveCategoryId || undefined,
+            tags: trendTags,
+            priceRange: trendPriceRange as any,
+            size: 500,
+          });
       setRestaurants(response.content);
       setListPage(1);
       setShowResearchBtn(false);
@@ -150,7 +169,7 @@ export default function MapScreen() {
       setLoading(false);
       setTimeout(() => { initialLoadDone.current = true; }, 500);
     }
-  }, [categoryFilter]);
+  }, [categoryFilter, trendFilter]);
 
   useEffect(() => {
     let subscription: { remove: () => void } | null = null;
@@ -386,8 +405,15 @@ export default function MapScreen() {
         onRegisterCustomPlace={handleRegisterCustomPlace}
       />
 
-      {/* 그룹 선택 칩 */}
-      <GroupChip top={insets.top + 60} />
+      {/* 그룹 + 트렌드 필터 (한 줄) */}
+      <FilterChips
+        top={insets.top + 60}
+        activeTrend={trendFilter}
+        onTrendSelect={(filter) => {
+          setTrendFilter(filter);
+          setCategoryFilter(null);
+        }}
+      />
 
       {showResearchBtn && (
         <View style={[styles.researchContainer, { top: insets.top + (isAuthenticated ? 100 : 60) }]}>
