@@ -201,7 +201,8 @@ export default function ListScreen() {
           autoCorrect={false}
           autoCapitalize="none"
           spellCheck={false}
-          textContentType="none"
+          autoComplete="off"
+          textContentType="oneTimeCode"
           inputAccessoryViewID={KEYBOARD_DONE_ID}
         />
         {searchQuery.length > 0 && (

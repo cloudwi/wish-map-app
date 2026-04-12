@@ -77,7 +77,7 @@ export function SearchBar({
           autoComplete="off"
           autoCapitalize="none"
           spellCheck={false}
-          textContentType="none"
+          textContentType="oneTimeCode"
           inputAccessoryViewID={KEYBOARD_DONE_ID}
         />
         {searching && <ActivityIndicator size="small" color={c.primary} />}
