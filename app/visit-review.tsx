@@ -66,10 +66,22 @@ export default function VisitReviewScreen() {
   }, []);
 
   const autoDetect = (cats: PlaceCategory[]) => {
-    if (!params.placeCategoryId) return;
-    const catId = Number(params.placeCategoryId);
-    if (cats.some(c => c.id === catId)) {
-      setDetectedCategoryId(catId);
+    // 1. 명시적 placeCategoryId가 있으면 그대로 사용
+    if (params.placeCategoryId) {
+      const catId = Number(params.placeCategoryId);
+      if (cats.some(c => c.id === catId)) {
+        setDetectedCategoryId(catId);
+        return;
+      }
+    }
+    // 2. 없으면 네이버 카테고리 문자열에서 매칭 (e.g. "쇼핑,유통>종합가전" → "쇼핑,유통")
+    if (params.placeCategory) {
+      const matched = cats.find(c =>
+        params.placeCategory.startsWith(c.name) || params.placeCategory.includes(c.name)
+      );
+      if (matched) {
+        setDetectedCategoryId(matched.id);
+      }
     }
   };
 

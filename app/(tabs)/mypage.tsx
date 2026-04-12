@@ -79,8 +79,6 @@ export default function MyPageScreen() {
   // 실제 시스템 푸시 알림 권한 상태 확인
   const checkPushPermission = useCallback(async () => {
     try {
-      const { NativeModules } = require('react-native');
-      if (!NativeModules.ExpoPushTokenManager) { setPushEnabled(false); return; }
       const Notifications = require('expo-notifications');
       const { status } = await Notifications.getPermissionsAsync();
       setPushEnabled(status === 'granted');
