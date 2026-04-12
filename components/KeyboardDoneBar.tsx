@@ -14,7 +14,7 @@ export function KeyboardDoneBar() {
       <View style={styles.container}>
         <TouchableOpacity
           onPress={Keyboard.dismiss}
-          style={[styles.bubble, { backgroundColor: c.textPrimary }]}
+          style={[styles.bubble, { backgroundColor: '#007AFF' }]}
           activeOpacity={0.8}
         >
           <Ionicons name="checkmark" size={20} color="#fff" />
