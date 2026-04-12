@@ -267,28 +267,49 @@ export default function VisitReviewScreen() {
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: c.textPrimary }]}>사진</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.imageRow}>
-              {images.map((uri, index) => (
-                <View key={index} style={styles.imageWrap}>
-                  <Image source={{ uri }} style={styles.imageThumb} />
-                  <TouchableOpacity style={styles.imageRemove} onPress={() => removeImage(index)}>
-                    <Ionicons name="close-circle" size={22} color="#FF4444" />
-                  </TouchableOpacity>
-                </View>
-              ))}
-              {images.length < 5 && !uploading && (
+              {images.map((uri, index) => {
+                const isUploading = index >= uploadedUrls.length && uploading;
+                const isUploaded = index < uploadedUrls.length;
+                return (
+                  <View key={index} style={styles.imageWrap}>
+                    <Image source={{ uri }} style={[styles.imageThumb, isUploading && { opacity: 0.5 }]} />
+                    {isUploading && (
+                      <View style={styles.imageOverlay}>
+                        <ActivityIndicator size="small" color="#fff" />
+                      </View>
+                    )}
+                    {isUploaded && (
+                      <View style={styles.imageCheck}>
+                        <Ionicons name="checkmark" size={10} color="#fff" />
+                      </View>
+                    )}
+                    <TouchableOpacity
+                      style={styles.imageRemove}
+                      onPress={() => removeImage(index)}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      disabled={isUploading}
+                    >
+                      <View style={styles.imageRemoveCircle}>
+                        <Ionicons name="close" size={12} color="#fff" />
+                      </View>
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
+              {images.length < 5 && (
                 <TouchableOpacity
                   style={[styles.addImageBtn, { borderColor: c.border, backgroundColor: c.inputBg }]}
                   onPress={pickImage}
                   activeOpacity={0.7}
+                  disabled={uploading}
                 >
                   <Ionicons name="camera-outline" size={24} color={c.textTertiary} />
                   <Text style={[styles.addImageText, { color: c.textTertiary }]}>{images.length}/5</Text>
                 </TouchableOpacity>
               )}
-              {uploading && <ActivityIndicator style={{ marginLeft: 8 }} color={c.primary} />}
             </ScrollView>
-            {!uploading && uploadedUrls.length > 0 && uploadedUrls.length === images.length && (
-              <Text style={[styles.uploadDone, { color: c.textTertiary }]}>{uploadedUrls.length}장 업로드 완료</Text>
+            {uploading && (
+              <Text style={[styles.uploadStatus, { color: c.textTertiary }]}>업로드 중...</Text>
             )}
           </View>
 
@@ -353,10 +374,35 @@ const styles = StyleSheet.create({
     minHeight: 80,
   },
   charCount: { fontSize: 12, textAlign: 'right', marginTop: 4 },
-  imageRow: { gap: 10, paddingTop: 8, paddingRight: 8 },
+  imageRow: { gap: 10, paddingTop: 4, paddingRight: 8 },
   imageWrap: { position: 'relative' },
   imageThumb: { width: 80, height: 80, borderRadius: 12 },
-  imageRemove: { position: 'absolute', top: -6, right: -6 },
+  imageOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imageCheck: {
+    position: 'absolute',
+    bottom: 4,
+    right: 4,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: 'rgba(76,175,80,0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imageRemove: { position: 'absolute', top: 4, right: 4 },
+  imageRemoveCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   addImageBtn: {
     width: 80,
     height: 80,
@@ -368,7 +414,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   addImageText: { fontSize: 11 },
-  uploadDone: { fontSize: 12, marginTop: 8 },
+  uploadStatus: { fontSize: 12, marginTop: 8 },
   submitBtn: {
     flexDirection: 'row',
     alignItems: 'center',

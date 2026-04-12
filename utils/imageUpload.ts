@@ -1,13 +1,27 @@
+import * as ImageManipulator from 'expo-image-manipulator';
 import apiClient from '../api/client';
 
-/** 여러 이미지를 백엔드 경유로 업로드 후 URL 배열 반환 */
+const MAX_WIDTH = 1200;
+const COMPRESS_QUALITY = 0.7;
+
+/** 이미지를 리사이즈 + 압축 후 URI 반환 */
+async function compressImage(uri: string): Promise<string> {
+  const result = await ImageManipulator.manipulateAsync(
+    uri,
+    [{ resize: { width: MAX_WIDTH } }],
+    { compress: COMPRESS_QUALITY, format: ImageManipulator.SaveFormat.JPEG },
+  );
+  return result.uri;
+}
+
+/** 여러 이미지를 압축 후 백엔드 경유로 업로드, URL 배열 반환 */
 export async function uploadImages(uris: string[]): Promise<string[]> {
+  // 병렬 압축
+  const compressed = await Promise.all(uris.map(compressImage));
+
   const formData = new FormData();
-
-  for (const uri of uris) {
+  for (const uri of compressed) {
     const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
-
-    // React Native FormData는 { uri, type, name } 객체를 지원
     formData.append('files', {
       uri,
       type: 'image/jpeg',

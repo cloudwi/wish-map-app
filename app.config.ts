@@ -8,6 +8,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   orientation: 'portrait',
   icon: './assets/images/icon.png',
   scheme: 'wishmap',
+  locales: {
+    ko: './languages/ko.json',
+  },
   userInterfaceStyle: 'automatic',
   newArchEnabled: true,
   ios: {
@@ -61,6 +64,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     favicon: './assets/images/favicon.png',
   },
   plugins: [
+    './plugins/fix-entry-file',
     'expo-router',
     'expo-font',
     'expo-image',
