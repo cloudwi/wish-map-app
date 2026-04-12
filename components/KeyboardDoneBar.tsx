@@ -1,4 +1,5 @@
-import { InputAccessoryView, View, TouchableOpacity, Text, StyleSheet, Keyboard, Platform } from 'react-native';
+import { InputAccessoryView, View, TouchableOpacity, StyleSheet, Keyboard, Platform } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
 
 export const KEYBOARD_DONE_ID = 'keyboard-done';
@@ -12,7 +13,7 @@ export function KeyboardDoneBar() {
     <InputAccessoryView nativeID={KEYBOARD_DONE_ID}>
       <View style={[styles.bar, { backgroundColor: c.headerBg, borderTopColor: c.border }]}>
         <TouchableOpacity onPress={Keyboard.dismiss} style={styles.btn} activeOpacity={0.7}>
-          <Text style={[styles.btnText, { color: c.primary }]}>완료</Text>
+          <Ionicons name="checkmark" size={24} color={c.primary} />
         </TouchableOpacity>
       </View>
     </InputAccessoryView>
