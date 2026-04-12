@@ -12,7 +12,7 @@ import { StatsSection } from '../../components/StatsSection';
 import { useTheme } from '../../hooks/useTheme';
 import { useGroupStore } from '../../stores/groupStore';
 import { lightTap } from '../../utils/haptics';
-import { KEYBOARD_DONE_ID } from '../../components/KeyboardDoneBar';
+import { KEYBOARD_DONE_ID, KeyboardDoneBar } from '../../components/KeyboardDoneBar';
 import type * as LocationType from 'expo-location';
 
 
@@ -321,6 +321,7 @@ export default function ListScreen() {
         windowSize={5}
       />
     </View>
+    <KeyboardDoneBar />
     </TouchableWithoutFeedback>
   );
 }
