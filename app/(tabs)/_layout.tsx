@@ -5,6 +5,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { useTheme } from '../../hooks/useTheme';
 import { useEffect } from 'react';
 import { TermsAgreementModal } from '../../components/TermsAgreementModal';
+import { KeyboardDoneBar } from '../../components/KeyboardDoneBar';
 
 const isIOS26 = Platform.OS === 'ios' && parseInt(Platform.Version as string, 10) >= 19;
 
@@ -49,6 +50,7 @@ export default function TabLayout() {
         <NativeTabs.Trigger.Icon sf={{ default: 'person', selected: 'person.fill' }} />
       </NativeTabs.Trigger>
     </NativeTabs>
+    <KeyboardDoneBar />
     </>
   );
 }
