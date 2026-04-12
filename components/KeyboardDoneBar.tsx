@@ -1,5 +1,4 @@
-import { InputAccessoryView, View, TouchableOpacity, StyleSheet, Keyboard, Platform, useColorScheme } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { InputAccessoryView, View, TouchableOpacity, Text, StyleSheet, Keyboard, Platform, useColorScheme } from 'react-native';
 
 export const KEYBOARD_DONE_ID = 'keyboard-done';
 
@@ -12,13 +11,10 @@ export function KeyboardDoneBar() {
 
   return (
     <InputAccessoryView nativeID={KEYBOARD_DONE_ID}>
-      <View style={[styles.container, { backgroundColor: bgColor }]}>
-        <TouchableOpacity
-          onPress={Keyboard.dismiss}
-          style={styles.bubble}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="checkmark" size={18} color="#fff" />
+      <View style={[styles.bar, { backgroundColor: bgColor }]}>
+        <View style={{ flex: 1 }} />
+        <TouchableOpacity onPress={Keyboard.dismiss} style={styles.btn} activeOpacity={0.7}>
+          <Text style={styles.btnText}>완료</Text>
         </TouchableOpacity>
       </View>
     </InputAccessoryView>
@@ -26,23 +22,21 @@ export function KeyboardDoneBar() {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  bar: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
     alignItems: 'center',
-    paddingHorizontal: 16,
     height: 44,
+    paddingHorizontal: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(0,0,0,0.15)',
   },
-  bubble: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: '#007AFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#007AFF',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
+  btn: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+  },
+  btnText: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#007AFF',
   },
 });
