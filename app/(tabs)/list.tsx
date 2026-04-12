@@ -184,6 +184,7 @@ export default function ListScreen() {
   }
 
   return (
+    <>
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
     <View style={[styles.container, { backgroundColor: c.background }]}>
       <MapListTabHeader />
@@ -321,8 +322,9 @@ export default function ListScreen() {
         windowSize={5}
       />
     </View>
-    <KeyboardDoneBar />
     </TouchableWithoutFeedback>
+    <KeyboardDoneBar />
+    </>
   );
 }
 
