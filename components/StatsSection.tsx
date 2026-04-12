@@ -21,7 +21,7 @@ export function StatsSection() {
     <View style={styles.container}>
       <View style={styles.sectionHeader}>
         <Ionicons name="flame" size={18} color="#FF6B35" />
-        <Text style={[styles.sectionTitle, { color: c.textPrimary }]}>이번 주 HOT</Text>
+        <Text style={[styles.sectionTitle, { color: c.textPrimary }]}>최근 HOT</Text>
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.cardRow}>
         {weeklyTop.map((item, idx) => (
@@ -42,7 +42,7 @@ export function StatsSection() {
               </View>
             )}
             <Text style={[styles.rankName, { color: c.textPrimary }]} numberOfLines={1}>{item.name}</Text>
-            <Text style={[styles.rankMeta, { color: c.primary }]}>이번 주 {item.visitCount}회</Text>
+            <Text style={[styles.rankMeta, { color: c.primary }]}>최근 {item.visitCount}회 방문</Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
