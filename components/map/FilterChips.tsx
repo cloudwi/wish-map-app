@@ -29,7 +29,9 @@ export function FilterChips({ top, activeTrend, onTrendSelect }: FilterChipsProp
   const [trends, setTrends] = useState<TrendTagResponse[]>([]);
 
   useEffect(() => {
-    trendTagApi.getTrendTags().then(setTrends).catch(() => {});
+    trendTagApi.getTrendTags()
+      .then(setTrends)
+      .catch((e) => console.warn('[FilterChips] trend-tags fetch failed:', e?.message));
   }, []);
 
   const isTrendActive = (t: TrendTagResponse) => activeTrend?.label === t.label;
