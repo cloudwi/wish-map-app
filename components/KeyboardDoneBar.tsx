@@ -18,7 +18,7 @@ export function KeyboardDoneBar() {
           style={styles.bubble}
           activeOpacity={0.8}
         >
-          <Ionicons name="checkmark" size={20} color="#007AFF" />
+          <Ionicons name="checkmark" size={18} color="#fff" />
         </TouchableOpacity>
       </View>
     </InputAccessoryView>
@@ -34,10 +34,15 @@ const styles = StyleSheet.create({
     height: 44,
   },
   bubble: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#007AFF',
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#007AFF',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
   },
 });
