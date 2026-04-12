@@ -3,6 +3,7 @@ import { StyleSheet, View, Text, TextInput, ActivityIndicator, TouchableOpacity,
 import { Ionicons } from '@expo/vector-icons';
 import { PlaceResult } from '../../api/search';
 import { useTheme } from '../../hooks/useTheme';
+import { KEYBOARD_DONE_ID } from '../KeyboardDoneBar';
 import { lightTap } from '../../utils/haptics';
 import { PlaceCategory } from '../../types';
 
@@ -77,6 +78,7 @@ export function SearchBar({
           autoCapitalize="none"
           spellCheck={false}
           textContentType="none"
+          inputAccessoryViewID={KEYBOARD_DONE_ID}
         />
         {searching && <ActivityIndicator size="small" color={c.primary} />}
         {searchQuery.length > 0 && !searching && (
