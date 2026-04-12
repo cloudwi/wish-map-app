@@ -12,7 +12,7 @@ import { StatsSection } from '../../components/StatsSection';
 import { useTheme } from '../../hooks/useTheme';
 import { useGroupStore } from '../../stores/groupStore';
 import { lightTap } from '../../utils/haptics';
-import { KEYBOARD_DONE_ID, KeyboardDoneBar } from '../../components/KeyboardDoneBar';
+import { KeyboardCheckButton } from '../../components/KeyboardCheckButton';
 import type * as LocationType from 'expo-location';
 
 
@@ -186,7 +186,6 @@ export default function ListScreen() {
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
     <View style={[styles.container, { backgroundColor: c.background }]}>
-      <KeyboardDoneBar />
       <MapListTabHeader />
 
       {/* 검색 */}
@@ -204,7 +203,6 @@ export default function ListScreen() {
           spellCheck={false}
           autoComplete="off"
           textContentType="oneTimeCode"
-          inputAccessoryViewID={KEYBOARD_DONE_ID}
         />
         {searchQuery.length > 0 && (
           <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearBtn}>
@@ -321,6 +319,7 @@ export default function ListScreen() {
         maxToRenderPerBatch={10}
         windowSize={5}
       />
+      <KeyboardCheckButton />
     </View>
     </TouchableWithoutFeedback>
   );
