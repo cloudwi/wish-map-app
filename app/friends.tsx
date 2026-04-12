@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Stack, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../hooks/useTheme';
+import { KEYBOARD_DONE_ID } from '../components/KeyboardDoneBar';
 import { AuthRequired } from '../components/AuthRequired';
 import { useAuthStore } from '../stores/authStore';
 import { friendApi, FriendResponse, FriendStatus, UserSearchResult } from '../api/friend';
@@ -222,6 +223,7 @@ export default function FriendsScreen() {
           onChangeText={handleSearch}
           returnKeyType="search"
           autoCorrect={false}
+          inputAccessoryViewID={KEYBOARD_DONE_ID}
         />
         {searchQuery.length > 0 && (
           <TouchableOpacity onPress={() => { setSearchQuery(''); setSearchResults([]); }}>

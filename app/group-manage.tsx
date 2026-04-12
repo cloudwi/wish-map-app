@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../hooks/useTheme';
+import { KEYBOARD_DONE_ID } from '../components/KeyboardDoneBar';
 import { groupApi, GroupResponse, GroupDetailResponse, GroupMemberResponse } from '../api/group';
 import { searchPlaces, PlaceResult } from '../api/search';
 import { friendApi, FriendResponse } from '../api/friend';
@@ -324,6 +325,7 @@ export default function GroupManageScreen() {
                 onChangeText={handleLocationSearch}
                 autoFocus
                 returnKeyType="search"
+                inputAccessoryViewID={KEYBOARD_DONE_ID}
               />
               {locationQuery.length > 0 && (
                 <TouchableOpacity onPress={() => { setLocationQuery(''); setLocationResults([]); }}>

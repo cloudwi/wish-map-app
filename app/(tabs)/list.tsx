@@ -12,6 +12,7 @@ import { StatsSection } from '../../components/StatsSection';
 import { useTheme } from '../../hooks/useTheme';
 import { useGroupStore } from '../../stores/groupStore';
 import { lightTap } from '../../utils/haptics';
+import { KEYBOARD_DONE_ID } from '../../components/KeyboardDoneBar';
 import type * as LocationType from 'expo-location';
 
 
@@ -198,6 +199,10 @@ export default function ListScreen() {
           onChangeText={setSearchQuery}
           returnKeyType="search"
           autoCorrect={false}
+          autoCapitalize="none"
+          spellCheck={false}
+          textContentType="none"
+          inputAccessoryViewID={KEYBOARD_DONE_ID}
         />
         {searchQuery.length > 0 && (
           <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearBtn}>

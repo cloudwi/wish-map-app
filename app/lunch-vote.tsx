@@ -10,6 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../hooks/useTheme';
+import { KEYBOARD_DONE_ID } from '../components/KeyboardDoneBar';
 import { lunchVoteApi, LunchVoteResponse, LunchVoteCandidateResponse } from '../api/lunchVote';
 import { placeApi } from '../api/place';
 import { Restaurant } from '../types';
@@ -262,6 +263,7 @@ export default function LunchVoteScreen() {
               onChangeText={handleSearch}
               autoFocus
               returnKeyType="search"
+              inputAccessoryViewID={KEYBOARD_DONE_ID}
             />
             {searchQuery.length > 0 && (
               <TouchableOpacity onPress={() => { setSearchQuery(''); setSearchResults([]); }}>
