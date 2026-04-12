@@ -391,7 +391,7 @@ export default function MapScreen() {
         searchResults={searchResults}
         searching={searching}
         onSearch={handleSearch}
-        onSearchNow={() => { searchNow(); setSearchFocused(true); }}
+        onSearchNow={searchNow}
         onClearSearch={clearSearch}
         onSelectPlace={handleSelectPlace}
         placeCategories={placeCategories}
