@@ -6,6 +6,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Toast from 'react-native-toast-message';
 import { toastConfig } from '../components/ToastConfig';
+import { KeyboardDoneBar } from '../components/KeyboardDoneBar';
 import { themes } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
 import { isForceUpdateRequired } from '../api/client';
@@ -90,6 +91,7 @@ export default function RootLayout() {
         <Stack.Screen name="group-manage" options={{ headerShown: false }} />
         <Stack.Screen name="lunch-vote" options={{ title: '점심 투표' }} />
       </Stack>
+      <KeyboardDoneBar />
       <Toast config={toastConfig} topOffset={60} autoHide visibilityTime={2000} position="bottom" bottomOffset={100} swipeable={false} />
       <ForceUpdateModal visible={forceUpdate} />
     </GestureHandlerRootView>
