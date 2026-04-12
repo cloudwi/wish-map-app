@@ -74,6 +74,9 @@ export function SearchBar({
           onSubmitEditing={onSearchNow}
           autoCorrect={false}
           autoComplete="off"
+          autoCapitalize="none"
+          spellCheck={false}
+          textContentType="none"
         />
         {searching && <ActivityIndicator size="small" color={c.primary} />}
         {searchQuery.length > 0 && !searching && (
