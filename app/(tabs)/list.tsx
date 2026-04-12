@@ -184,9 +184,9 @@ export default function ListScreen() {
   }
 
   return (
-    <>
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
     <View style={[styles.container, { backgroundColor: c.background }]}>
+      <KeyboardDoneBar />
       <MapListTabHeader />
 
       {/* 검색 */}
@@ -323,8 +323,6 @@ export default function ListScreen() {
       />
     </View>
     </TouchableWithoutFeedback>
-    <KeyboardDoneBar />
-    </>
   );
 }
 
