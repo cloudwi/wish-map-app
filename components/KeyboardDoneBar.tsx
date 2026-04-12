@@ -7,7 +7,7 @@ export function KeyboardDoneBar() {
 
   if (Platform.OS !== 'ios') return null;
 
-  const bgColor = scheme === 'dark' ? '#2C2C2E' : '#D1D3D9';
+  const bgColor = scheme === 'dark' ? '#1C1C1E' : '#D1D3D9';
 
   return (
     <InputAccessoryView nativeID={KEYBOARD_DONE_ID}>
@@ -28,7 +28,7 @@ const styles = StyleSheet.create({
     height: 44,
     paddingHorizontal: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(0,0,0,0.15)',
+    borderTopColor: 'rgba(128,128,128,0.3)',
   },
   btn: {
     paddingHorizontal: 8,
