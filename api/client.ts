@@ -16,12 +16,6 @@ export const apiClient = axios.create({
   },
 });
 
-// 강제 업데이트 필요 여부
-let forceUpdateRequired = false;
-let forceUpdateStoreUrl = '';
-export const isForceUpdateRequired = () => forceUpdateRequired;
-export const getForceUpdateStoreUrl = () => forceUpdateStoreUrl;
-
 // Request interceptor - add auth token + app version
 apiClient.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
@@ -34,18 +28,8 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Token refresh state - prevents concurrent refresh attempts
-let isRefreshing = false;
-let refreshSubscribers: Array<(token: string) => void> = [];
-
-function onRefreshed(token: string) {
-  refreshSubscribers.forEach(cb => cb(token));
-  refreshSubscribers = [];
-}
-
-function addRefreshSubscriber(cb: (token: string) => void) {
-  refreshSubscribers.push(cb);
-}
+// Token refresh — 동시 401 발생 시 하나의 Promise를 공유
+let refreshPromise: Promise<string> | null = null;
 
 // Response interceptor - handle token refresh
 apiClient.interceptors.response.use(
@@ -64,13 +48,6 @@ apiClient.interceptors.response.use(
       console.error(`[API] 서버 에러: ${url}`, error.response?.data);
     }
 
-    // 426: 강제 업데이트 필요
-    if (status === 426) {
-      forceUpdateRequired = true;
-      forceUpdateStoreUrl = (error.response?.data as any)?.storeUrl || '';
-      return Promise.reject(error);
-    }
-
     // 403: 유저가 DB에 없는 경우 (DB 초기화 등) → 강제 로그아웃
     if (status === 403) {
       console.warn('[AUTH] 403 강제 로그아웃');
@@ -84,43 +61,38 @@ apiClient.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
-      if (isRefreshing) {
-        // Another request is already refreshing - wait for it
-        return new Promise((resolve) => {
-          addRefreshSubscriber((token: string) => {
-            originalRequest.headers.Authorization = `Bearer ${token}`;
-            resolve(apiClient(originalRequest));
-          });
-        });
+      if (!refreshPromise) {
+        refreshPromise = (async () => {
+          try {
+            const refreshToken = await getItem('refreshToken');
+            if (!refreshToken) throw new Error('No refresh token');
+
+            const res = await axios.post(`${API_BASE_URL}/api/v1/auth/refresh`, { refreshToken });
+            const { accessToken, refreshToken: newRefreshToken } = res.data;
+
+            await setItem('accessToken', accessToken);
+            await setItem('refreshToken', newRefreshToken);
+            return accessToken;
+          } catch (refreshError) {
+            console.warn('[AUTH] 토큰 갱신 실패, 로그아웃 처리');
+            await deleteItem('accessToken');
+            await deleteItem('refreshToken');
+            throw refreshError;
+          } finally {
+            refreshPromise = null;
+          }
+        })();
       }
 
-      isRefreshing = true;
-
       try {
-        const refreshToken = await getItem('refreshToken');
-        if (!refreshToken) throw new Error('No refresh token');
-
-        const response = await axios.post(`${API_BASE_URL}/api/v1/auth/refresh`, { refreshToken });
-        const { accessToken, refreshToken: newRefreshToken } = response.data;
-
-        await setItem('accessToken', accessToken);
-        await setItem('refreshToken', newRefreshToken);
-
-        isRefreshing = false;
-        onRefreshed(accessToken);
-
+        const accessToken = await refreshPromise;
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return apiClient(originalRequest);
-      } catch (refreshError) {
-        console.warn('[AUTH] 토큰 갱신 실패, 로그아웃 처리');
-        isRefreshing = false;
-        refreshSubscribers = [];
-        await deleteItem('accessToken');
-        await deleteItem('refreshToken');
-        return Promise.reject(refreshError);
+      } catch {
+        return Promise.reject(error);
       }
     }
 

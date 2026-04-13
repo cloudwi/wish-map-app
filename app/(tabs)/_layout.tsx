@@ -1,4 +1,4 @@
-import { NativeTabs } from 'expo-router/unstable-native-tabs';
+import { NativeTabs, Label, Icon } from 'expo-router/unstable-native-tabs';
 import { Platform } from 'react-native';
 import { router } from 'expo-router';
 import { useAuthStore } from '../../stores/authStore';
@@ -36,18 +36,18 @@ export default function TabLayout() {
       disableTransparentOnScrollEdge={!isIOS26}
     >
       <NativeTabs.Trigger name="index">
-        <NativeTabs.Trigger.Label>지도</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf={{ default: 'map', selected: 'map.fill' }} />
+        <Label>지도</Label>
+        <Icon sf={{ default: 'map', selected: 'map.fill' }} />
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="list">
-        <NativeTabs.Trigger.Label>장소</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf={{ default: 'safari', selected: 'safari.fill' }} />
+        <Label>장소</Label>
+        <Icon sf={{ default: 'safari', selected: 'safari.fill' }} />
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="mypage">
-        <NativeTabs.Trigger.Label>마이</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf={{ default: 'person', selected: 'person.fill' }} />
+        <Label>마이</Label>
+        <Icon sf={{ default: 'person', selected: 'person.fill' }} />
       </NativeTabs.Trigger>
     </NativeTabs>
     <KeyboardDoneBar />

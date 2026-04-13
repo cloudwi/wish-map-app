@@ -47,14 +47,15 @@ export default function MapScreen() {
   const [statsRefreshKey, setStatsRefreshKey] = useState(0);
   const PAGE_SIZE = 20;
   const [listPage, setListPage] = useState(1);
+  // F5: 정렬용이므로 Manhattan 거리로 충분, deps 세분화
   const sortedRestaurants = useMemo(() => {
     if (!userLocation) return restaurants;
     return [...restaurants].sort((a, b) => {
-      const dA = Math.sqrt(((a.lat - userLocation.latitude) * 111000) ** 2 + ((a.lng - userLocation.longitude) * 111000 * Math.cos(userLocation.latitude * Math.PI / 180)) ** 2);
-      const dB = Math.sqrt(((b.lat - userLocation.latitude) * 111000) ** 2 + ((b.lng - userLocation.longitude) * 111000 * Math.cos(userLocation.latitude * Math.PI / 180)) ** 2);
+      const dA = Math.abs(a.lat - userLocation.latitude) + Math.abs(a.lng - userLocation.longitude);
+      const dB = Math.abs(b.lat - userLocation.latitude) + Math.abs(b.lng - userLocation.longitude);
       return dA - dB;
     });
-  }, [restaurants, userLocation]);
+  }, [restaurants, userLocation?.latitude, userLocation?.longitude]);
   const visibleRestaurants = useMemo(() => sortedRestaurants.slice(0, listPage * PAGE_SIZE), [sortedRestaurants, listPage]);
   const handleLoadMore = useCallback(() => {
     if (visibleRestaurants.length < restaurants.length) {
@@ -91,27 +92,24 @@ export default function MapScreen() {
       .catch(() => {});
   }, []);
 
-  // 그룹 선택/해제 시 자동으로 맛집 다시 로드 + 카메라 이동
-  const pendingGroupFetchRef = useRef(false);
+  // F6: 그룹 선택/해제 시 자동으로 맛집 다시 로드 + 카메라 이동 (timeout race 방지)
+  const groupFetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    if (groupFetchTimerRef.current) clearTimeout(groupFetchTimerRef.current);
+
     if (selectedGroupId) {
       const group = groups.find(g => g.id === selectedGroupId);
       if (group?.baseLat && group?.baseLng) {
         const radius = group.baseRadius || 1000;
         const zoom = radius <= 300 ? 17 : radius <= 500 ? 16 : 15;
-        pendingGroupFetchRef.current = true;
         mapRef.current?.animateCameraTo({
           latitude: group.baseLat, longitude: group.baseLng, zoom,
         });
-        // 카메라 이동 완료 후 fetch할 수 있도록 딜레이
-        setTimeout(() => {
-          if (pendingGroupFetchRef.current && currentBoundsRef.current) {
-            fetchRestaurants(currentBoundsRef.current);
-            pendingGroupFetchRef.current = false;
-          }
+        groupFetchTimerRef.current = setTimeout(() => {
+          if (currentBoundsRef.current) fetchRestaurants(currentBoundsRef.current);
         }, 800);
-        return;
+        return () => { if (groupFetchTimerRef.current) clearTimeout(groupFetchTimerRef.current); };
       }
     }
     if (currentBoundsRef.current) {
@@ -163,25 +161,29 @@ export default function MapScreen() {
       setRestaurants(response.content);
       setListPage(1);
       setShowResearchBtn(false);
-    } catch {
-      // silently fail – map will show empty state
+    } catch (error) {
+      console.warn('[fetchRestaurants]', error);
     } finally {
       setLoading(false);
       setTimeout(() => { initialLoadDone.current = true; }, 500);
     }
   }, [categoryFilter, trendFilter]);
 
+  // F2: mounted flag로 unmount 후 state 업데이트 방지
   useEffect(() => {
     let subscription: { remove: () => void } | null = null;
+    let mounted = true;
     (async () => {
       try {
         const Location = require('expo-location') as typeof LocationType;
         const { status } = await Location.requestForegroundPermissionsAsync();
+        if (!mounted) return;
         if (status === 'granted') {
           let location = await Location.getLastKnownPositionAsync();
           if (!location) {
             location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
           }
+          if (!mounted) return;
           const { latitude, longitude } = location.coords;
           setUserLocation({ latitude, longitude });
           mapRef.current?.animateCameraTo({ latitude, longitude, zoom: 15 });
@@ -192,25 +194,29 @@ export default function MapScreen() {
             maxLng: longitude + 0.01,
           };
           fetchRestaurants(bounds);
-          // 위치 지속 업데이트
           subscription = await Location.watchPositionAsync(
             { accuracy: Location.Accuracy.Balanced, distanceInterval: 10 },
-            (loc) => setUserLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude }),
+            (loc) => { if (mounted) setUserLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude }); },
           );
           return;
         }
       } catch (e) {
         console.warn('[Location Error]', e);
       }
-      fetchRestaurants(INITIAL_BOUNDS);
+      if (mounted) fetchRestaurants(INITIAL_BOUNDS);
     })();
-    return () => { subscription?.remove(); };
+    return () => { mounted = false; subscription?.remove(); };
   }, [fetchRestaurants]);
 
+  // F4: debounce로 카메라 이동 중 불필요한 리렌더 방지
+  const boundsDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const handleBoundsChange = useCallback((bounds: MapBounds, camera: { latitude: number; longitude: number; zoom: number }) => {
     currentBoundsRef.current = bounds;
     currentCameraRef.current = camera;
-    if (initialLoadDone.current) setShowResearchBtn(true);
+    if (initialLoadDone.current) {
+      if (boundsDebounceRef.current) clearTimeout(boundsDebounceRef.current);
+      boundsDebounceRef.current = setTimeout(() => setShowResearchBtn(true), 300);
+    }
   }, []);
 
   const handleResearch = useCallback(() => {
@@ -416,7 +422,7 @@ export default function MapScreen() {
       />
 
       {showResearchBtn && (
-        <View style={[styles.researchContainer, { top: insets.top + (isAuthenticated ? 100 : 60) }]}>
+        <View style={[styles.researchContainer, { top: insets.top + 100 }]}>
           <TouchableOpacity
             style={[styles.researchBtn, { backgroundColor: c.primary }]}
             onPress={handleResearch}

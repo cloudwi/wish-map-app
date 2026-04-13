@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'react-native';
@@ -9,8 +9,6 @@ import { toastConfig } from '../components/ToastConfig';
 import { KeyboardDoneBar } from '../components/KeyboardDoneBar';
 import { themes } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
-import { isForceUpdateRequired } from '../api/client';
-import { ForceUpdateModal } from '../components/ForceUpdateModal';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -24,18 +22,9 @@ const queryClient = new QueryClient({
 export default function RootLayout() {
   const systemScheme = useColorScheme();
   const mode = useThemeStore((s) => s.mode);
-  const [forceUpdate, setForceUpdate] = useState(false);
 
   useEffect(() => {
     useThemeStore.getState().loadMode();
-  }, []);
-
-  // 강제 업데이트 감지 (1초마다 폴링)
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (isForceUpdateRequired()) setForceUpdate(true);
-    }, 1000);
-    return () => clearInterval(interval);
   }, []);
 
   // 푸시 알림 설정 (네이티브 빌드에서만 동작, 시뮬레이터에서는 no-op)
@@ -93,7 +82,6 @@ export default function RootLayout() {
       </Stack>
       <KeyboardDoneBar />
       <Toast config={toastConfig} topOffset={60} autoHide visibilityTime={2000} position="bottom" bottomOffset={100} swipeable={false} />
-      <ForceUpdateModal visible={forceUpdate} />
     </GestureHandlerRootView>
     </QueryClientProvider>
   );

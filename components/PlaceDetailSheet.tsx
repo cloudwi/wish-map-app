@@ -39,15 +39,16 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
     placeApi.getPlaceStats(place.id).then(setStats).catch(() => setStats(null));
   }, [place.id]);
 
-  // place 변경 시 초기화 + 조회, refreshKey 변경 시 조용히 재조회
+  // place 변경 시 초기화 + 조회
   useEffect(() => {
     setStats(undefined);
     refreshStats();
-  }, [refreshStats]);
+  }, [place.id]);
 
+  // refreshKey 변경 시 조용히 재조회 (방문 인증 후 돌아올 때)
   useEffect(() => {
     if (refreshKey) refreshStats();
-  }, [refreshKey]);
+  }, [refreshKey, refreshStats]);
 
 
   useEffect(() => {

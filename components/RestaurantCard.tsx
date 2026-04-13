@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
@@ -15,7 +15,7 @@ interface Props {
   placeCategories?: PlaceCategory[];
 }
 
-export function RestaurantCard({ item, badge, index = 0, placeCategories }: Props) {
+export const RestaurantCard = memo(function RestaurantCard({ item, badge, index = 0, placeCategories }: Props) {
   const c = useTheme();
   const [imageUri, setImageUri] = useState<string | null>(item.thumbnailImage);
   const [imageError, setImageError] = useState(false);
@@ -70,7 +70,13 @@ export function RestaurantCard({ item, badge, index = 0, placeCategories }: Prop
       </TouchableOpacity>
     </View>
   );
-}
+}, (prev, next) =>
+  prev.item.id === next.item.id &&
+  prev.item.visitCount === next.item.visitCount &&
+  prev.item.lastVisitedAt === next.item.lastVisitedAt &&
+  prev.badge === next.badge &&
+  prev.placeCategories === next.placeCategories
+);
 
 const styles = StyleSheet.create({
   card: {
