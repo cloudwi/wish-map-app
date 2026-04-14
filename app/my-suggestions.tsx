@@ -3,21 +3,21 @@ import { StyleSheet, View, Text, FlatList, TouchableOpacity } from 'react-native
 import { useState, useEffect } from 'react';
 import { router, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Restaurant } from '../types';
+import { Place } from '../types';
 import { placeApi } from '../api/place';
-import { RestaurantCard } from '../components/RestaurantCard';
-import RestaurantCardSkeleton from '../components/RestaurantCardSkeleton';
+import { PlaceCard } from '../components/PlaceCard';
+import PlaceCardSkeleton from '../components/PlaceCardSkeleton';
 import { useTheme } from '../hooks/useTheme';
 
 
 export default function MySuggestionsScreen() {
   const c = useTheme();
-  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [places, setPlaces] = useState<Place[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    placeApi.getMyRestaurants()
-      .then(res => setRestaurants(res.content))
+    placeApi.getMyPlaces()
+      .then(res => setPlaces(res.content))
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
@@ -26,7 +26,7 @@ export default function MySuggestionsScreen() {
     return (
       <View style={[styles.container, { backgroundColor: c.background }]}>
         <View style={{ paddingTop: 16 }}>
-          {Array.from({ length: 4 }).map((_, i) => <RestaurantCardSkeleton key={i} />)}
+          {Array.from({ length: 4 }).map((_, i) => <PlaceCardSkeleton key={i} />)}
         </View>
       </View>
     );
@@ -37,10 +37,10 @@ export default function MySuggestionsScreen() {
       <Stack.Screen options={{ title: '내가 방문한 장소' }} />
       <View style={[styles.container, { backgroundColor: c.background }]}>
         <FlatList
-          data={restaurants}
+          data={places}
           keyExtractor={(item) => item.id.toString()}
           renderItem={({ item, index }) => (
-            <RestaurantCard
+            <PlaceCard
               item={item}
               index={index}
             />

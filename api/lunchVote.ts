@@ -1,6 +1,6 @@
 import { apiClient } from './client';
 
-export interface LunchVoteRestaurantSummary {
+export interface LunchVotePlaceSummary {
   id: number;
   name: string;
   category: string | null;
@@ -10,7 +10,7 @@ export interface LunchVoteRestaurantSummary {
 
 export interface LunchVoteCandidateResponse {
   id: number;
-  restaurant: LunchVoteRestaurantSummary;
+  restaurant: LunchVotePlaceSummary;
   addedBy: string;
   voteCount: number;
   voters: string[];

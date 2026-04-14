@@ -38,7 +38,7 @@ export default function VisitReviewScreen() {
     placeLng: string;
     placeId: string;
     placeCategory: string;
-    restaurantId: string;
+    existingPlaceId: string;
     placeCategoryId: string;
   }>();
 

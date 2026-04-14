@@ -3,10 +3,9 @@ import { Image } from 'expo-image';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLocalSearchParams, Stack, router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { RestaurantDetail, Comment, PlaceCategory } from '../../types';
+import { PlaceDetail, Comment, PlaceCategory } from '../../types';
 import { placeApi } from '../../api/place';
 import { commentApi } from '../../api/comment';
-import { searchPlaceImages } from '../../api/search';
 import { useAuthStore } from '../../stores/authStore';
 import { useTheme } from '../../hooks/useTheme';
 import { lightTap } from '../../utils/haptics';
@@ -15,31 +14,27 @@ import Skeleton from '../../components/Skeleton';
 import { CategoryPlaceholder } from '../../components/CategoryPlaceholder';
 import { placeCategoryApi } from '../../api/placeCategory';
 
-export default function RestaurantDetailScreen() {
+export default function PlaceDetailScreen() {
   const c = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { isAuthenticated } = useAuthStore();
 
-  const [restaurant, setRestaurant] = useState<RestaurantDetail | null>(null);
+  const [place, setPlace] = useState<PlaceDetail | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentPage, setCommentPage] = useState(0);
   const [hasMoreComments, setHasMoreComments] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [searchImages, setSearchImages] = useState<string[]>([]);
   const [viewerImage, setViewerImage] = useState<string | null>(null);
   const [placeCategories, setPlaceCategories] = useState<PlaceCategory[]>([]);
 
-  const fetchRestaurant = useCallback(async () => {
+  const fetchPlace = useCallback(async () => {
     try {
-      const data = await placeApi.getRestaurantDetail(Number(id));
-      setRestaurant(data);
-      if (!data.thumbnailImage && data.images.length === 0) {
-        searchPlaceImages(data.name, 3).then(setSearchImages);
-      }
+      const data = await placeApi.getPlaceDetail(Number(id));
+      setPlace(data);
     } catch (error) {
-      console.error('Failed to fetch restaurant:', error);
+      console.error('Failed to fetch place:', error);
     }
   }, [id]);
 
@@ -54,28 +49,28 @@ export default function RestaurantDetailScreen() {
 
   useEffect(() => {
     (async () => {
-      await fetchRestaurant();
+      await fetchPlace();
       await fetchComments(0, true);
       setLoading(false);
     })();
-  }, [fetchRestaurant, fetchComments]);
+  }, [fetchPlace, fetchComments]);
 
   useEffect(() => { placeCategoryApi.getPlaceCategories().then(setPlaceCategories).catch(() => {}); }, []);
 
-  // 화면 복귀 시 restaurant만 조용히 재조회 (깜박임 없이 isVisited 등 갱신)
+  // 화면 복귀 시 place만 조용히 재조회 (깜박임 없이 isVisited 등 갱신)
   useFocusEffect(useCallback(() => {
-    if (!loading) fetchRestaurant();
-  }, [loading, fetchRestaurant]));
+    if (!loading) fetchPlace();
+  }, [loading, fetchPlace]));
 
   const onRefresh = useCallback(async () => {
     if (refreshing) return;
     setRefreshing(true);
     try {
-      await Promise.all([fetchRestaurant(), fetchComments(0, true)]);
+      await Promise.all([fetchPlace(), fetchComments(0, true)]);
     } catch {} finally {
       setRefreshing(false);
     }
-  }, [refreshing, fetchRestaurant, fetchComments]);
+  }, [refreshing, fetchPlace, fetchComments]);
 
   const loadMoreComments = useCallback(async () => {
     if (!hasMoreComments || loadingMore) return;
@@ -85,14 +80,14 @@ export default function RestaurantDetailScreen() {
   }, [hasMoreComments, loadingMore, commentPage, fetchComments]);
 
   const handleOpenNaverMap = async () => {
-    if (!restaurant) return;
+    if (!place) return;
     lightTap();
-    const appUrl = `nmap://place?lat=${restaurant.lat}&lng=${restaurant.lng}&name=${encodeURIComponent(restaurant.name)}&appname=com.wishmap.app`;
+    const appUrl = `nmap://place?lat=${place.lat}&lng=${place.lng}&name=${encodeURIComponent(place.name)}&appname=com.wishmap.app`;
     // naverPlaceId가 순수 숫자인 경우만 플레이스 URL 사용 (좌표 형식 제외)
-    const isPlaceId = restaurant.naverPlaceId && /^\d+$/.test(restaurant.naverPlaceId);
+    const isPlaceId = place.naverPlaceId && /^\d+$/.test(place.naverPlaceId);
     const webUrl = isPlaceId
-      ? `https://m.place.naver.com/place/${restaurant.naverPlaceId}/home`
-      : `https://map.naver.com/v5/search/${encodeURIComponent(restaurant.name)}`;
+      ? `https://m.place.naver.com/place/${place.naverPlaceId}/home`
+      : `https://map.naver.com/v5/search/${encodeURIComponent(place.name)}`;
     try {
       const supported = await Linking.canOpenURL(appUrl);
       await Linking.openURL(supported ? appUrl : webUrl);
@@ -110,27 +105,27 @@ export default function RestaurantDetailScreen() {
     router.push({
       pathname: '/visit-review',
       params: {
-        placeName: restaurant?.name || '',
-        placeLat: String(restaurant?.lat || ''),
-        placeLng: String(restaurant?.lng || ''),
-        placeId: restaurant?.naverPlaceId || '',
-        placeCategory: restaurant?.category || '',
-        restaurantId: String(restaurant?.id || ''),
-        placeCategoryId: restaurant?.placeCategoryId ? String(restaurant.placeCategoryId) : '',
+        placeName: place?.name || '',
+        placeLat: String(place?.lat || ''),
+        placeLng: String(place?.lng || ''),
+        placeId: place?.naverPlaceId || '',
+        placeCategory: place?.category || '',
+        existingPlaceId: String(place?.id || ''),
+        placeCategoryId: place?.placeCategoryId ? String(place.placeCategoryId) : '',
       },
     });
   };
 
   const handleShare = async () => {
-    if (!restaurant) return;
+    if (!place) return;
     lightTap();
-    const isPlaceId = restaurant.naverPlaceId && /^\d+$/.test(restaurant.naverPlaceId);
+    const isPlaceId = place.naverPlaceId && /^\d+$/.test(place.naverPlaceId);
     const url = isPlaceId
-      ? `https://m.place.naver.com/place/${restaurant.naverPlaceId}/home`
-      : `https://map.naver.com/v5/search/${encodeURIComponent(restaurant.name)}`;
+      ? `https://m.place.naver.com/place/${place.naverPlaceId}/home`
+      : `https://map.naver.com/v5/search/${encodeURIComponent(place.name)}`;
     try {
       await Share.share({
-        message: `${restaurant.name}${restaurant.category ? ` (${restaurant.category})` : ''}\n${url}`,
+        message: `${place.name}${place.category ? ` (${place.category})` : ''}\n${url}`,
       });
     } catch {}
   };
@@ -162,7 +157,7 @@ export default function RestaurantDetailScreen() {
     );
   }
 
-  if (!restaurant) {
+  if (!place) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: c.surface }]}>
         <Stack.Screen
@@ -184,7 +179,7 @@ export default function RestaurantDetailScreen() {
     <>
       <Stack.Screen
         options={{
-          title: restaurant.name,
+          title: place.name,
           headerStyle: { backgroundColor: c.headerBg },
           headerTintColor: c.textPrimary,
           headerShadowVisible: false,
@@ -214,11 +209,11 @@ export default function RestaurantDetailScreen() {
             <>
               {/* 메인 이미지 */}
               {(() => {
-                const allImages = restaurant.images.length > 0
-                  ? restaurant.images
-                  : restaurant.thumbnailImage
-                    ? [restaurant.thumbnailImage]
-                    : searchImages;
+                const allImages = place.images.length > 0
+                  ? place.images
+                  : place.thumbnailImage
+                    ? [place.thumbnailImage]
+                    : [];
                 return allImages.length > 0 ? (
                   <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false}>
                     {allImages.map((uri, i) => (
@@ -228,7 +223,7 @@ export default function RestaurantDetailScreen() {
                 ) : (
                   <View style={[styles.mainImage, styles.imagePlaceholder]}>
                     <CategoryPlaceholder
-                      icon={placeCategories.find(cat => cat.id === restaurant.placeCategoryId)?.icon}
+                      icon={placeCategories.find(cat => cat.id === place.placeCategoryId)?.icon}
                       size={Dimensions.get('window').width}
                       iconScale={0.2}
                     />
@@ -240,17 +235,17 @@ export default function RestaurantDetailScreen() {
               <View style={[styles.infoSection, { borderBottomColor: c.background }]}>
                 <View style={styles.header}>
                   <View style={styles.titleRow}>
-                    <Text style={[styles.name, { color: c.textPrimary }]}>{restaurant.name}</Text>
-                    {restaurant.category && (
-                      <Text style={[styles.category, { backgroundColor: c.categoryBadgeBg, color: c.categoryBadgeText }]}>{restaurant.category}</Text>
+                    <Text style={[styles.name, { color: c.textPrimary }]}>{place.name}</Text>
+                    {place.category && (
+                      <Text style={[styles.category, { backgroundColor: c.categoryBadgeBg, color: c.categoryBadgeText }]}>{place.category}</Text>
                     )}
                   </View>
                   <View style={styles.actions}>
-                    <Text style={[styles.visitCountBadge, { color: c.textSecondary }]}>방문 {restaurant.visitCount}회</Text>
+                    <Text style={[styles.visitCountBadge, { color: c.textSecondary }]}>방문 {place.visitCount}회</Text>
                   </View>
-                  {restaurant.lastVisitedAt && (
+                  {place.lastVisitedAt && (
                     <Text style={[styles.lastVisitText, { color: c.textTertiary }]}>
-                      최근 방문 {new Date(restaurant.lastVisitedAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })} {new Date(restaurant.lastVisitedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                      최근 방문 {new Date(place.lastVisitedAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })} {new Date(place.lastVisitedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
                     </Text>
                   )}
                 </View>
@@ -265,16 +260,16 @@ export default function RestaurantDetailScreen() {
                   <Ionicons name="open-outline" size={12} color={c.textDisabled} />
                 </TouchableOpacity>
 
-                {restaurant.description && (
-                  <Text style={[styles.description, { color: c.textPrimary }]}>{restaurant.description}</Text>
+                {place.description && (
+                  <Text style={[styles.description, { color: c.textPrimary }]}>{place.description}</Text>
                 )}
 
                 <View style={styles.metaRow}>
                   <Text style={[styles.metaText, { color: c.textTertiary }]}>
-                    제안: {restaurant.suggestedBy.nickname}
+                    제안: {place.suggestedBy.nickname}
                   </Text>
                   <Text style={[styles.metaText, { color: c.textTertiary }]}>
-                    {new Date(restaurant.createdAt).toLocaleDateString()}
+                    {new Date(place.createdAt).toLocaleDateString()}
                   </Text>
                 </View>
               </View>
@@ -334,15 +329,15 @@ export default function RestaurantDetailScreen() {
           <TouchableOpacity
             style={[
               styles.bottomButton,
-              restaurant.isVisited
+              place.isVisited
                 ? { backgroundColor: c.chipBg }
                 : { backgroundColor: c.primary },
             ]}
             onPress={handleVisit}
-            disabled={restaurant.isVisited}
+            disabled={place.isVisited}
             activeOpacity={0.8}
           >
-            {restaurant.isVisited ? (
+            {place.isVisited ? (
               <>
                 <Ionicons name="checkmark-circle" size={16} color="#4CAF50" />
                 <Text style={[styles.bottomButtonText, { color: c.textSecondary }]}>오늘 인증 완료</Text>

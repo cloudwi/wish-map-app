@@ -1,30 +1,23 @@
-import { useState, useEffect, memo } from 'react';
+import { useState, memo } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { Restaurant, PlaceCategory } from '../types';
-import { searchPlaceImage } from '../api/search';
+import { Place, PlaceCategory } from '../types';
 import { useTheme } from '../hooks/useTheme';
 import { lightTap } from '../utils/haptics';
 import { CategoryPlaceholder } from './CategoryPlaceholder';
 
 interface Props {
-  item: Restaurant;
+  item: Place;
   badge?: React.ReactNode;
   index?: number;
   placeCategories?: PlaceCategory[];
 }
 
-export const RestaurantCard = memo(function RestaurantCard({ item, badge, index = 0, placeCategories }: Props) {
+export const PlaceCard = memo(function PlaceCard({ item, badge, index = 0, placeCategories }: Props) {
   const c = useTheme();
-  const [imageUri, setImageUri] = useState<string | null>(item.thumbnailImage);
+  const imageUri = item.thumbnailImage;
   const [imageError, setImageError] = useState(false);
-
-  useEffect(() => {
-    if (!item.thumbnailImage) {
-      searchPlaceImage(item.name).then(setImageUri);
-    }
-  }, [item.name, item.thumbnailImage]);
 
   const showPlaceholder = !imageUri || imageError;
 
@@ -32,7 +25,7 @@ export const RestaurantCard = memo(function RestaurantCard({ item, badge, index 
     <View>
       <TouchableOpacity
         style={[styles.card, { backgroundColor: c.cardBg, borderColor: c.border }]}
-        onPress={() => { lightTap(); router.push(`/restaurant/${item.id}`); }}
+        onPress={() => { lightTap(); router.push(`/place/${item.id}`); }}
         activeOpacity={0.8}
       >
         {showPlaceholder ? (

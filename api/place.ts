@@ -1,9 +1,9 @@
 import axios from 'axios';
 import apiClient from './client';
 import {
-  Restaurant,
-  RestaurantDetail,
-  CreateRestaurantRequest,
+  Place,
+  PlaceDetail,
+  CreatePlaceRequest,
   PageResponse,
   MapBounds,
   PriceRange,
@@ -28,7 +28,7 @@ export interface PlaceStatsResponse {
   lastVisitedAt: string | null;
 }
 
-export interface RestaurantListParams {
+export interface PlaceListParams {
   bounds?: MapBounds;
   category?: string;
   placeCategoryId?: number;
@@ -44,8 +44,8 @@ export interface RestaurantListParams {
 
 export const placeApi = {
   // 장소 조회 (지도/리스트 통합)
-  getRestaurants: async (params: RestaurantListParams = {}): Promise<PageResponse<Restaurant>> => {
-    const response = await apiClient.get<PageResponse<Restaurant>>('/places', {
+  getPlaces: async (params: PlaceListParams = {}): Promise<PageResponse<Place>> => {
+    const response = await apiClient.get<PageResponse<Place>>('/places', {
       params: {
         minLat: params.bounds?.minLat,
         maxLat: params.bounds?.maxLat,
@@ -67,20 +67,20 @@ export const placeApi = {
   },
 
   // 맛집 상세
-  getRestaurantDetail: async (id: number): Promise<RestaurantDetail> => {
-    const response = await apiClient.get<RestaurantDetail>(`/places/${id}`);
+  getPlaceDetail: async (id: number): Promise<PlaceDetail> => {
+    const response = await apiClient.get<PlaceDetail>(`/places/${id}`);
     return response.data;
   },
 
   // 맛집 제안
-  createRestaurant: async (data: CreateRestaurantRequest): Promise<RestaurantDetail> => {
-    const response = await apiClient.post<RestaurantDetail>('/places', data);
+  createPlace: async (data: CreatePlaceRequest): Promise<PlaceDetail> => {
+    const response = await apiClient.post<PlaceDetail>('/places', data);
     return response.data;
   },
 
   // 내 제안 목록
-  getMyRestaurants: async (page = 0, size = 20): Promise<PageResponse<Restaurant>> => {
-    const response = await apiClient.get<PageResponse<Restaurant>>('/places/my', {
+  getMyPlaces: async (page = 0, size = 20): Promise<PageResponse<Place>> => {
+    const response = await apiClient.get<PageResponse<Place>>('/places/my', {
       params: { page, size },
     });
     return response.data;
@@ -144,8 +144,8 @@ export const placeApi = {
   },
 
   // 그룹 필터: 그룹 구성원이 방문/제보한 맛집
-  getGroupRestaurants: async (groupId: number, bounds: MapBounds, priceRange?: PriceRange): Promise<PageResponse<Restaurant>> => {
-    const response = await apiClient.get<PageResponse<Restaurant>>(`/groups/${groupId}/restaurants`, {
+  getGroupPlaces: async (groupId: number, bounds: MapBounds, priceRange?: PriceRange): Promise<PageResponse<Place>> => {
+    const response = await apiClient.get<PageResponse<Place>>(`/groups/${groupId}/restaurants`, {
       params: {
         minLat: bounds.minLat,
         maxLat: bounds.maxLat,

@@ -2,7 +2,7 @@ import { View, StyleSheet } from 'react-native';
 import Skeleton from './Skeleton';
 import { useTheme } from '../hooks/useTheme';
 
-export default function RestaurantCardSkeleton() {
+export default function PlaceCardSkeleton() {
   const c = useTheme();
 
   return (

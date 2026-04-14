@@ -10,13 +10,13 @@ import {
   type Region,
   type NaverMapViewRef,
 } from '@mj-studio/react-native-naver-map';
-import { Restaurant, MapBounds, PlaceCategory } from '../types';
+import { Place, MapBounds, PlaceCategory } from '../types';
 import { PlaceResult } from '../api/search';
 
 interface Props {
-  restaurants: Restaurant[];
+  places: Place[];
   placeCategories?: PlaceCategory[];
-  onMarkerClick: (restaurant: Restaurant) => void;
+  onMarkerClick: (place: Place) => void;
   onBoundsChange: (bounds: MapBounds, camera: { latitude: number; longitude: number; zoom: number }) => void;
   onTapMap?: (lat: number, lng: number) => void;
   userLocation?: { latitude: number; longitude: number } | null;
@@ -39,7 +39,7 @@ function getCategoryIcon(placeCategoryId: number | null, placeCategories?: Place
 }
 
 const NaverMap = forwardRef<NaverMapViewRef, Props>(({
-  restaurants,
+  places,
   placeCategories,
   onMarkerClick,
   onBoundsChange,
@@ -86,7 +86,7 @@ const NaverMap = forwardRef<NaverMapViewRef, Props>(({
       mapPadding={{ top: 120, bottom: 150 }}
     >
       {/* 동그라미 마커 + 포크 문양 */}
-      {restaurants.filter((r) => !selectedPlace || (r.lat !== selectedPlace.lat || r.lng !== selectedPlace.lng)).map((r) => {
+      {places.filter((r) => !selectedPlace || (r.lat !== selectedPlace.lat || r.lng !== selectedPlace.lng)).map((r) => {
         const hasVisits = r.visitCount > 0;
         const hasChampion = !!r.weeklyChampion;
         const isActive = hasChampion || hasVisits;

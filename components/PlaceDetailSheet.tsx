@@ -69,7 +69,7 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
         placeLng: String(place.lng),
         placeId: place.id || '',
         placeCategory: place.category || '',
-        restaurantId: stats?.restaurantId ? String(stats.restaurantId) : '',
+        existingPlaceId: stats?.restaurantId ? String(stats.restaurantId) : '',
         placeCategoryId: stats?.placeCategoryId ? String(stats.placeCategoryId) : '',
       },
     });
@@ -88,14 +88,14 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
           onPress={async () => {
             lightTap();
             if (stats?.restaurantId) {
-              router.push(`/restaurant/${stats.restaurantId}`);
+              router.push(`/place/${stats.restaurantId}`);
               return;
             }
             if (!isAuthenticated) { router.push('/login'); return; }
             if (registering) return;
             try {
               setRegistering(true);
-              const created = await placeApi.createRestaurant({
+              const created = await placeApi.createPlace({
                 name: place.name,
                 lat: place.lat,
                 lng: place.lng,
@@ -103,14 +103,14 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
                 category: place.category || undefined,
               });
               setStats({ restaurantId: created.id, visitCount: 0, avgRating: null, visitedToday: false, priceRange: null, placeCategoryId: created.placeCategoryId ?? null, recentReviews: [], lastVisitedAt: null });
-              router.push(`/restaurant/${created.id}`);
+              router.push(`/place/${created.id}`);
             } catch (e: any) {
               // 이미 등록된 장소면 stats 재조회
               if (place.id) {
                 const refreshed = await placeApi.getPlaceStats(place.id).catch(() => null);
                 if (refreshed?.restaurantId) {
                   setStats(refreshed);
-                  router.push(`/restaurant/${refreshed.restaurantId}`);
+                  router.push(`/place/${refreshed.restaurantId}`);
                   return;
                 }
               }

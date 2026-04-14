@@ -28,7 +28,7 @@ export function StatsSection() {
           <TouchableOpacity
             key={item.id}
             style={[styles.rankCard, { backgroundColor: c.cardBg, borderColor: c.border }]}
-            onPress={() => { lightTap(); router.push(`/restaurant/${item.id}`); }}
+            onPress={() => { lightTap(); router.push(`/place/${item.id}`); }}
             activeOpacity={0.8}
           >
             <View style={[styles.rankBadge, { backgroundColor: idx === 0 ? '#FF6B35' : idx === 1 ? '#FF9F1C' : '#FFD166' }]}>

@@ -79,8 +79,8 @@ export interface PlaceCategory {
 }
 
 
-// Restaurant
-export interface Restaurant {
+// Place
+export interface Place {
   id: number;
   name: string;
   lat: number;
@@ -95,7 +95,7 @@ export interface Restaurant {
   lastVisitedAt: string | null;
 }
 
-export interface RestaurantDetail extends Restaurant {
+export interface PlaceDetail extends Place {
   naverPlaceId: string | null;
   description: string | null;
   images: string[];
@@ -112,7 +112,7 @@ export interface UserSummary {
   profileImage: string | null;
 }
 
-export interface CreateRestaurantRequest {
+export interface CreatePlaceRequest {
   name: string;
   lat: number;
   lng: number;

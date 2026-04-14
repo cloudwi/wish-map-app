@@ -70,7 +70,7 @@ export default function RootLayout() {
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="login" options={{ presentation: 'modal' }} />
-        <Stack.Screen name="restaurant/[id]" options={{ title: '장소 상세' }} />
+        <Stack.Screen name="place/[id]" options={{ title: '장소 상세' }} />
         <Stack.Screen name="my-suggestions" options={{ title: '내 제안 목록' }} />
         <Stack.Screen name="legal/terms" options={{ title: '이용약관' }} />
         <Stack.Screen name="legal/privacy" options={{ title: '개인정보 처리방침' }} />

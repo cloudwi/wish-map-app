@@ -2,7 +2,7 @@ import { useEffect, useCallback, useRef } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Modal } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, withSequence, withDelay, Easing, runOnJS } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import { Restaurant } from '../types';
+import { Place } from '../types';
 import { useTheme } from '../hooks/useTheme';
 import { successTap, mediumTap } from '../utils/haptics';
 
@@ -11,9 +11,9 @@ const SLOT_HEIGHT = ITEM_HEIGHT;
 
 interface RecommendSlotProps {
   visible: boolean;
-  candidates: Restaurant[];
-  winner: Restaurant | null;
-  onResult: (restaurant: Restaurant) => void;
+  candidates: Place[];
+  winner: Place | null;
+  onResult: (place: Place) => void;
   onClose: () => void;
 }
 
@@ -29,7 +29,7 @@ export function RecommendSlot({ visible, candidates, winner, onResult, onClose }
   const slotItems = (() => {
     if (!candidates.length || !winner) return [];
     const repeats = 4; // 4바퀴 돌기
-    const items: Restaurant[] = [];
+    const items: Place[] = [];
     for (let i = 0; i < repeats; i++) {
       // 매 반복마다 셔플
       const shuffled = [...candidates].sort(() => Math.random() - 0.5);

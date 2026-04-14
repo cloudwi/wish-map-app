@@ -6,12 +6,12 @@ import { Ionicons } from '@expo/vector-icons';
 import BottomSheet, { BottomSheetFlatList, BottomSheetView } from '@gorhom/bottom-sheet';
 import type * as LocationType from 'expo-location';
 import { type NaverMapViewRef } from '@mj-studio/react-native-naver-map';
-import { Restaurant, MapBounds, PlaceCategory } from '../../types';
+import { Place, MapBounds, PlaceCategory } from '../../types';
 import { placeApi } from '../../api/place';
 import { placeCategoryApi } from '../../api/placeCategory';
 import { PlaceResult } from '../../api/search';
 import NaverMap from '../../components/NaverMap';
-import { RestaurantCard } from '../../components/RestaurantCard';
+import { PlaceCard } from '../../components/PlaceCard';
 import { PlaceDetailSheet } from '../../components/PlaceDetailSheet';
 import { SearchBar } from '../../components/map/SearchBar';
 import { FilterChips, TrendFilter } from '../../components/map/FilterChips';
@@ -30,9 +30,9 @@ const INITIAL_BOUNDS: MapBounds = { minLat: 37.4, maxLat: 37.7, minLng: 126.8, m
 export default function MapScreen() {
   const c = useTheme();
   const insets = useSafeAreaInsets();
-  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [places, setPlaces] = useState<Place[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<Restaurant | null>(null);
+  const [selected, setSelected] = useState<Place | null>(null);
   const [showResearchBtn, setShowResearchBtn] = useState(false);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const initialLoadDone = useRef(false);
@@ -48,24 +48,24 @@ export default function MapScreen() {
   const PAGE_SIZE = 20;
   const [listPage, setListPage] = useState(1);
   // F5: 정렬용이므로 Manhattan 거리로 충분, deps 세분화
-  const sortedRestaurants = useMemo(() => {
-    if (!userLocation) return restaurants;
-    return [...restaurants].sort((a, b) => {
+  const sortedPlaces = useMemo(() => {
+    if (!userLocation) return places;
+    return [...places].sort((a, b) => {
       const dA = Math.abs(a.lat - userLocation.latitude) + Math.abs(a.lng - userLocation.longitude);
       const dB = Math.abs(b.lat - userLocation.latitude) + Math.abs(b.lng - userLocation.longitude);
       return dA - dB;
     });
-  }, [restaurants, userLocation?.latitude, userLocation?.longitude]);
-  const visibleRestaurants = useMemo(() => sortedRestaurants.slice(0, listPage * PAGE_SIZE), [sortedRestaurants, listPage]);
+  }, [places, userLocation?.latitude, userLocation?.longitude]);
+  const visiblePlaces = useMemo(() => sortedPlaces.slice(0, listPage * PAGE_SIZE), [sortedPlaces, listPage]);
   const handleLoadMore = useCallback(() => {
-    if (visibleRestaurants.length < restaurants.length) {
+    if (visiblePlaces.length < places.length) {
       setListPage(p => p + 1);
     }
-  }, [visibleRestaurants.length, restaurants.length]);
+  }, [visiblePlaces.length, places.length]);
 
   const [slotVisible, setSlotVisible] = useState(false);
-  const [slotCandidates, setSlotCandidates] = useState<Restaurant[]>([]);
-  const [slotWinner, setSlotWinner] = useState<Restaurant | null>(null);
+  const [slotCandidates, setSlotCandidates] = useState<Place[]>([]);
+  const [slotWinner, setSlotWinner] = useState<Place | null>(null);
 
   // 화면 포커스 시 stats 재조회 트리거 (방문 인증 후 돌아올 때)
   useFocusEffect(useCallback(() => {
@@ -107,24 +107,24 @@ export default function MapScreen() {
           latitude: group.baseLat, longitude: group.baseLng, zoom,
         });
         groupFetchTimerRef.current = setTimeout(() => {
-          if (currentBoundsRef.current) fetchRestaurants(currentBoundsRef.current);
+          if (currentBoundsRef.current) fetchPlaces(currentBoundsRef.current);
         }, 800);
         return () => { if (groupFetchTimerRef.current) clearTimeout(groupFetchTimerRef.current); };
       }
     }
     if (currentBoundsRef.current) {
-      fetchRestaurants(currentBoundsRef.current);
+      fetchPlaces(currentBoundsRef.current);
     }
   }, [selectedGroupId]);
 
   // 트렌드 필터 변경 시 자동 조회
   useEffect(() => {
     if (currentBoundsRef.current) {
-      fetchRestaurants(currentBoundsRef.current);
+      fetchPlaces(currentBoundsRef.current);
     }
   }, [trendFilter]);
 
-  const fetchRestaurants = useCallback(async (bounds: MapBounds, placeCategoryId?: number | null) => {
+  const fetchPlaces = useCallback(async (bounds: MapBounds, placeCategoryId?: number | null) => {
     try {
       const { selectedGroupId: groupId, groups: storeGroups } = useGroupStore.getState();
       const effectiveCategoryId = placeCategoryId !== undefined ? placeCategoryId : categoryFilter;
@@ -150,19 +150,19 @@ export default function MapScreen() {
       const trendPriceRange = trendFilter?.priceRange;
 
       const response = groupId
-        ? await placeApi.getGroupRestaurants(groupId, effectiveBounds)
-        : await placeApi.getRestaurants({
+        ? await placeApi.getGroupPlaces(groupId, effectiveBounds)
+        : await placeApi.getPlaces({
             bounds,
             placeCategoryId: trendCategoryId || effectiveCategoryId || undefined,
             tags: trendTags,
             priceRange: trendPriceRange as any,
             size: 500,
           });
-      setRestaurants(response.content);
+      setPlaces(response.content);
       setListPage(1);
       setShowResearchBtn(false);
     } catch (error) {
-      console.warn('[fetchRestaurants]', error);
+      console.warn('[fetchPlaces]', error);
     } finally {
       setLoading(false);
       setTimeout(() => { initialLoadDone.current = true; }, 500);
@@ -193,7 +193,7 @@ export default function MapScreen() {
             minLng: longitude - 0.01,
             maxLng: longitude + 0.01,
           };
-          fetchRestaurants(bounds);
+          fetchPlaces(bounds);
           subscription = await Location.watchPositionAsync(
             { accuracy: Location.Accuracy.Balanced, distanceInterval: 10 },
             (loc) => { if (mounted) setUserLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude }); },
@@ -203,10 +203,10 @@ export default function MapScreen() {
       } catch (e) {
         console.warn('[Location Error]', e);
       }
-      if (mounted) fetchRestaurants(INITIAL_BOUNDS);
+      if (mounted) fetchPlaces(INITIAL_BOUNDS);
     })();
     return () => { mounted = false; subscription?.remove(); };
-  }, [fetchRestaurants]);
+  }, [fetchPlaces]);
 
   // F4: debounce로 카메라 이동 중 불필요한 리렌더 방지
   const boundsDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -221,8 +221,8 @@ export default function MapScreen() {
 
   const handleResearch = useCallback(() => {
     mediumTap();
-    fetchRestaurants(currentBoundsRef.current);
-  }, [fetchRestaurants]);
+    fetchPlaces(currentBoundsRef.current);
+  }, [fetchPlaces]);
 
   const handleSelectPlace = (place: PlaceResult) => {
     lightTap();
@@ -269,42 +269,42 @@ export default function MapScreen() {
     Linking.openURL(`tel:${phone}`);
   };
 
-  const handleMarkerClick = useCallback(async (restaurant: Restaurant) => {
+  const handleMarkerClick = useCallback(async (tapped: Place) => {
     lightTap();
-    setSelected(restaurant);
-    // Restaurant를 PlaceResult로 변환하여 동일한 바텀시트 표시
-    const place: PlaceResult = {
-      id: restaurant.naverPlaceId || '',
-      name: restaurant.name,
+    setSelected(tapped);
+    // Place를 PlaceResult로 변환하여 동일한 바텀시트 표시
+    const placeResult: PlaceResult = {
+      id: tapped.naverPlaceId || '',
+      name: tapped.name,
       address: '',
       roadAddress: '',
-      lat: restaurant.lat,
-      lng: restaurant.lng,
-      category: restaurant.category || '',
+      lat: tapped.lat,
+      lng: tapped.lng,
+      category: tapped.category || '',
       phone: '',
       link: '',
     };
     // 네이버 검색으로 주소/전화번호 보강
     try {
       const { searchPlaces } = require('../../api/search');
-      const results = await searchPlaces(restaurant.name);
+      const results = await searchPlaces(tapped.name);
       // 좌표가 가장 가까운 결과 매칭
       const match = results.length > 0
         ? results.reduce((closest: PlaceResult, r: PlaceResult) => {
-            const distR = Math.abs(r.lat - restaurant.lat) + Math.abs(r.lng - restaurant.lng);
-            const distC = Math.abs(closest.lat - restaurant.lat) + Math.abs(closest.lng - restaurant.lng);
+            const distR = Math.abs(r.lat - tapped.lat) + Math.abs(r.lng - tapped.lng);
+            const distC = Math.abs(closest.lat - tapped.lat) + Math.abs(closest.lng - tapped.lng);
             return distR < distC ? r : closest;
           })
         : null;
       if (match) {
-        place.address = match.address;
-        place.roadAddress = match.roadAddress;
-        place.phone = match.phone;
-        place.link = match.link;
-        if (!place.id && match.id) place.id = match.id;
+        placeResult.address = match.address;
+        placeResult.roadAddress = match.roadAddress;
+        placeResult.phone = match.phone;
+        placeResult.link = match.link;
+        if (!placeResult.id && match.id) placeResult.id = match.id;
       }
     } catch {}
-    setSelectedPlace(place);
+    setSelectedPlace(placeResult);
   }, []);
 
   const handleRegisterCustomPlace = useCallback((categoryId: number, categoryName: string) => {
@@ -326,7 +326,6 @@ export default function MapScreen() {
         placeLng: String(userLocation.longitude),
         placeId: '',
         placeCategory: '',
-        restaurantId: '',
         placeCategoryId: String(categoryId),
       },
     });
@@ -341,7 +340,7 @@ export default function MapScreen() {
       return;
     }
     // 300m 이내 음식점만 필터
-    const nearby = restaurants.filter((r) => {
+    const nearby = places.filter((r) => {
       if (r.placeCategoryId !== 1) return false; // 음식점만
       const dLat = (r.lat - userLocation.latitude) * 111000;
       const dLng = (r.lng - userLocation.longitude) * 111000 * Math.cos(userLocation.latitude * Math.PI / 180);
@@ -355,16 +354,16 @@ export default function MapScreen() {
     setSlotCandidates(nearby);
     setSlotWinner(pick);
     setSlotVisible(true);
-  }, [restaurants, userLocation, clearSearch]);
+  }, [places, userLocation, clearSearch]);
 
-  const handleSlotResult = useCallback((restaurant: Restaurant) => {
+  const handleSlotResult = useCallback((place: Place) => {
     setSlotVisible(false);
-    handleMarkerClick(restaurant);
-    mapRef.current?.animateCameraTo({ latitude: restaurant.lat, longitude: restaurant.lng, zoom: 16 });
+    handleMarkerClick(place);
+    mapRef.current?.animateCameraTo({ latitude: place.lat, longitude: place.lng, zoom: 16 });
   }, [handleMarkerClick]);
 
-  const renderListItem = useCallback(({ item, index }: { item: Restaurant; index: number }) => (
-    <RestaurantCard item={item} index={index} placeCategories={placeCategories} />
+  const renderListItem = useCallback(({ item, index }: { item: Place; index: number }) => (
+    <PlaceCard item={item} index={index} placeCategories={placeCategories} />
   ), [placeCategories]);
 
   return (
@@ -373,7 +372,7 @@ export default function MapScreen() {
       <StatusBar style="light" />
       <NaverMap
         ref={mapRef}
-        restaurants={restaurants}
+        places={places}
         placeCategories={placeCategories}
         onMarkerClick={handleMarkerClick}
         onBoundsChange={handleBoundsChange}
@@ -405,7 +404,7 @@ export default function MapScreen() {
         onCategoryChange={(catId) => {
           setCategoryFilter(catId);
           if (currentBoundsRef.current) {
-            fetchRestaurants(currentBoundsRef.current, catId);
+            fetchPlaces(currentBoundsRef.current, catId);
           }
         }}
         onRegisterCustomPlace={handleRegisterCustomPlace}
@@ -462,11 +461,11 @@ export default function MapScreen() {
         <View style={styles.listWrap}>
           <View style={styles.listHeader}>
             <Ionicons name="location" size={18} color={c.textSecondary} />
-            <Text style={[styles.listTitle, { color: c.textPrimary }]}>주변 장소 {restaurants.length}개</Text>
+            <Text style={[styles.listTitle, { color: c.textPrimary }]}>주변 장소 {places.length}개</Text>
           </View>
           <BottomSheetFlatList
-            data={visibleRestaurants}
-            keyExtractor={(item: Restaurant) => item.id.toString()}
+            data={visiblePlaces}
+            keyExtractor={(item: Place) => item.id.toString()}
             renderItem={renderListItem}
             contentContainerStyle={styles.listContent}
             onEndReached={handleLoadMore}
@@ -477,7 +476,7 @@ export default function MapScreen() {
               </Text>
             }
             ListFooterComponent={
-              visibleRestaurants.length < restaurants.length ? (
+              visiblePlaces.length < places.length ? (
                 <ActivityIndicator size="small" color={c.textDisabled} style={{ paddingVertical: 16 }} />
               ) : null
             }
@@ -501,7 +500,7 @@ export default function MapScreen() {
               onClose={closePlaceDetail}
               onOpenNaverMap={openNaverMap}
               onCallPhone={callPhone}
-              onVisitSuccess={() => fetchRestaurants(currentBoundsRef.current)}
+              onVisitSuccess={() => fetchPlaces(currentBoundsRef.current)}
               weeklyChampion={selected?.weeklyChampion}
               placeCategories={placeCategories}
               refreshKey={statsRefreshKey}

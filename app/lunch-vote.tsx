@@ -13,7 +13,7 @@ import { useTheme } from '../hooks/useTheme';
 import { KEYBOARD_DONE_ID } from '../components/KeyboardDoneBar';
 import { lunchVoteApi, LunchVoteResponse, LunchVoteCandidateResponse } from '../api/lunchVote';
 import { placeApi } from '../api/place';
-import { Restaurant } from '../types';
+import { Place } from '../types';
 import { lightTap, successTap, mediumTap } from '../utils/haptics';
 import { showError, showSuccess } from '../utils/toast';
 import { CategoryPlaceholder } from '../components/CategoryPlaceholder';
@@ -28,7 +28,7 @@ export default function LunchVoteScreen() {
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<Restaurant[]>([]);
+  const [searchResults, setSearchResults] = useState<Place[]>([]);
   const [searching, setSearching] = useState(false);
 
   // 투표 데이터
@@ -70,7 +70,7 @@ export default function LunchVoteScreen() {
   });
 
   const addCandidateMutation = useMutation({
-    mutationFn: (restaurantId: number) => lunchVoteApi.addCandidate(gid, restaurantId),
+    mutationFn: (placeId: number) => lunchVoteApi.addCandidate(gid, placeId),
     onSuccess: (data) => {
       queryClient.setQueryData(['lunchVote', gid], data);
       showSuccess('후보가 추가되었어요!');
@@ -102,7 +102,7 @@ export default function LunchVoteScreen() {
     if (query.trim().length < 1) { setSearchResults([]); return; }
     setSearching(true);
     try {
-      const res = await placeApi.getRestaurants({ search: query.trim(), size: 20 });
+      const res = await placeApi.getPlaces({ search: query.trim(), size: 20 });
       setSearchResults(res.content);
     } catch { setSearchResults([]); }
     finally { setSearching(false); }

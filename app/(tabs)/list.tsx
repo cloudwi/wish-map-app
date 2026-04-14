@@ -6,8 +6,8 @@ import { MapListTabHeader } from '../../components/TabHeader';
 import { Ionicons } from '@expo/vector-icons';
 import { placeApi } from '../../api/place';
 import { placeCategoryApi } from '../../api/placeCategory';
-import { RestaurantCard } from '../../components/RestaurantCard';
-import RestaurantCardSkeleton from '../../components/RestaurantCardSkeleton';
+import { PlaceCard } from '../../components/PlaceCard';
+import PlaceCardSkeleton from '../../components/PlaceCardSkeleton';
 import { StatsSection } from '../../components/StatsSection';
 import { useTheme } from '../../hooks/useTheme';
 import { useGroupStore } from '../../stores/groupStore';
@@ -115,12 +115,12 @@ export default function ListScreen() {
     isPlaceholderData,
     refetch,
   } = useInfiniteQuery({
-    queryKey: ['restaurants', selectedCategoryId, debouncedSearch, sortBy, selectedTags, selectedGroupId, sortBy === 'distance' ? userLocation : null],
+    queryKey: ['places', selectedCategoryId, debouncedSearch, sortBy, selectedTags, selectedGroupId, sortBy === 'distance' ? userLocation : null],
     queryFn: async ({ pageParam = 0 }) => {
       if (selectedGroupId) {
-        return placeApi.getGroupRestaurants(selectedGroupId, KOREA_BOUNDS);
+        return placeApi.getGroupPlaces(selectedGroupId, KOREA_BOUNDS);
       }
-      return placeApi.getRestaurants({
+      return placeApi.getPlaces({
         placeCategoryId: selectedCategoryId || undefined,
         search: debouncedSearch || undefined,
         tags: selectedTags.length > 0 ? selectedTags : undefined,
@@ -138,7 +138,7 @@ export default function ListScreen() {
     placeholderData: keepPreviousData,
   });
 
-  const restaurants = useMemo(() => {
+  const places = useMemo(() => {
     const all = data?.pages.flatMap(page => page.content) ?? [];
     const seen = new Set<number>();
     return all.filter(item => {
@@ -154,7 +154,7 @@ export default function ListScreen() {
     return Math.sqrt(dLat * dLat + dLng * dLng);
   };
 
-  const displayRestaurants = restaurants;
+  const displayPlaces = places;
 
   const totalElements = data?.pages[0]?.totalElements ?? 0;
 
@@ -168,7 +168,7 @@ export default function ListScreen() {
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  if (isLoading && restaurants.length === 0) {
+  if (isLoading && places.length === 0) {
     return (
       <View style={[styles.container, { backgroundColor: c.background }]}>
         <MapListTabHeader />
@@ -177,7 +177,7 @@ export default function ListScreen() {
           <TextInput style={[styles.searchInput, { color: c.textPrimary }]} placeholder="장소 이름 검색" placeholderTextColor={c.textDisabled} editable={false} returnKeyType="search" />
         </View>
         <View style={styles.skeletonWrap}>
-          {Array.from({ length: 6 }).map((_, i) => <RestaurantCardSkeleton key={i} />)}
+          {Array.from({ length: 6 }).map((_, i) => <PlaceCardSkeleton key={i} />)}
         </View>
       </View>
     );
@@ -284,7 +284,7 @@ export default function ListScreen() {
 
       {/* 리스트 */}
       <FlatList
-        data={displayRestaurants}
+        data={displayPlaces}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item, index }) => {
           const distanceBadge = sortBy === 'distance' && userLocation ? (() => {
@@ -292,7 +292,7 @@ export default function ListScreen() {
             const label = dist < 1000 ? `${Math.round(dist)}m` : `${(dist / 1000).toFixed(1)}km`;
             return <Text style={{ fontSize: 11, color: c.textTertiary }}>{label}</Text>;
           })() : undefined;
-          return <RestaurantCard item={item} index={index} placeCategories={placeCategoryList} badge={distanceBadge} />;
+          return <PlaceCard item={item} index={index} placeCategories={placeCategoryList} badge={distanceBadge} />;
         }}
         contentContainerStyle={styles.listContent}
         keyboardDismissMode="on-drag"
@@ -311,7 +311,7 @@ export default function ListScreen() {
         ListFooterComponent={
           isFetchingNextPage ? (
             <View style={styles.footerSkeleton}>
-              {Array.from({ length: 2 }).map((_, i) => <RestaurantCardSkeleton key={`f-${i}`} />)}
+              {Array.from({ length: 2 }).map((_, i) => <PlaceCardSkeleton key={`f-${i}`} />)}
             </View>
           ) : null
         }
