@@ -7,8 +7,8 @@
 - **New Architecture**: 활성화 (React Compiler + Typed Routes 포함)
 
 ## 기술 스택
-- Expo ~54.0, React 19, React Native 0.81
-- TypeScript ~5.9 (strict mode), Expo Router ~6.0
+- Expo ~55, React 19, React Native 0.83
+- TypeScript ~5.9 (strict mode), Expo Router ~55.0
 - Zustand 5 (상태관리, expo-secure-store로 persist)
 - @mj-studio/react-native-naver-map (네이버 지도)
 - expo-location (위치 - watchPositionAsync로 실시간 업데이트)
@@ -30,7 +30,6 @@ app/
 │   ├── _layout.tsx      # NativeTabs (지도, 장소, 마이) + 약관동의 모달
 │   ├── index.tsx        # 지도 (메인) - 검색, 가격대 필터, 그룹 필터, 바텀시트
 │   ├── list.tsx         # 맛집 리스트
-│   ├── suggest.tsx      # 맛집 제안 (숨김 탭)
 │   └── mypage.tsx       # 마이페이지
 ├── _layout.tsx          # Root Stack + 푸시알림 설정 + 강제업데이트 감지
 ├── login.tsx            # 로그인 (모달)
