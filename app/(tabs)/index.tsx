@@ -67,10 +67,13 @@ export default function MapScreen() {
   const [slotCandidates, setSlotCandidates] = useState<Place[]>([]);
   const [slotWinner, setSlotWinner] = useState<Place | null>(null);
 
-  // 화면 포커스 시 stats 재조회 트리거 (방문 인증 후 돌아올 때)
+  // 화면 포커스 시 stats + 장소 목록 재조회 (방문 인증/장소 등록 후 돌아올 때)
   useFocusEffect(useCallback(() => {
     setStatsRefreshKey(k => k + 1);
-  }, []));
+    if (currentBoundsRef.current && initialLoadDone.current) {
+      fetchPlaces(currentBoundsRef.current);
+    }
+  }, [fetchPlaces]));
 
   const bottomSheetRef = useRef<BottomSheet>(null);
   const detailSheetRef = useRef<BottomSheet>(null);

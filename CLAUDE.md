@@ -29,13 +29,14 @@ app/
 ├── (tabs)/              # 탭 화면 (NativeTabs)
 │   ├── _layout.tsx      # NativeTabs (지도, 장소, 마이) + 약관동의 모달
 │   ├── index.tsx        # 지도 (메인) - 검색, 가격대 필터, 그룹 필터, 바텀시트
-│   ├── list.tsx         # 맛집 리스트
+│   ├── list.tsx         # 장소 리스트
 │   └── mypage.tsx       # 마이페이지
 ├── _layout.tsx          # Root Stack + 푸시알림 설정 + 강제업데이트 감지
 ├── login.tsx            # 로그인 (모달)
 ├── visit-review.tsx     # 방문 리뷰 (가격대/테마별 태그/사진/한줄평)
 ├── group-manage.tsx     # 그룹 관리 (생성/초대/추방/양도)
-├── restaurant/[id].tsx  # 맛집 상세
+├── place/[id].tsx       # 장소 상세
+├── lunch-vote.tsx       # 점심 투표
 ├── friends.tsx          # 친구
 ├── my-suggestions.tsx   # 내 제안
 ├── blocked-users.tsx    # 차단 사용자
@@ -45,32 +46,37 @@ app/
 components/
 ├── NaverMap.tsx          # 네이버 지도 래퍼
 ├── PlaceDetailSheet.tsx  # 장소 상세 바텀시트 (정보 표시 + 방문인증 navigate)
-├── RestaurantCard.tsx    # 맛집 카드
+├── PlaceCard.tsx         # 장소 카드
+├── PlaceCardSkeleton.tsx # 장소 카드 스켈레톤
+├── StatsSection.tsx      # 통계 섹션
 ├── TaggedContent.tsx     # 태그 파싱/표시 컴포넌트
+├── TabHeader.tsx         # 탭 헤더 (알림 뱃지 포함)
 ├── ToastConfig.tsx       # 커스텀 토스트 (성공/에러/정보)
 ├── TermsAgreementModal.tsx  # 약관 동의 모달
-├── ReportModal.tsx       # 신고 모달
 ├── AuthRequired.tsx      # 인증 필요 래퍼
+├── RecommendSlot.tsx     # 추천 슬롯 (점심 투표)
+├── Skeleton.tsx          # 범용 스켈레톤 로더
 ├── map/
 │   ├── SearchBar.tsx     # 검색바 + 가격대 드롭다운 필터
-│   ├── GroupChip.tsx     # 그룹 선택 칩
+│   ├── FilterChips.tsx   # 필터 칩 (트렌드 태그)
 │   └── MapControls.tsx   # 줌/내위치 버튼
 └── ...
 
 api/
-├── client.ts         # axios 인스턴스 (JWT 인터셉터, 토큰 자동 갱신, 강제업데이트)
-├── restaurant.ts     # 맛집 API (CRUD, quickVisit, 가격대 필터, 그룹 필터)
-├── comment.ts        # 댓글 API (CRUD, 이미지 첨부)
-├── group.ts          # 그룹 API (CRUD, 초대/추방/양도)
-├── search.ts         # 네이버 검색 (백엔드 프록시, 이미지 캐시)
-├── auth.ts           # 인증 API
-├── agreement.ts      # 약관 동의 API
-├── friend.ts         # 친구 API
-├── notification.ts   # 알림 API
-├── block.ts          # 차단 API
-├── report.ts         # 신고 API
-├── category.ts       # 장소 카테고리 API
-└── index.ts          # API 모듈 re-export
+├── client.ts          # axios 인스턴스 (JWT 인터셉터, 토큰 자동 갱신, 강제업데이트)
+├── place.ts           # 장소 API (CRUD, quickVisit, 가격대 필터, 그룹 필터)
+├── placeCategory.ts   # 장소 카테고리 API (30분 캐시)
+├── comment.ts         # 댓글 API (CRUD, 이미지 첨부)
+├── group.ts           # 그룹 API (CRUD, 초대/추방/양도)
+├── search.ts          # 네이버 검색 (백엔드 프록시, 이미지 캐시)
+├── auth.ts            # 인증 API
+├── agreement.ts       # 약관 동의 API
+├── friend.ts          # 친구 API
+├── notification.ts    # 알림 API
+├── block.ts           # 차단 API
+├── report.ts          # 신고 API
+├── lunchVote.ts       # 점심 투표 API
+└── trendTag.ts        # 트렌드 태그 API (30분 캐시)
 
 stores/
 ├── authStore.ts      # 인증 상태 (user, token, termsAgreement)
@@ -92,7 +98,7 @@ hooks/
 
 ### 가격대 필터
 - 검색바 내 드롭다운으로 가격대 필터 (1만원이하 ~ 3만원이상)
-- 서버사이드 필터링 (Restaurant.priceRange 캐시 기반)
+- 서버사이드 필터링 (Place.priceRange 캐시 기반)
 - enum: UNDER_10K, RANGE_10K, RANGE_20K, RANGE_30K, OVER_30K
 
 ### 그룹 시스템
