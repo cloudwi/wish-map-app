@@ -67,14 +67,6 @@ export default function MapScreen() {
   const [slotCandidates, setSlotCandidates] = useState<Place[]>([]);
   const [slotWinner, setSlotWinner] = useState<Place | null>(null);
 
-  // 화면 포커스 시 stats + 장소 목록 재조회 (방문 인증/장소 등록 후 돌아올 때)
-  useFocusEffect(useCallback(() => {
-    setStatsRefreshKey(k => k + 1);
-    if (currentBoundsRef.current && initialLoadDone.current) {
-      fetchPlaces(currentBoundsRef.current);
-    }
-  }, [fetchPlaces]));
-
   const bottomSheetRef = useRef<BottomSheet>(null);
   const detailSheetRef = useRef<BottomSheet>(null);
   const mapRef = useRef<NaverMapViewRef>(null);
@@ -171,6 +163,15 @@ export default function MapScreen() {
       setTimeout(() => { initialLoadDone.current = true; }, 500);
     }
   }, [categoryFilter, trendFilter]);
+
+  // 화면 포커스 시 stats + 장소 목록 재조회 (방문 인증/장소 등록 후 돌아올 때)
+  // fetchPlaces 선언 이후에 배치하여 TS block-scoped variable 순서 오류 회피.
+  useFocusEffect(useCallback(() => {
+    setStatsRefreshKey(k => k + 1);
+    if (currentBoundsRef.current && initialLoadDone.current) {
+      fetchPlaces(currentBoundsRef.current);
+    }
+  }, [fetchPlaces]));
 
   // F2: mounted flag로 unmount 후 state 업데이트 방지
   useEffect(() => {
