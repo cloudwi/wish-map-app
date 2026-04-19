@@ -139,14 +139,15 @@ export interface Comment {
 }
 
 // API Response
+// 백엔드가 Spring Data Slice로 응답 - totalElements/totalPages 없음 (COUNT 쿼리 생략으로 무한스크롤 성능 개선).
+// 다음 페이지 존재 여부는 last 필드로 판단.
 export interface PageResponse<T> {
   content: T[];
-  totalElements: number;
-  totalPages: number;
   size: number;
   number: number;
   first: boolean;
   last: boolean;
+  numberOfElements: number;
 }
 
 // Map bounds

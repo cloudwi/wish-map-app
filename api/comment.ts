@@ -2,11 +2,16 @@ import apiClient from './client';
 import { Comment, PageResponse } from '../types';
 
 export const commentApi = {
-  // 댓글 목록
-  getComments: async (placeId: number, page = 0, size = 20): Promise<PageResponse<Comment>> => {
+  // 댓글 목록 - cursor(createdAt, id) 기반 keyset pagination.
+  // cursor 미지정 시 최신 댓글부터 반환, cursor 지정 시 해당 커서보다 오래된 댓글부터 반환.
+  getComments: async (
+    placeId: number,
+    size = 20,
+    cursor?: { cursorCreatedAt: string; cursorId: number }
+  ): Promise<PageResponse<Comment>> => {
     const response = await apiClient.get<PageResponse<Comment>>(
       `/places/${placeId}/comments`,
-      { params: { page, size } }
+      { params: { size, ...(cursor ?? {}) } }
     );
     return response.data;
   },

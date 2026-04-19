@@ -103,7 +103,9 @@ export default function ListScreen() {
     setItem(STORAGE_KEY_TAGS, JSON.stringify(selectedTags));
   }, [selectedTags, restoredFilter]);
 
-  // 맛집 무한스크롤 쿼리
+  // 무한스크롤 페이지 파라미터. sortBy=visits는 keyset cursor, 그 외는 offset page 유지.
+  type PageParam = { page?: number; cursorVisitCount?: number; cursorId?: number };
+
   const {
     data,
     fetchNextPage,
@@ -116,7 +118,7 @@ export default function ListScreen() {
     refetch,
   } = useInfiniteQuery({
     queryKey: ['places', selectedCategoryId, debouncedSearch, sortBy, selectedTags, selectedGroupId, sortBy === 'distance' ? userLocation : null],
-    queryFn: async ({ pageParam = 0 }) => {
+    queryFn: async ({ pageParam }: { pageParam: PageParam }) => {
       if (selectedGroupId) {
         return placeApi.getGroupPlaces(selectedGroupId, KOREA_BOUNDS);
       }
@@ -125,15 +127,25 @@ export default function ListScreen() {
         search: debouncedSearch || undefined,
         tags: selectedTags.length > 0 ? selectedTags : undefined,
         sort: sortBy,
-        page: pageParam,
         size: PAGE_SIZE,
         userLat: sortBy === 'distance' && userLocation ? userLocation.latitude : undefined,
         userLng: sortBy === 'distance' && userLocation ? userLocation.longitude : undefined,
+        ...pageParam,
       });
     },
-    initialPageParam: 0,
-    getNextPageParam: (lastPage, _, lastPageParam) =>
-      selectedGroupId ? undefined : (lastPage.last ? undefined : lastPageParam + 1),
+    initialPageParam: {} as PageParam,
+    getNextPageParam: (lastPage, _, lastPageParam): PageParam | undefined => {
+      if (selectedGroupId) return undefined;
+      if (lastPage.last) return undefined;
+      const last = lastPage.content.at(-1);
+      if (!last) return undefined;
+      // sortBy=visits만 keyset (복합 cursor = visitCount + id).
+      if (sortBy === 'visits') {
+        return { cursorVisitCount: last.visitCount, cursorId: last.id };
+      }
+      // recentVisit, distance: offset page 방식 유지.
+      return { page: (lastPageParam.page ?? 0) + 1 };
+    },
     enabled: restoredFilter && (sortBy !== 'distance' || userLocation !== null),
     placeholderData: keepPreviousData,
   });
@@ -155,8 +167,6 @@ export default function ListScreen() {
   };
 
   const displayPlaces = places;
-
-  const totalElements = data?.pages[0]?.totalElements ?? 0;
 
   const onRefresh = useCallback(() => {
     refetch();
@@ -257,9 +267,8 @@ export default function ListScreen() {
         </ScrollView>
       )}
 
-      {/* 결과 수 + 정렬 */}
+      {/* 정렬 */}
       <View style={styles.sortRow}>
-        <Text style={[styles.resultCount, { color: c.textSecondary }]}>{totalElements}개</Text>
         <View style={styles.sortBtns}>
           <TouchableOpacity
             style={[styles.sortBtn, sortBy === 'visits' && { backgroundColor: c.chipActiveBg }]}
@@ -339,8 +348,7 @@ const styles = StyleSheet.create({
   subFilterContent: { paddingHorizontal: 14, paddingBottom: 8, gap: 6, alignItems: 'center' },
   subFilterBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 8, marginRight: 6 },
   subFilterText: { fontSize: 13 },
-  sortRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 6 },
-  resultCount: { fontSize: 13 },
+  sortRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', paddingHorizontal: 16, paddingVertical: 6 },
   sortBtns: { flexDirection: 'row', gap: 4 },
   sortBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6 },
   sortText: { fontSize: 13 },

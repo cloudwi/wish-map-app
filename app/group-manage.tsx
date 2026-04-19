@@ -33,7 +33,7 @@ export default function GroupManageScreen() {
   const [locationQuery, setLocationQuery] = useState('');
   const [locationResults, setLocationResults] = useState<PlaceResult[]>([]);
   const [locationSearching, setLocationSearching] = useState(false);
-  const searchTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const handleLocationSearch = useCallback((query: string) => {
     setLocationQuery(query);

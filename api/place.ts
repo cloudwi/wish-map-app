@@ -40,6 +40,10 @@ export interface PlaceListParams {
   priceRange?: PriceRange;
   page?: number;
   size?: number;
+  // Keyset cursor. 기본 최신순일 때 cursorCreatedAt+cursorId, sortBy=visits일 때 cursorVisitCount+cursorId.
+  cursorCreatedAt?: string;
+  cursorVisitCount?: number;
+  cursorId?: number;
 }
 
 export const placeApi = {
@@ -61,6 +65,9 @@ export const placeApi = {
         userLng: params.userLng || undefined,
         page: params.page ?? 0,
         size: params.size ?? 20,
+        cursorCreatedAt: params.cursorCreatedAt,
+        cursorVisitCount: params.cursorVisitCount,
+        cursorId: params.cursorId,
       },
     });
     return response.data;

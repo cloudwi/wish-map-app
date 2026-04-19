@@ -13,7 +13,7 @@ export interface NotificationResponse {
 export const notificationApi = {
   getNotifications: async (page = 0, size = 20) => {
     const { data } = await apiClient.get('/notifications', { params: { page, size } });
-    return data as { content: NotificationResponse[]; totalElements: number };
+    return data as { content: NotificationResponse[]; last: boolean };
   },
 
   getUnreadCount: async (): Promise<number> => {

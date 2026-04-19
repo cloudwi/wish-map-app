@@ -1,6 +1,13 @@
 import { ExpoConfig, ConfigContext } from 'expo/config';
 
-export default ({ config }: ConfigContext): ExpoConfig => ({
+// Expo SDK 55의 newArchEnabled, android.edgeToEdgeEnabled는 런타임에서는 유효하지만 타입 정의에 누락됨.
+// 확장 타입으로 통과시킨다.
+type WishMapExpoConfig = Omit<ExpoConfig, 'android'> & {
+  newArchEnabled?: boolean;
+  android?: NonNullable<ExpoConfig['android']> & { edgeToEdgeEnabled?: boolean };
+};
+
+export default ({ config }: ConfigContext): WishMapExpoConfig => ({
   ...config,
   name: '위시맵',
   slug: 'wish-map-app',

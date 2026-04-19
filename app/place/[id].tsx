@@ -21,7 +21,8 @@ export default function PlaceDetailScreen() {
 
   const [place, setPlace] = useState<PlaceDetail | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
-  const [commentPage, setCommentPage] = useState(0);
+  // Keyset cursor: 마지막으로 받은 댓글의 (createdAt, id). null이면 첫 페이지.
+  const [commentCursor, setCommentCursor] = useState<{ cursorCreatedAt: string; cursorId: number } | null>(null);
   const [hasMoreComments, setHasMoreComments] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -38,19 +39,21 @@ export default function PlaceDetailScreen() {
     }
   }, [id]);
 
-  const fetchComments = useCallback(async (page: number, reset = false) => {
+  // reset=true면 커서를 무시하고 처음부터 다시 조회, false면 cursor 이후 페이지를 이어 조회.
+  const fetchComments = useCallback(async (cursor: { cursorCreatedAt: string; cursorId: number } | null, reset = false) => {
     try {
-      const data = await commentApi.getComments(Number(id), page, 20);
+      const data = await commentApi.getComments(Number(id), 20, cursor ?? undefined);
       setComments(prev => reset ? data.content : [...prev, ...data.content]);
       setHasMoreComments(!data.last);
-      setCommentPage(page);
+      const last = data.content.at(-1);
+      setCommentCursor(last ? { cursorCreatedAt: last.createdAt, cursorId: last.id } : null);
     } catch {}
   }, [id]);
 
   useEffect(() => {
     (async () => {
       await fetchPlace();
-      await fetchComments(0, true);
+      await fetchComments(null, true);
       setLoading(false);
     })();
   }, [fetchPlace, fetchComments]);
@@ -66,18 +69,18 @@ export default function PlaceDetailScreen() {
     if (refreshing) return;
     setRefreshing(true);
     try {
-      await Promise.all([fetchPlace(), fetchComments(0, true)]);
+      await Promise.all([fetchPlace(), fetchComments(null, true)]);
     } catch {} finally {
       setRefreshing(false);
     }
   }, [refreshing, fetchPlace, fetchComments]);
 
   const loadMoreComments = useCallback(async () => {
-    if (!hasMoreComments || loadingMore) return;
+    if (!hasMoreComments || loadingMore || !commentCursor) return;
     setLoadingMore(true);
-    await fetchComments(commentPage + 1);
+    await fetchComments(commentCursor);
     setLoadingMore(false);
-  }, [hasMoreComments, loadingMore, commentPage, fetchComments]);
+  }, [hasMoreComments, loadingMore, commentCursor, fetchComments]);
 
   const handleOpenNaverMap = async () => {
     if (!place) return;
