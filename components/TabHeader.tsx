@@ -1,14 +1,11 @@
-import { useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../stores/authStore';
 import { useTheme } from '../hooks/useTheme';
+import { useHeaderNotifications } from '../hooks/useHeaderNotifications';
 import { lightTap } from '../utils/haptics';
-import { friendApi } from '../api/friend';
-import { groupApi } from '../api/group';
-import { notificationApi } from '../api/notification';
 
 interface BaseTabHeaderProps {
   title: string;
@@ -34,20 +31,7 @@ function BaseTabHeader({ title, rightContent }: BaseTabHeaderProps) {
 
 function AuthenticatedActions() {
   const c = useTheme();
-  const [notifCount, setNotifCount] = useState(0);
-
-  useFocusEffect(useCallback(() => {
-    (async () => {
-      try {
-        const [fr, gi, unread] = await Promise.all([
-          friendApi.getPendingRequests(),
-          groupApi.getInvites(),
-          notificationApi.getUnreadCount().catch(() => 0),
-        ]);
-        setNotifCount(fr.length + gi.length + unread);
-      } catch {}
-    })();
-  }, []));
+  const { notifCount } = useHeaderNotifications();
 
   return (
     <View style={styles.right}>
