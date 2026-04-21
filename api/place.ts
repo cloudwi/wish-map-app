@@ -93,12 +93,6 @@ export const placeApi = {
     return response.data;
   },
 
-  // 방문 인증
-  verifyVisit: async (id: number, lat: number, lng: number): Promise<{ visited: boolean }> => {
-    const response = await apiClient.post<{ visited: boolean }>(`/places/${id}/visit`, { lat, lng });
-    return response.data;
-  },
-
   // 방문인증 (미등록 장소 자동 등록 + 방문인증 + 선택적 리뷰)
   quickVisit: async (data: {
     name: string;
