@@ -16,13 +16,13 @@ import { showError } from '../utils/toast';
 import { TermsAgreementModal } from '../components/TermsAgreementModal';
 
 const GOOGLE_IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || '';
-const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '';
 const NAVER_CONSUMER_KEY = process.env.EXPO_PUBLIC_NAVER_CONSUMER_KEY || '';
 const NAVER_CONSUMER_SECRET = process.env.EXPO_PUBLIC_NAVER_CONSUMER_SECRET || '';
 
+// webClientId를 설정하면 idToken의 aud가 webClientId가 됨.
+// 현재 백엔드는 iOS Client ID만 허용하므로 iosClientId만 사용.
 GoogleSignin.configure({
   iosClientId: GOOGLE_IOS_CLIENT_ID,
-  webClientId: GOOGLE_WEB_CLIENT_ID,
   scopes: ['profile', 'email'],
 });
 
@@ -101,7 +101,12 @@ export default function LoginScreen() {
       setLoading('NAVER');
       const result = await NaverLogin.login();
       if (!result.isSuccess || !result.successResponse) {
-        throw new Error('네이버 로그인에 실패했습니다.');
+        if (result.failureResponse?.isCancel) return;
+        const detail = result.failureResponse?.lastErrorDescriptionFromNaverSDK
+          || result.failureResponse?.message
+          || '알 수 없는 오류';
+        console.warn('[AUTH] 네이버 로그인 실패:', result.failureResponse);
+        throw new Error(`네이버 로그인 실패: ${detail}`);
       }
       await login('NAVER', result.successResponse.accessToken);
       navigateAfterLogin();
