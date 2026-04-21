@@ -12,9 +12,13 @@ import { lightTap, successTap } from '../../utils/haptics';
 import { showSuccess, showError } from '../../utils/toast';
 import { getErrorMessage } from '../../utils/getErrorMessage';
 import { authApi } from '../../api/auth';
-import { friendApi, FriendResponse } from '../../api/friend';
-import { groupApi, GroupInviteResponse } from '../../api/group';
+import { friendApi } from '../../api/friend';
+import { groupApi } from '../../api/group';
 import { useGroupStore } from '../../stores/groupStore';
+import {
+  useHeaderNotifications,
+  useInvalidateHeaderNotifications,
+} from '../../hooks/useHeaderNotifications';
 
 interface SettingRowProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -57,24 +61,8 @@ export default function MyPageScreen() {
   const { fetchGroups } = useGroupStore();
   const [pushEnabled, setPushEnabled] = useState(false);
   const appStateRef = useRef(AppState.currentState);
-  const [friendRequests, setFriendRequests] = useState<FriendResponse[]>([]);
-  const [groupInvites, setGroupInvites] = useState<GroupInviteResponse[]>([]);
-
-  const notifCount = friendRequests.length + groupInvites.length;
-
-  const loadNotifications = useCallback(async () => {
-    if (!isAuthenticated) return;
-    try {
-      const [fr, gi] = await Promise.all([
-        friendApi.getPendingRequests(),
-        groupApi.getInvites(),
-      ]);
-      setFriendRequests(fr);
-      setGroupInvites(gi);
-    } catch {}
-  }, [isAuthenticated]);
-
-  useFocusEffect(useCallback(() => { loadNotifications(); }, [loadNotifications]));
+  const { friendRequests, groupInvites, notifCount } = useHeaderNotifications();
+  const { invalidateFriendRequests, invalidateGroupInvites } = useInvalidateHeaderNotifications();
 
   // 실제 시스템 푸시 알림 권한 상태 확인
   const checkPushPermission = useCallback(async () => {
@@ -106,7 +94,7 @@ export default function MyPageScreen() {
     try {
       await friendApi.acceptRequest(id);
       successTap();
-      setFriendRequests(prev => prev.filter(r => r.id !== id));
+      invalidateFriendRequests();
       showSuccess('수락 완료', '친구가 되었습니다!');
     } catch (e: unknown) { showError('오류', getErrorMessage(e)); }
   };
@@ -115,7 +103,7 @@ export default function MyPageScreen() {
     lightTap();
     try {
       await friendApi.rejectRequest(id);
-      setFriendRequests(prev => prev.filter(r => r.id !== id));
+      invalidateFriendRequests();
     } catch (e: unknown) { showError('오류', getErrorMessage(e)); }
   };
 
@@ -124,7 +112,7 @@ export default function MyPageScreen() {
     try {
       await groupApi.acceptInvite(groupId);
       successTap();
-      setGroupInvites(prev => prev.filter(i => i.groupId !== groupId));
+      invalidateGroupInvites();
       fetchGroups();
       showSuccess('수락 완료', '그룹에 참여했습니다!');
     } catch (e: unknown) { showError('오류', getErrorMessage(e)); }
@@ -134,7 +122,7 @@ export default function MyPageScreen() {
     lightTap();
     try {
       await groupApi.rejectInvite(groupId);
-      setGroupInvites(prev => prev.filter(i => i.groupId !== groupId));
+      invalidateGroupInvites();
     } catch (e: unknown) { showError('오류', getErrorMessage(e)); }
   };
 

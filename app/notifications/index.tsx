@@ -1,7 +1,8 @@
-import { useState, useCallback } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View, Text, FlatList, TouchableOpacity, Platform, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Stack, router, useFocusEffect } from 'expo-router';
+import { Stack, router } from 'expo-router';
+import { useQuery } from '@tanstack/react-query';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuthStore } from '../../stores/authStore';
 import { friendApi, FriendResponse } from '../../api/friend';
@@ -11,6 +12,10 @@ import { useGroupStore } from '../../stores/groupStore';
 import { lightTap, successTap } from '../../utils/haptics';
 import { showSuccess, showError } from '../../utils/toast';
 import { getErrorMessage } from '../../utils/getErrorMessage';
+import {
+  useHeaderNotifications,
+  useInvalidateHeaderNotifications,
+} from '../../hooks/useHeaderNotifications';
 
 type NotifItem =
   | { type: 'friend'; data: FriendResponse }
@@ -21,44 +26,45 @@ export default function NotificationsScreen() {
   const c = useTheme();
   const { isAuthenticated } = useAuthStore();
   const { fetchGroups } = useGroupStore();
-  const [items, setItems] = useState<NotifItem[]>([]);
-  const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
 
-  const loadData = useCallback(async () => {
-    if (!isAuthenticated) return;
-    setLoading(true);
-    try {
-      const [friendReqs, groupInvites, notifs] = await Promise.all([
-        friendApi.getPendingRequests(),
-        groupApi.getInvites(),
-        notificationApi.getNotifications(0, 50).catch(() => ({ content: [] })),
-      ]);
-      // 일반 알림에서 이미 액션 알림으로 보여주는 것 제외
-      const infoNotifs = notifs.content.filter(
-        (n) => n.type !== 'FRIEND_REQUEST' && n.type !== 'GROUP_INVITE'
-      );
-      const merged: NotifItem[] = [
-        ...friendReqs.map((f) => ({ type: 'friend' as const, data: f })),
-        ...groupInvites.map((g) => ({ type: 'group' as const, data: g })),
-        ...infoNotifs.map((n) => ({ type: 'info' as const, data: n })),
-      ];
-      setItems(merged);
-      // 모두 읽음 처리
-      notificationApi.markAllAsRead().catch(() => {});
-    } catch {} finally {
-      setLoading(false);
-    }
-  }, [isAuthenticated]);
+  const { friendRequests, groupInvites, isLoading: headerLoading } = useHeaderNotifications();
+  const { invalidateFriendRequests, invalidateGroupInvites, invalidateUnreadCount } =
+    useInvalidateHeaderNotifications();
 
-  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
+  const { data: notifsData, isLoading: notifsLoading } = useQuery({
+    queryKey: ['notifications', 'list', 0, 50],
+    queryFn: () => notificationApi.getNotifications(0, 50).catch(() => ({ content: [] })),
+    enabled: isAuthenticated,
+    staleTime: 30_000,
+  });
+
+  // 화면 진입 시 전체 읽음 처리 → 헤더 배지 갱신
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    notificationApi.markAllAsRead().catch(() => {});
+    invalidateUnreadCount();
+  }, [isAuthenticated, invalidateUnreadCount]);
+
+  const items = useMemo<NotifItem[]>(() => {
+    const infoNotifs = (notifsData?.content ?? []).filter(
+      (n) => n.type !== 'FRIEND_REQUEST' && n.type !== 'GROUP_INVITE'
+    );
+    return [
+      ...friendRequests.map((f) => ({ type: 'friend' as const, data: f })),
+      ...groupInvites.map((g) => ({ type: 'group' as const, data: g })),
+      ...infoNotifs.map((n) => ({ type: 'info' as const, data: n })),
+    ];
+  }, [friendRequests, groupInvites, notifsData]);
+
+  const loading = headerLoading || notifsLoading;
 
   const handleAcceptFriend = async (item: FriendResponse) => {
     setProcessingId(`friend-${item.id}`);
     try {
       await friendApi.acceptRequest(item.id);
       successTap();
-      setItems(prev => prev.filter(i => !(i.type === 'friend' && i.data.id === item.id)));
+      invalidateFriendRequests();
       showSuccess('수락 완료', `${item.user.nickname}님과 친구가 되었습니다!`);
     } catch (e: unknown) { showError('오류', getErrorMessage(e)); }
     finally { setProcessingId(null); }
@@ -68,7 +74,7 @@ export default function NotificationsScreen() {
     setProcessingId(`friend-${item.id}`);
     try {
       await friendApi.rejectRequest(item.id);
-      setItems(prev => prev.filter(i => !(i.type === 'friend' && i.data.id === item.id)));
+      invalidateFriendRequests();
     } catch (e: unknown) { showError('오류', getErrorMessage(e)); }
     finally { setProcessingId(null); }
   };
@@ -78,7 +84,7 @@ export default function NotificationsScreen() {
     try {
       await groupApi.acceptInvite(item.groupId);
       successTap();
-      setItems(prev => prev.filter(i => !(i.type === 'group' && i.data.groupId === item.groupId)));
+      invalidateGroupInvites();
       fetchGroups();
       showSuccess('수락 완료', `'${item.groupName}' 그룹에 참여했습니다!`);
     } catch (e: unknown) { showError('오류', getErrorMessage(e)); }
@@ -89,7 +95,7 @@ export default function NotificationsScreen() {
     setProcessingId(`group-${item.groupId}`);
     try {
       await groupApi.rejectInvite(item.groupId);
-      setItems(prev => prev.filter(i => !(i.type === 'group' && i.data.groupId === item.groupId)));
+      invalidateGroupInvites();
     } catch (e: unknown) { showError('오류', getErrorMessage(e)); }
     finally { setProcessingId(null); }
   };
