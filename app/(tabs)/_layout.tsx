@@ -36,17 +36,26 @@ export default function TabLayout() {
     >
       <NativeTabs.Trigger name="index">
         <NativeTabs.Trigger.Label>지도</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf={{ default: 'map', selected: 'map.fill' }} />
+        <NativeTabs.Trigger.Icon
+          sf={{ default: 'map', selected: 'map.fill' }}
+          drawable="ic_tab_map"
+        />
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="list">
         <NativeTabs.Trigger.Label>장소</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf={{ default: 'safari', selected: 'safari.fill' }} />
+        <NativeTabs.Trigger.Icon
+          sf={{ default: 'safari', selected: 'safari.fill' }}
+          drawable="ic_tab_explore"
+        />
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="mypage">
         <NativeTabs.Trigger.Label>마이</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf={{ default: 'person', selected: 'person.fill' }} />
+        <NativeTabs.Trigger.Icon
+          sf={{ default: 'person', selected: 'person.fill' }}
+          drawable="ic_tab_person"
+        />
       </NativeTabs.Trigger>
     </NativeTabs>
     </>

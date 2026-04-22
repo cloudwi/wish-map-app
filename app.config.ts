@@ -72,6 +72,18 @@ export default ({ config }: ConfigContext): WishMapExpoConfig => ({
   },
   plugins: [
     './plugins/fix-entry-file',
+    [
+      'expo-build-properties',
+      {
+        android: {
+          // 네이버 지도 / 카카오 SDK는 각 회사 전용 Maven에 있어 별도 등록 필요.
+          extraMavenRepos: [
+            'https://repository.map.naver.com/archive/maven',
+            'https://devrepo.kakao.com/nexus/content/groups/public/',
+          ],
+        },
+      },
+    ],
     'expo-router',
     'expo-font',
     'expo-secure-store',
