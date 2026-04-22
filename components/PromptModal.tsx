@@ -64,10 +64,23 @@ export function PromptModal({
   }, [visible, defaultValue]);
 
   // 모달에 이미 취소 버튼이 있으므로 전역 키보드 X 버튼 숨김 (중복 UI 제거).
+  // 닫을 때는 키보드가 완전히 내려간 뒤에 해제해야 X 버튼이 잠깐 보이는 깜빡임이 없다.
   useEffect(() => {
     if (!visible) return;
     useAppStore.getState().setSuppressKeyboardDoneBar(true);
-    return () => useAppStore.getState().setSuppressKeyboardDoneBar(false);
+    return () => {
+      const release = () => useAppStore.getState().setSuppressKeyboardDoneBar(false);
+      const sub = Keyboard.addListener('keyboardDidHide', () => {
+        release();
+        sub.remove();
+        clearTimeout(fallback);
+      });
+      // 키보드가 이미 내려가 있어 이벤트가 안 오는 경우를 대비한 안전장치.
+      const fallback = setTimeout(() => {
+        release();
+        sub.remove();
+      }, 500);
+    };
   }, [visible]);
 
   const handleSubmit = async () => {
