@@ -99,7 +99,6 @@ export interface PlaceDetail extends Place {
   naverPlaceId: string | null;
   description: string | null;
   images: string[];
-  suggestedBy: UserSummary;
   commentCount: number;
   isVisited: boolean;
   createdAt: string;

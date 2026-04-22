@@ -269,9 +269,6 @@ export default function PlaceDetailScreen() {
 
                 <View style={styles.metaRow}>
                   <Text style={[styles.metaText, { color: c.textTertiary }]}>
-                    제안: {place.suggestedBy.nickname}
-                  </Text>
-                  <Text style={[styles.metaText, { color: c.textTertiary }]}>
                     {new Date(place.createdAt).toLocaleDateString()}
                   </Text>
                 </View>
