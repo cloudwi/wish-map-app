@@ -48,6 +48,24 @@ apiClient.interceptors.response.use(
       console.error(`[API] 서버 에러: ${url}`, error.response?.data);
     }
 
+    // 503: 서버 점검 중 → 점검 화면 표시
+    if (status === 503) {
+      const { useAppStore } = require('../stores/appStore');
+      useAppStore.getState().setMaintenance(true);
+      return Promise.reject(error);
+    }
+
+    // 426: 강제 업데이트 필요 → 업데이트 화면 표시
+    if (status === 426) {
+      const { useAppStore } = require('../stores/appStore');
+      const data = error.response?.data as { storeUrl?: string; minVersion?: string } | undefined;
+      useAppStore.getState().setForceUpdate({
+        storeUrl: data?.storeUrl || '',
+        minVersion: data?.minVersion || '',
+      });
+      return Promise.reject(error);
+    }
+
     // 403: 유저가 DB에 없는 경우 (DB 초기화 등) → 강제 로그아웃
     if (status === 403) {
       console.warn('[AUTH] 403 강제 로그아웃');

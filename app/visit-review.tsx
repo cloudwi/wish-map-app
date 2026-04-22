@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from 'react';
 import {
   StyleSheet, View, Text, TouchableOpacity, TextInput,
   ScrollView, Image, ActivityIndicator, Alert,
-  KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -201,17 +200,15 @@ export default function VisitReviewScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: c.background }]}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={insets.top + 44}
+      <ScrollView
+        ref={scrollRef}
+        style={styles.body}
+        contentContainerStyle={[styles.bodyContent, { paddingBottom: insets.bottom + 24 }]}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
+        contentInsetAdjustmentBehavior="automatic"
+        keyboardDismissMode="interactive"
       >
-        <ScrollView
-          ref={scrollRef}
-          style={styles.body}
-          contentContainerStyle={[styles.bodyContent, { paddingBottom: insets.bottom + 24 }]}
-          keyboardShouldPersistTaps="handled"
-        >
           {/* 장소 정보 */}
           <View style={[styles.placeCard, { backgroundColor: c.cardBg }]}>
             <Ionicons name="location" size={20} color={c.primary} />
@@ -345,8 +342,7 @@ export default function VisitReviewScreen() {
               </>
             )}
           </TouchableOpacity>
-        </ScrollView>
-      </KeyboardAvoidingView>
+      </ScrollView>
     </View>
   );
 }

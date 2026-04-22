@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { StyleSheet, View, Text, TextInput, ActivityIndicator, TouchableOpacity, FlatList, ScrollView } from 'react-native';
+import { StyleSheet, View, Text, TextInput, ActivityIndicator, TouchableOpacity, FlatList, ScrollView, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { SymbolView } from 'expo-symbols';
 import { PlaceResult } from '../../api/search';
 import { useTheme } from '../../hooks/useTheme';
-import { KEYBOARD_DONE_ID } from '../KeyboardDoneBar';
 import { lightTap } from '../../utils/haptics';
 import { PlaceCategory } from '../../types';
 
@@ -45,8 +45,14 @@ export function SearchBar({
   const hasCustomCategories = placeCategories.some(cat => cat.customOnly);
   const showCustomRegister = searchQuery.trim().length > 0 && !searching && hasCustomCategories;
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
+  const [focused, setFocused] = useState(false);
 
   const selectedCategory = placeCategories.find(c => c.id === selectedCategoryId);
+
+  const handleCancel = () => {
+    Keyboard.dismiss();
+    onClearSearch();
+  };
 
   const handleCategoryPress = () => {
     lightTap();
@@ -61,55 +67,62 @@ export function SearchBar({
 
   return (
     <View style={[styles.searchContainer, { top }]}>
-      <View style={[styles.searchBar, { backgroundColor: c.surface, shadowColor: '#000' }]}>
-        <Ionicons name="search-outline" size={20} color={c.textSecondary} />
-        <TextInput
-          style={[styles.searchInput, { color: c.textPrimary }]}
-          placeholder="장소 검색"
-          placeholderTextColor={c.textSecondary}
-          value={searchQuery}
-          onChangeText={onSearch}
-          onFocus={() => { setCategoryDropdownOpen(false); onFocus?.(); }}
-          onBlur={onBlur}
-          returnKeyType="search"
-          onSubmitEditing={onSearchNow}
-          autoCorrect={false}
-          autoComplete="off"
-          autoCapitalize="none"
-          spellCheck={false}
-          textContentType="oneTimeCode"
-          inputAccessoryViewID={KEYBOARD_DONE_ID}
-        />
-        {searching && <ActivityIndicator size="small" color={c.primary} />}
-        {searchQuery.length > 0 && !searching && (
-          <TouchableOpacity onPress={onClearSearch} style={styles.clearBtn}>
-            <Ionicons name="close-circle" size={18} color={c.textDisabled} />
+      <View style={styles.searchRow}>
+        <View style={[styles.searchBar, { backgroundColor: c.surface, shadowColor: '#000' }]}>
+          <Ionicons name="search-outline" size={20} color={c.textSecondary} />
+          <TextInput
+            style={[styles.searchInput, { color: c.textPrimary }]}
+            placeholder="장소 검색"
+            placeholderTextColor={c.textSecondary}
+            value={searchQuery}
+            onChangeText={onSearch}
+            onFocus={() => { setFocused(true); setCategoryDropdownOpen(false); onFocus?.(); }}
+            onBlur={() => { setFocused(false); onBlur?.(); }}
+            returnKeyType="search"
+            onSubmitEditing={onSearchNow}
+            autoCorrect={false}
+            autoComplete="off"
+            autoCapitalize="none"
+            spellCheck={false}
+            textContentType="oneTimeCode"
+          />
+          {searching && <ActivityIndicator size="small" color={c.primary} />}
+
+          {/* 카테고리 필터 버튼 */}
+          <TouchableOpacity
+            style={[
+              styles.filterBtn,
+              { borderColor: c.border, backgroundColor: c.searchBg },
+              selectedCategoryId != null && { borderColor: c.primary, backgroundColor: c.primaryBg },
+            ]}
+            onPress={handleCategoryPress}
+            activeOpacity={0.7}
+          >
+            {selectedCategoryId != null ? (
+              <Text style={[styles.filterLabel, { color: c.primary }]} numberOfLines={1}>
+                {selectedCategory?.name || ''}
+              </Text>
+            ) : (
+              <Ionicons name="grid-outline" size={15} color={c.textSecondary} />
+            )}
+            <Ionicons
+              name={categoryDropdownOpen ? 'chevron-up' : 'chevron-down'}
+              size={12}
+              color={selectedCategoryId != null ? c.primary : c.textSecondary}
+            />
+          </TouchableOpacity>
+        </View>
+
+        {(focused || searchQuery.length > 0) && (
+          <TouchableOpacity onPress={handleCancel} style={styles.cancelBtn} activeOpacity={0.7} hitSlop={8}>
+            <SymbolView
+              name="xmark.circle.fill"
+              size={32}
+              tintColor="rgba(120,120,128,0.55)"
+              weight="medium"
+            />
           </TouchableOpacity>
         )}
-
-        {/* 카테고리 필터 버튼 */}
-        <TouchableOpacity
-          style={[
-            styles.filterBtn,
-            { borderColor: c.border, backgroundColor: c.searchBg },
-            selectedCategoryId != null && { borderColor: c.primary, backgroundColor: c.primaryBg },
-          ]}
-          onPress={handleCategoryPress}
-          activeOpacity={0.7}
-        >
-          {selectedCategoryId != null ? (
-            <Text style={[styles.filterLabel, { color: c.primary }]} numberOfLines={1}>
-              {selectedCategory?.name || ''}
-            </Text>
-          ) : (
-            <Ionicons name="grid-outline" size={15} color={c.textSecondary} />
-          )}
-          <Ionicons
-            name={categoryDropdownOpen ? 'chevron-up' : 'chevron-down'}
-            size={12}
-            color={selectedCategoryId != null ? c.primary : c.textSecondary}
-          />
-        </TouchableOpacity>
       </View>
 
       {/* 카테고리 드롭다운 */}
@@ -227,7 +240,17 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   searchInput: { flex: 1, fontSize: 16, fontWeight: '500', paddingVertical: 0 },
-  clearBtn: { padding: 8 },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  cancelBtn: {
+    width: 32,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   filterBtn: {
     flexDirection: 'row',
     alignItems: 'center',

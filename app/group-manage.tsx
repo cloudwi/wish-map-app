@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, FlatList, TextInput, Alert, ActivityIndicator, SectionList, Modal, KeyboardAvoidingView, Platform } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, FlatList, TextInput, Alert, ActivityIndicator, SectionList, Modal, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -304,9 +304,8 @@ export default function GroupManageScreen() {
 
         {/* 위치 검색 모달 */}
         <Modal visible={showLocationSearch} animationType="slide" presentationStyle="pageSheet">
-          <KeyboardAvoidingView
+          <View
             style={[styles.container, { backgroundColor: c.background, paddingTop: Platform.OS === 'ios' ? 20 : insets.top }]}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           >
             <View style={[styles.header, { paddingTop: 12 }]}>
               <TouchableOpacity onPress={() => { setShowLocationSearch(false); setLocationQuery(''); setLocationResults([]); }}>
@@ -338,6 +337,9 @@ export default function GroupManageScreen() {
               data={locationResults}
               keyExtractor={(item, i) => `${item.name}-${i}`}
               contentContainerStyle={{ padding: 16 }}
+              automaticallyAdjustKeyboardInsets
+              contentInsetAdjustmentBehavior="automatic"
+              keyboardDismissMode="interactive"
               ListHeaderComponent={
                 locationResults.length > 0 && locationQuery.length >= 2 ? (
                   <TouchableOpacity
@@ -383,7 +385,7 @@ export default function GroupManageScreen() {
                 ) : null
               }
             />
-          </KeyboardAvoidingView>
+          </View>
         </Modal>
 
         {loading ? (

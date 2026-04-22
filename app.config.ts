@@ -11,7 +11,7 @@ export default ({ config }: ConfigContext): WishMapExpoConfig => ({
   ...config,
   name: '위시맵',
   slug: 'wish-map-app',
-  version: '1.1.2',
+  version: '1.1.5',
   orientation: 'portrait',
   icon: './assets/images/icon.png',
   scheme: 'wishmap',
