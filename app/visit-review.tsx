@@ -73,33 +73,22 @@ export default function VisitReviewScreen() {
         return;
       }
     }
-    // 2. 네이버 카테고리 문자열에서 매칭
-    // 네이버 포맷: "음식점>한식>분식>떡볶이" 처럼 `>`로 계층 구분
-    // 가장 구체적인(오른쪽) 세그먼트부터 매칭 시도 → 정확 일치 우선, 없으면 부분 일치
+    // 2. 네이버 카테고리의 최상위만 사용 (예: "음식점>한식>분식>떡볶이" → "음식점")
     if (!params.placeCategory) return;
 
-    const segments = params.placeCategory
-      .split('>')
-      .map(s => s.trim())
-      .filter(Boolean)
-      .reverse(); // 깊은 세그먼트부터
+    const topLevel = params.placeCategory.split('>')[0]?.trim();
+    if (!topLevel) return;
 
-    // Pass 1: 세그먼트 이름 정확 일치
-    for (const seg of segments) {
-      const hit = cats.find(c => c.name === seg);
-      if (hit) {
-        setDetectedCategoryId(hit.id);
-        return;
-      }
+    const exact = cats.find(c => c.name === topLevel);
+    if (exact) {
+      setDetectedCategoryId(exact.id);
+      return;
     }
 
-    // Pass 2: 세그먼트와 DB 이름 부분 일치 (양방향)
-    for (const seg of segments) {
-      const hit = cats.find(c => seg.includes(c.name) || c.name.includes(seg));
-      if (hit) {
-        setDetectedCategoryId(hit.id);
-        return;
-      }
+    const partial = cats.find(c => topLevel.includes(c.name) || c.name.includes(topLevel));
+    if (partial) {
+      setDetectedCategoryId(partial.id);
+      return;
     }
 
     console.info('[visit-review] 카테고리 자동 매칭 실패:', params.placeCategory);
