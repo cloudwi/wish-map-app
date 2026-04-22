@@ -265,6 +265,56 @@ export default function VisitReviewScreen() {
             </View>
           </View>
 
+          {/* 사진 */}
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: c.textPrimary }]}>사진</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.imageRow}>
+              {images.map((uri, index) => {
+                const isUploading = index >= uploadedUrls.length && uploading;
+                const isUploaded = index < uploadedUrls.length;
+                return (
+                  <View key={index} style={styles.imageWrap}>
+                    <Image source={{ uri }} style={[styles.imageThumb, isUploading && { opacity: 0.5 }]} />
+                    {isUploading && (
+                      <View style={styles.imageOverlay}>
+                        <ActivityIndicator size="small" color="#fff" />
+                      </View>
+                    )}
+                    {isUploaded && (
+                      <View style={styles.imageCheck}>
+                        <Ionicons name="checkmark" size={10} color="#fff" />
+                      </View>
+                    )}
+                    <TouchableOpacity
+                      style={styles.imageRemove}
+                      onPress={() => removeImage(index)}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      disabled={isUploading}
+                    >
+                      <View style={styles.imageRemoveCircle}>
+                        <Ionicons name="close" size={12} color="#fff" />
+                      </View>
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
+              {images.length < 5 && (
+                <TouchableOpacity
+                  style={[styles.addImageBtn, { borderColor: c.border, backgroundColor: c.inputBg }]}
+                  onPress={pickImage}
+                  activeOpacity={0.7}
+                  disabled={uploading}
+                >
+                  <Ionicons name="camera-outline" size={24} color={c.textTertiary} />
+                  <Text style={[styles.addImageText, { color: c.textTertiary }]}>{images.length}/5</Text>
+                </TouchableOpacity>
+              )}
+            </ScrollView>
+            {uploading && (
+              <Text style={[styles.uploadStatus, { color: c.textTertiary }]}>업로드 중...</Text>
+            )}
+          </View>
+
           {/* 카테고리 수동 선택 — 자동 매칭 실패 시 노출 */}
           {!detectedCategory && placeCategories.length > 0 && (
             <View style={styles.section}>
@@ -337,62 +387,12 @@ export default function VisitReviewScreen() {
               placeholderTextColor={c.textDisabled}
               value={comment}
               onChangeText={setComment}
-              maxLength={200}
+              maxLength={120}
               multiline
               textAlignVertical="top"
               onFocus={() => setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 300)}
             />
-            <Text style={[styles.charCount, { color: c.textDisabled }]}>{comment.length}/200</Text>
-          </View>
-
-          {/* 사진 */}
-          <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: c.textPrimary }]}>사진</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.imageRow}>
-              {images.map((uri, index) => {
-                const isUploading = index >= uploadedUrls.length && uploading;
-                const isUploaded = index < uploadedUrls.length;
-                return (
-                  <View key={index} style={styles.imageWrap}>
-                    <Image source={{ uri }} style={[styles.imageThumb, isUploading && { opacity: 0.5 }]} />
-                    {isUploading && (
-                      <View style={styles.imageOverlay}>
-                        <ActivityIndicator size="small" color="#fff" />
-                      </View>
-                    )}
-                    {isUploaded && (
-                      <View style={styles.imageCheck}>
-                        <Ionicons name="checkmark" size={10} color="#fff" />
-                      </View>
-                    )}
-                    <TouchableOpacity
-                      style={styles.imageRemove}
-                      onPress={() => removeImage(index)}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      disabled={isUploading}
-                    >
-                      <View style={styles.imageRemoveCircle}>
-                        <Ionicons name="close" size={12} color="#fff" />
-                      </View>
-                    </TouchableOpacity>
-                  </View>
-                );
-              })}
-              {images.length < 5 && (
-                <TouchableOpacity
-                  style={[styles.addImageBtn, { borderColor: c.border, backgroundColor: c.inputBg }]}
-                  onPress={pickImage}
-                  activeOpacity={0.7}
-                  disabled={uploading}
-                >
-                  <Ionicons name="camera-outline" size={24} color={c.textTertiary} />
-                  <Text style={[styles.addImageText, { color: c.textTertiary }]}>{images.length}/5</Text>
-                </TouchableOpacity>
-              )}
-            </ScrollView>
-            {uploading && (
-              <Text style={[styles.uploadStatus, { color: c.textTertiary }]}>업로드 중...</Text>
-            )}
+            <Text style={[styles.charCount, { color: c.textDisabled }]}>{comment.length}/120</Text>
           </View>
 
           {/* 제출 */}
