@@ -38,7 +38,7 @@ export function GlassIconButton({
   iconWeight = 'bold',
   borderRadius,
   tintColor,
-  fallbackBackground = 'rgba(120,120,128,0.5)',
+  fallbackBackground = 'rgba(120,120,128,0.22)',
   style,
   hitSlop = 10,
   disabled,
