@@ -73,15 +73,36 @@ export default function VisitReviewScreen() {
         return;
       }
     }
-    // 2. 없으면 네이버 카테고리 문자열에서 매칭 (e.g. "쇼핑,유통>종합가전" → "쇼핑,유통")
-    if (params.placeCategory) {
-      const matched = cats.find(c =>
-        params.placeCategory.startsWith(c.name) || params.placeCategory.includes(c.name)
-      );
-      if (matched) {
-        setDetectedCategoryId(matched.id);
+    // 2. 네이버 카테고리 문자열에서 매칭
+    // 네이버 포맷: "음식점>한식>분식>떡볶이" 처럼 `>`로 계층 구분
+    // 가장 구체적인(오른쪽) 세그먼트부터 매칭 시도 → 정확 일치 우선, 없으면 부분 일치
+    if (!params.placeCategory) return;
+
+    const segments = params.placeCategory
+      .split('>')
+      .map(s => s.trim())
+      .filter(Boolean)
+      .reverse(); // 깊은 세그먼트부터
+
+    // Pass 1: 세그먼트 이름 정확 일치
+    for (const seg of segments) {
+      const hit = cats.find(c => c.name === seg);
+      if (hit) {
+        setDetectedCategoryId(hit.id);
+        return;
       }
     }
+
+    // Pass 2: 세그먼트와 DB 이름 부분 일치 (양방향)
+    for (const seg of segments) {
+      const hit = cats.find(c => seg.includes(c.name) || c.name.includes(seg));
+      if (hit) {
+        setDetectedCategoryId(hit.id);
+        return;
+      }
+    }
+
+    console.info('[visit-review] 카테고리 자동 매칭 실패:', params.placeCategory);
   };
 
   const toggleTag = (tag: string) => {
@@ -221,6 +242,37 @@ export default function VisitReviewScreen() {
               ) : null}
             </View>
           </View>
+
+          {/* 카테고리 수동 선택 — 자동 매칭 실패 시 노출 */}
+          {!detectedCategory && placeCategories.length > 0 && (
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: c.textPrimary }]}>카테고리 선택</Text>
+              <View style={styles.chipGrid}>
+                {placeCategories.filter(c => !c.customOnly).map((cat) => (
+                  <TouchableOpacity
+                    key={cat.id}
+                    style={[styles.chip, { backgroundColor: c.chipBg, borderColor: c.border }]}
+                    onPress={() => { lightTap(); setDetectedCategoryId(cat.id); }}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.chipText, { color: c.textSecondary }]}>{cat.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {/* 카테고리 변경 링크 */}
+          {detectedCategory && (
+            <View style={styles.categoryHint}>
+              <Text style={[styles.categoryHintText, { color: c.textTertiary }]}>
+                카테고리: <Text style={{ color: c.textSecondary, fontWeight: '600' }}>{detectedCategory.name}</Text>
+              </Text>
+              <TouchableOpacity onPress={() => { lightTap(); setDetectedCategoryId(null); setSelectedTags([]); }} hitSlop={8}>
+                <Text style={[styles.categoryHintText, { color: c.primary, fontWeight: '600' }]}>변경</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* 카테고리별 태그 */}
           {detectedCategory?.tagGroups.map((group) => (
@@ -364,6 +416,14 @@ const styles = StyleSheet.create({
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 },
   sectionTitle: { fontSize: 16, fontWeight: '600', marginBottom: 12 },
   chipGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  categoryHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    marginBottom: 16,
+  },
+  categoryHintText: { fontSize: 13 },
   chip: {
     paddingHorizontal: 14,
     paddingVertical: 10,
