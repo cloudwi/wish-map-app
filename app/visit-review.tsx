@@ -9,6 +9,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
 import { placeApi } from '../api/place';
 import { placeCategoryApi } from '../api/placeCategory';
+import { useLocationStore } from '../stores/locationStore';
+import { NAVER_CATEGORY_ALIASES } from '../constants/categoryAliases';
 import { uploadImages } from '../utils/imageUpload';
 import { lightTap, successTap, mediumTap } from '../utils/haptics';
 import { showError, showSuccess } from '../utils/toast';
@@ -17,6 +19,7 @@ import { PlaceCategory } from '../types';
 import { WishInput } from '../components/WishInput';
 
 const VISIT_DISTANCE_LIMIT = 100;
+const CACHED_LOCATION_TTL_MS = 2 * 60 * 1000;
 
 function haversineDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371000;
@@ -49,6 +52,8 @@ export default function VisitReviewScreen() {
   const [uploadedUrls, setUploadedUrls] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  // 여러 번 사진을 추가했을 때의 업로드 Promise를 모아 제출 시 한 번에 await.
+  const uploadPromisesRef = useRef<Promise<void>[]>([]);
   const scrollRef = useRef<ScrollView>(null);
 
   const detectedCategory = placeCategories.find(c => c.id === detectedCategoryId);
@@ -73,22 +78,34 @@ export default function VisitReviewScreen() {
         return;
       }
     }
-    // 2. 네이버 카테고리의 최상위만 사용 (예: "음식점>한식>분식>떡볶이" → "음식점")
     if (!params.placeCategory) return;
 
-    const topLevel = params.placeCategory.split('>')[0]?.trim();
-    if (!topLevel) return;
+    // 네이버 카테고리의 모든 세그먼트를 후보로 사용. 예: "술집>포장마차" → ["술집", "포장마차"]
+    const segments = params.placeCategory
+      .split('>')
+      .map(s => s.trim())
+      .filter(Boolean);
+    if (segments.length === 0) return;
 
-    const exact = cats.find(c => c.name === topLevel);
-    if (exact) {
-      setDetectedCategoryId(exact.id);
-      return;
+    // 2. alias 맵 기반 exact 매칭 (가장 정확) — 세그먼트 순서대로 우선 시도
+    for (const seg of segments) {
+      const aliases = NAVER_CATEGORY_ALIASES[seg] ?? [seg];
+      for (const alias of aliases) {
+        const hit = cats.find(c => c.name === alias);
+        if (hit) {
+          setDetectedCategoryId(hit.id);
+          return;
+        }
+      }
     }
 
-    const partial = cats.find(c => topLevel.includes(c.name) || c.name.includes(topLevel));
-    if (partial) {
-      setDetectedCategoryId(partial.id);
-      return;
+    // 3. partial 매칭 fallback
+    for (const seg of segments) {
+      const partial = cats.find(c => seg.includes(c.name) || c.name.includes(seg));
+      if (partial) {
+        setDetectedCategoryId(partial.id);
+        return;
+      }
     }
 
     console.info('[visit-review] 카테고리 자동 매칭 실패:', params.placeCategory);
@@ -127,17 +144,20 @@ export default function VisitReviewScreen() {
     }
   };
 
-  const handleUpload = async (uris: string[]) => {
+  const handleUpload = (uris: string[]) => {
     setUploading(true);
-    try {
-      const urls = await uploadImages(uris);
-      setUploadedUrls(prev => [...prev, ...urls]);
-    } catch (error: unknown) {
-      showError('업로드 실패', getErrorMessage(error, '이미지 업로드에 실패했습니다.'));
-      setImages(prev => prev.filter(uri => !uris.includes(uri)));
-    } finally {
-      setUploading(false);
-    }
+    const task = (async () => {
+      try {
+        const urls = await uploadImages(uris);
+        setUploadedUrls(prev => [...prev, ...urls]);
+      } catch (error: unknown) {
+        showError('업로드 실패', getErrorMessage(error, '이미지 업로드에 실패했습니다.'));
+        setImages(prev => prev.filter(uri => !uris.includes(uri)));
+      } finally {
+        setUploading(false);
+      }
+    })();
+    uploadPromisesRef.current.push(task);
   };
 
   const removeImage = (index: number) => {
@@ -149,27 +169,40 @@ export default function VisitReviewScreen() {
   const isUploadPending = images.length > 0 && (uploading || uploadedUrls.length < images.length);
 
   const handleSubmit = async () => {
-    if (isUploadPending) {
-      Alert.alert('잠시만요', '이미지 업로드가 진행 중입니다.');
-      return;
-    }
-
     setSubmitting(true);
     mediumTap();
 
+    // 사진이 아직 업로드 중이면 여기서 내부적으로 대기 — 사용자는 버튼 한 번 누르고 잊으면 된다.
+    if (uploadPromisesRef.current.length > 0) {
+      await Promise.all(uploadPromisesRef.current);
+      uploadPromisesRef.current = [];
+    }
+
     try {
-      const Location = require('expo-location') as typeof import('expo-location');
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        showError('위치 권한 필요', '설정에서 위치 권한을 허용해주세요.');
-        return;
+      // 지도 화면이 watchPositionAsync로 이미 들고 있는 최신 좌표를 재사용해
+      // GPS fix 대기(수 초 ~ 십수 초)를 건너뛴다. TTL 초과/부재 시에만 fallback.
+      const { userLocation: cached, lastUpdatedAt } = useLocationStore.getState();
+      const cacheFresh = cached && lastUpdatedAt && Date.now() - lastUpdatedAt < CACHED_LOCATION_TTL_MS;
+
+      let coords: { latitude: number; longitude: number };
+      if (cacheFresh && cached) {
+        coords = cached;
+      } else {
+        const Location = require('expo-location') as typeof import('expo-location');
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          showError('위치 권한 필요', '설정에서 위치 권한을 허용해주세요.');
+          return;
+        }
+        let loc = await Location.getLastKnownPositionAsync();
+        if (!loc) {
+          loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        }
+        coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
       }
-      let loc = await Location.getLastKnownPositionAsync();
-      if (!loc) {
-        loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      }
+
       const dist = haversineDistance(
-        loc.coords.latitude, loc.coords.longitude,
+        coords.latitude, coords.longitude,
         Number(params.placeLat), Number(params.placeLng)
       );
       if (dist > VISIT_DISTANCE_LIMIT) {
@@ -184,8 +217,8 @@ export default function VisitReviewScreen() {
         lng: Number(params.placeLng),
         naverPlaceId: params.placeId || undefined,
         category: params.placeCategory || undefined,
-        userLat: loc.coords.latitude,
-        userLng: loc.coords.longitude,
+        userLat: coords.latitude,
+        userLng: coords.longitude,
         placeCategoryId: detectedCategoryId || undefined,
         comment: comment.trim() || undefined,
         tags: selectedTags.length > 0 ? selectedTags : undefined,
@@ -367,14 +400,19 @@ export default function VisitReviewScreen() {
             style={[
               styles.submitBtn,
               { backgroundColor: c.primary },
-              (submitting || isUploadPending) && { opacity: 0.5 },
+              submitting && { opacity: 0.6 },
             ]}
             onPress={handleSubmit}
-            disabled={submitting || isUploadPending}
+            disabled={submitting}
             activeOpacity={0.8}
           >
             {submitting ? (
-              <ActivityIndicator size="small" color="#fff" />
+              <>
+                <ActivityIndicator size="small" color="#fff" />
+                {isUploadPending && (
+                  <Text style={styles.submitText}>사진 업로드 중...</Text>
+                )}
+              </>
             ) : (
               <>
                 <Ionicons name="checkmark-circle" size={20} color="#fff" />

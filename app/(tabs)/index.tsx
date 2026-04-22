@@ -20,6 +20,7 @@ import { useSearch } from '../../hooks/useSearch';
 import { useTheme } from '../../hooks/useTheme';
 import { useGroupStore } from '../../stores/groupStore';
 import { useAuthStore } from '../../stores/authStore';
+import { useLocationStore } from '../../stores/locationStore';
 import { lightTap, mediumTap } from '../../utils/haptics';
 import { showError } from '../../utils/toast';
 import { router, useFocusEffect } from 'expo-router';
@@ -172,6 +173,13 @@ export default function MapScreen() {
       fetchPlaces(currentBoundsRef.current);
     }
   }, [fetchPlaces]));
+
+  // visit-review 등 다른 화면에서 재사용할 수 있도록 현재 위치를 store에 싱크.
+  useEffect(() => {
+    if (userLocation) {
+      useLocationStore.getState().setUserLocation(userLocation);
+    }
+  }, [userLocation]);
 
   // F2: mounted flag로 unmount 후 state 업데이트 방지
   useEffect(() => {
