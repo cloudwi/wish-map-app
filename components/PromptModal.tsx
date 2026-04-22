@@ -14,6 +14,7 @@ import { useTheme } from '../hooks/useTheme';
 import { WishInput } from './WishInput';
 import { Button } from './Button';
 import { spacing, typography, radius } from '../constants/theme';
+import { useAppStore } from '../stores/appStore';
 
 interface PromptModalProps {
   visible: boolean;
@@ -61,6 +62,13 @@ export function PromptModal({
       return () => clearTimeout(t);
     }
   }, [visible, defaultValue]);
+
+  // 모달에 이미 취소 버튼이 있으므로 전역 키보드 X 버튼 숨김 (중복 UI 제거).
+  useEffect(() => {
+    if (!visible) return;
+    useAppStore.getState().setSuppressKeyboardDoneBar(true);
+    return () => useAppStore.getState().setSuppressKeyboardDoneBar(false);
+  }, [visible]);
 
   const handleSubmit = async () => {
     const trimmed = value.trim();

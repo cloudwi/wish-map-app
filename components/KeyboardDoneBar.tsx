@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Keyboard, Platform, Animated } from 'react-native';
 import { GlassIconButton } from './GlassIconButton';
+import { useAppStore } from '../stores/appStore';
 
 // inputAccessoryViewID 하위 호환용 (TextInput prop으로 넘겨도 무시되므로 안전).
 export const KEYBOARD_DONE_ID = 'keyboard-done';
@@ -14,6 +15,7 @@ export const KEYBOARD_DONE_ID = 'keyboard-done';
 export function KeyboardDoneBar() {
   const [height, setHeight] = useState(0);
   const opacity = useRef(new Animated.Value(0)).current;
+  const suppressed = useAppStore((s) => s.suppressKeyboardDoneBar);
 
   useEffect(() => {
     if (Platform.OS !== 'ios') return;
@@ -34,7 +36,7 @@ export function KeyboardDoneBar() {
     };
   }, [opacity]);
 
-  if (Platform.OS !== 'ios' || height === 0) return null;
+  if (Platform.OS !== 'ios' || height === 0 || suppressed) return null;
 
   return (
     <Animated.View style={[styles.container, { bottom: height + 8, opacity }]} pointerEvents="box-none">
