@@ -1,5 +1,6 @@
-import { Pressable, StyleSheet, View, ViewStyle, StyleProp } from 'react-native';
+import { Pressable, StyleSheet, View, ViewStyle, StyleProp, Platform } from 'react-native';
 import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect';
+import { BlurView } from 'expo-blur';
 import { SymbolView, SymbolViewProps } from 'expo-symbols';
 
 interface GlassIconButtonProps {
@@ -22,29 +23,28 @@ interface GlassIconButtonProps {
 }
 
 /**
- * Liquid Glass 아이콘 버튼.
- *
- * - iOS 26 실기기: GlassView가 진짜 Liquid Glass로 렌더
- * - iOS 26 시뮬레이터 / iOS < 26: `fallbackBackground` 폴백
- * - `borderRadius`로 원형/사각 모두 지원
- * - `tintColor`로 컬러드 글래스 (예: primary 오렌지)
+ * Liquid Glass 아이콘 버튼. 3단 레이어로 플랫폼별 최적 효과:
+ * 1. `fallbackBackground` (항상) — 최소 가시성 보장
+ * 2. `BlurView` (iOS 전체) — 시뮬레이터/구버전 iOS에서 glass 느낌
+ * 3. `GlassView` (iOS 26+) — 진짜 Liquid Glass (실기기에서 가장 선명)
  */
 export function GlassIconButton({
   icon,
   onPress,
   size = 40,
   iconSize = 18,
-  iconColor = 'rgba(60,60,67,0.9)',
+  iconColor = 'rgba(28,28,30,1)',
   iconWeight = 'bold',
   borderRadius,
   tintColor,
-  fallbackBackground = 'rgba(120,120,128,0.22)',
+  fallbackBackground = 'rgba(120,120,128,0.25)',
   style,
   hitSlop = 10,
   disabled,
   accessibilityLabel,
 }: GlassIconButtonProps) {
   const supported = isLiquidGlassAvailable();
+  const isIOS = Platform.OS === 'ios';
 
   const shape: ViewStyle = {
     width: size,
@@ -66,6 +66,13 @@ export function GlassIconButton({
       style={({ pressed }) => [{ opacity: disabled ? 0.5 : pressed ? 0.7 : 1 }]}
     >
       <View style={[shape, style]}>
+        {isIOS && !tintColor && (
+          <BlurView
+            intensity={60}
+            tint="systemChromeMaterial"
+            style={StyleSheet.absoluteFill}
+          />
+        )}
         {supported && (
           <GlassView
             glassEffectStyle="regular"

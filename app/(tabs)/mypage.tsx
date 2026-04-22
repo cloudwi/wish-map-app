@@ -12,6 +12,7 @@ import { lightTap } from '../../utils/haptics';
 import { showSuccess, showError } from '../../utils/toast';
 import { getErrorMessage } from '../../utils/getErrorMessage';
 import { authApi } from '../../api/auth';
+import { PromptModal } from '../../components/PromptModal';
 
 interface SettingRowProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -52,6 +53,7 @@ export default function MyPageScreen() {
   const { isAuthenticated, user, logout, updateNickname } = useAuthStore();
   const { mode: themeMode, setMode: setThemeMode } = useThemeStore();
   const [pushEnabled, setPushEnabled] = useState(false);
+  const [nicknameModal, setNicknameModal] = useState(false);
   const appStateRef = useRef(AppState.currentState);
 
   // 실제 시스템 푸시 알림 권한 상태 확인
@@ -129,26 +131,17 @@ export default function MyPageScreen() {
 
   const handleNicknameChange = () => {
     lightTap();
-    Alert.prompt(
-      '닉네임 변경',
-      '새 닉네임을 입력해주세요 (2~10자)',
-      async (text) => {
-        const nickname = text?.trim();
-        if (!nickname) return;
-        if (nickname.length < 2 || nickname.length > 10) {
-          showError('닉네임 오류', '닉네임은 2~10자여야 합니다');
-          return;
-        }
-        try {
-          await updateNickname(nickname);
-          showSuccess('변경 완료', '닉네임이 변경되었습니다');
-        } catch (error: unknown) {
-          showError('변경 실패', getErrorMessage(error, '닉네임 변경 중 오류가 발생했습니다'));
-        }
-      },
-      'plain-text',
-      user?.nickname,
-    );
+    setNicknameModal(true);
+  };
+
+  const submitNickname = async (nickname: string) => {
+    try {
+      await updateNickname(nickname);
+      showSuccess('변경 완료', '닉네임이 변경되었습니다');
+      setNicknameModal(false);
+    } catch (error: unknown) {
+      showError('변경 실패', getErrorMessage(error, '닉네임 변경 중 오류가 발생했습니다'));
+    }
   };
 
   const handleLogout = () => {
@@ -287,6 +280,18 @@ export default function MyPageScreen() {
         <Text style={[styles.appVersion, { color: c.textDisabled }]}>v{Constants.expoConfig?.version ?? '1.0.0'}</Text>
       </View>
     </ScrollView>
+    <PromptModal
+      visible={nicknameModal}
+      title="닉네임 변경"
+      subtitle="새 닉네임을 입력해주세요 (2~10자)"
+      defaultValue={user?.nickname}
+      placeholder="2~10자"
+      maxLength={10}
+      submitLabel="변경"
+      onClose={() => setNicknameModal(false)}
+      onSubmit={submitNickname}
+      validate={(v) => (v.length < 2 || v.length > 10 ? '닉네임은 2~10자여야 합니다' : null)}
+    />
     </View>
   );
 }
