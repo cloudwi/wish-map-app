@@ -1,6 +1,6 @@
 import { StyleSheet, View, Text, ScrollView, FlatList, TouchableOpacity, Platform, RefreshControl, Linking, Dimensions, Modal, Pressable, ActivityIndicator, Share } from 'react-native';
 import { Image } from 'expo-image';
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useLocalSearchParams, Stack, router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { PlaceDetail, Comment, PlaceCategory } from '../../types';

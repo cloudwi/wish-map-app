@@ -14,7 +14,3 @@ export const mediumTap = Platform.OS === 'web'
 export const successTap = Platform.OS === 'web'
   ? noop
   : () => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
-export const errorTap = Platform.OS === 'web'
-  ? noop
-  : () => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);

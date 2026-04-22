@@ -132,18 +132,6 @@ export const placeApi = {
     return response.data;
   },
 
-  // 통계: 인기 장소 TOP5
-  getPopular: async (): Promise<{ id: number; name: string; category: string | null; thumbnailImage: string | null; totalVisitCount: number; placeCategoryId: number | null }[]> => {
-    const response = await apiClient.get('/places/stats/popular');
-    return response.data;
-  },
-
-  // 통계: 카테고리별 장소 수
-  getCategorySummary: async (): Promise<{ placeCategoryId: number; name: string; restaurantCount: number }[]> => {
-    const response = await apiClient.get('/places/stats/category-summary');
-    return response.data;
-  },
-
   // 그룹 필터: 그룹 구성원이 방문/제보한 맛집
   getGroupPlaces: async (groupId: number, bounds: MapBounds, priceRange?: PriceRange): Promise<PageResponse<Place>> => {
     const response = await apiClient.get<PageResponse<Place>>(`/groups/${groupId}/restaurants`, {

@@ -28,7 +28,7 @@ GoogleSignin.configure({
 
 export default function LoginScreen() {
   const c = useTheme();
-  const { login, hasAgreedToTerms, setTermsAgreed, logout } = useAuthStore();
+  const { login, setTermsAgreed, logout } = useAuthStore();
   const [loading, setLoading] = useState<AuthProvider | null>(null);
   const [showTerms, setShowTerms] = useState(false);
 

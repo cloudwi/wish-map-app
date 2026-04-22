@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import {
-  StyleSheet, View, Text, TouchableOpacity, TextInput,
+  StyleSheet, View, Text, TouchableOpacity,
   ScrollView, Image, ActivityIndicator, Alert,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -14,7 +14,7 @@ import { lightTap, successTap, mediumTap } from '../utils/haptics';
 import { showError, showSuccess } from '../utils/toast';
 import { getErrorMessage } from '../utils/getErrorMessage';
 import { PlaceCategory } from '../types';
-import { KEYBOARD_DONE_ID } from '../components/KeyboardDoneBar';
+import { WishInput } from '../components/WishInput';
 
 const VISIT_DISTANCE_LIMIT = 100;
 
@@ -168,7 +168,7 @@ export default function VisitReviewScreen() {
         return;
       }
 
-      const result = await placeApi.quickVisit({
+      await placeApi.quickVisit({
         name: params.placeName,
         lat: Number(params.placeLat),
         lng: Number(params.placeLng),
@@ -257,8 +257,8 @@ export default function VisitReviewScreen() {
           {/* 글 작성 */}
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: c.textPrimary }]}>한줄 메모</Text>
-            <TextInput
-              style={[styles.textInput, { borderColor: c.border, backgroundColor: c.inputBg, color: c.textPrimary }]}
+            <WishInput
+              style={[styles.textInput, { borderColor: c.border, backgroundColor: c.inputBg }]}
               placeholder="이 장소는 어땠나요?"
               placeholderTextColor={c.textDisabled}
               value={comment}
@@ -267,7 +267,6 @@ export default function VisitReviewScreen() {
               multiline
               textAlignVertical="top"
               onFocus={() => setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 300)}
-              inputAccessoryViewID={KEYBOARD_DONE_ID}
             />
             <Text style={[styles.charCount, { color: c.textDisabled }]}>{comment.length}/200</Text>
           </View>

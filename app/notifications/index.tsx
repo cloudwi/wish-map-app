@@ -148,7 +148,7 @@ export default function NotificationsScreen() {
           <View style={styles.cardContent}>
             <Text style={[styles.cardTitle, { color: c.textPrimary }]}>그룹 초대</Text>
             <Text style={[styles.cardDesc, { color: c.textSecondary }]}>
-              <Text style={{ fontWeight: '600' }}>{g.invitedBy}</Text>님이 '<Text style={{ fontWeight: '600' }}>{g.groupName}</Text>' 그룹에 초대했어요
+              <Text style={{ fontWeight: '600' }}>{g.invitedBy}</Text>님이 &lsquo;<Text style={{ fontWeight: '600' }}>{g.groupName}</Text>&rsquo; 그룹에 초대했어요
             </Text>
           </View>
           {isProcessing ? (

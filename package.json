@@ -30,6 +30,7 @@
     "expo-dev-client": "~55.0.27",
     "expo-device": "~55.0.14",
     "expo-font": "~55.0.6",
+    "expo-glass-effect": "~55.0.10",
     "expo-haptics": "~55.0.14",
     "expo-image": "~55.0.8",
     "expo-image-manipulator": "~55.0.15",

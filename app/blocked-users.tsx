@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, FlatList, TouchableOpacity, Alert, ActivityIndicator, Image } from 'react-native';
+import { StyleSheet, View, Text, FlatList, TouchableOpacity, Alert, Image } from 'react-native';
 import { Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
@@ -7,6 +7,8 @@ import { blockApi, BlockedUserResponse } from '../api/block';
 import { showSuccess, showError } from '../utils/toast';
 import { getErrorMessage } from '../utils/getErrorMessage';
 import { lightTap } from '../utils/haptics';
+import { EmptyState } from '../components/EmptyState';
+import { LoadingOverlay } from '../components/LoadingOverlay';
 
 export default function BlockedUsersScreen() {
   const c = useTheme();
@@ -67,12 +69,9 @@ export default function BlockedUsersScreen() {
     <View style={[styles.container, { backgroundColor: c.background }]}>
       <Stack.Screen options={{ title: '차단 목록', headerBackTitle: '뒤로' }} />
       {loading ? (
-        <ActivityIndicator style={{ marginTop: 40 }} color={c.primary} />
+        <LoadingOverlay />
       ) : blockedUsers.length === 0 ? (
-        <View style={styles.empty}>
-          <Ionicons name="shield-checkmark-outline" size={48} color={c.textDisabled} />
-          <Text style={[styles.emptyText, { color: c.textTertiary }]}>차단한 사용자가 없습니다</Text>
-        </View>
+        <EmptyState icon="shield-checkmark-outline" title="차단한 사용자가 없습니다" />
       ) : (
         <FlatList
           data={blockedUsers}
@@ -107,11 +106,4 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   unblockText: { fontSize: 13, fontWeight: '600' },
-  empty: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 12,
-  },
-  emptyText: { fontSize: 15 },
 });

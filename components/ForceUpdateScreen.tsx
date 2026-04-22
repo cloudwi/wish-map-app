@@ -1,16 +1,8 @@
-import {
-  View,
-  Text,
-  Image,
-  StyleSheet,
-  useColorScheme,
-  TouchableOpacity,
-  Linking,
-  Platform,
-} from 'react-native';
+import { View, Text, Image, StyleSheet, useColorScheme, Linking, Platform } from 'react-native';
 import { themes, typography, spacing } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
 import { useAppStore } from '../stores/appStore';
+import { Button } from './Button';
 
 const FALLBACK_STORE_URL = Platform.select({
   ios: 'https://apps.apple.com/app/id6760577746',
@@ -40,13 +32,7 @@ export function ForceUpdateScreen() {
         </Text>
       </View>
       <View style={styles.footer}>
-        <TouchableOpacity
-          style={[styles.btn, { backgroundColor: c.primary }]}
-          onPress={() => Linking.openURL(storeUrl)}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.btnText}>스토어로 이동</Text>
-        </TouchableOpacity>
+        <Button label="스토어로 이동" onPress={() => Linking.openURL(storeUrl)} size="lg" fullWidth />
       </View>
     </View>
   );
@@ -78,15 +64,5 @@ const styles = StyleSheet.create({
   },
   footer: {
     paddingBottom: spacing.xxxl,
-  },
-  btn: {
-    paddingVertical: spacing.lg,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  btnText: {
-    ...typography.body1,
-    fontWeight: '600',
-    color: '#fff',
   },
 });

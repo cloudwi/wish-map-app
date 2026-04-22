@@ -1,11 +1,11 @@
-import { StyleSheet, View, TouchableOpacity } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useState, useCallback } from 'react';
-import { Ionicons } from '@expo/vector-icons';
 import type * as LocationType from 'expo-location';
 import { type NaverMapViewRef } from '@mj-studio/react-native-naver-map';
 import { useTheme } from '../../hooks/useTheme';
 import { lightTap, mediumTap } from '../../utils/haptics';
 import { showError } from '../../utils/toast';
+import { GlassIconButton } from '../GlassIconButton';
 
 interface MapControlsProps {
   mapRef: React.RefObject<NaverMapViewRef | null>;
@@ -14,9 +14,24 @@ interface MapControlsProps {
   onRecommend?: () => void;
 }
 
+const BTN_SIZE = 44;
+const BTN_RADIUS = 10;
+
 export function MapControls({ mapRef, currentCameraRef, onLocationUpdate, onRecommend }: MapControlsProps) {
   const c = useTheme();
   const [locating, setLocating] = useState(false);
+
+  const zoomIn = useCallback(() => {
+    lightTap();
+    const cam = currentCameraRef.current;
+    mapRef.current?.animateCameraTo({ latitude: cam.latitude, longitude: cam.longitude, zoom: cam.zoom + 1, duration: 200 });
+  }, [mapRef, currentCameraRef]);
+
+  const zoomOut = useCallback(() => {
+    lightTap();
+    const cam = currentCameraRef.current;
+    mapRef.current?.animateCameraTo({ latitude: cam.latitude, longitude: cam.longitude, zoom: cam.zoom - 1, duration: 200 });
+  }, [mapRef, currentCameraRef]);
 
   const goToMyLocation = useCallback(async () => {
     mediumTap();
@@ -28,7 +43,6 @@ export function MapControls({ mapRef, currentCameraRef, onLocationUpdate, onReco
         showError('위치 권한 필요', '설정에서 위치 권한을 허용해주세요.');
         return;
       }
-      // 마지막 알려진 위치 먼저 시도 → 없으면 현재 위치 요청
       let location = await Location.getLastKnownPositionAsync();
       if (!location) {
         location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
@@ -48,48 +62,46 @@ export function MapControls({ mapRef, currentCameraRef, onLocationUpdate, onReco
 
   return (
     <View style={styles.rightButtons}>
-      <TouchableOpacity
-        style={[styles.mapBtn, { backgroundColor: c.surface }]}
-        onPress={() => {
-          lightTap();
-          const cam = currentCameraRef.current;
-          mapRef.current?.animateCameraTo({ latitude: cam.latitude, longitude: cam.longitude, zoom: cam.zoom + 1, duration: 200 });
-        }}
-        activeOpacity={0.8}
-      >
-        <Ionicons name="add" size={22} color={c.textSecondary} />
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.mapBtn, { backgroundColor: c.surface }]}
-        onPress={() => {
-          lightTap();
-          const cam = currentCameraRef.current;
-          mapRef.current?.animateCameraTo({ latitude: cam.latitude, longitude: cam.longitude, zoom: cam.zoom - 1, duration: 200 });
-        }}
-        activeOpacity={0.8}
-      >
-        <Ionicons name="remove" size={22} color={c.textSecondary} />
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.mapBtn, { backgroundColor: c.surface, marginTop: 4 }]}
+      <GlassIconButton
+        icon="plus"
+        onPress={zoomIn}
+        size={BTN_SIZE}
+        borderRadius={BTN_RADIUS}
+        iconColor={c.textSecondary}
+        iconSize={20}
+        accessibilityLabel="확대"
+      />
+      <GlassIconButton
+        icon="minus"
+        onPress={zoomOut}
+        size={BTN_SIZE}
+        borderRadius={BTN_RADIUS}
+        iconColor={c.textSecondary}
+        iconSize={20}
+        accessibilityLabel="축소"
+      />
+      <GlassIconButton
+        icon={locating ? 'location.fill' : 'location'}
         onPress={goToMyLocation}
-        activeOpacity={0.8}
+        size={BTN_SIZE}
+        borderRadius={BTN_RADIUS}
+        iconColor={locating ? c.primary : c.textSecondary}
+        iconSize={20}
         disabled={locating}
-      >
-        <Ionicons
-          name={locating ? 'locate' : 'locate-outline'}
-          size={22}
-          color={locating ? c.primary : c.textSecondary}
-        />
-      </TouchableOpacity>
+        style={{ marginTop: 4 }}
+        accessibilityLabel="내 위치"
+      />
       {onRecommend && (
-        <TouchableOpacity
-          style={[styles.mapBtn, { backgroundColor: c.primary }]}
+        <GlassIconButton
+          icon="dice"
           onPress={onRecommend}
-          activeOpacity={0.85}
-        >
-          <Ionicons name="dice-outline" size={22} color="#fff" />
-        </TouchableOpacity>
+          size={BTN_SIZE}
+          borderRadius={BTN_RADIUS}
+          tintColor={c.primary}
+          iconColor="#fff"
+          iconSize={20}
+          accessibilityLabel="추천"
+        />
       )}
     </View>
   );
@@ -101,19 +113,6 @@ const styles = StyleSheet.create({
     right: 16,
     top: '45%',
     zIndex: 1,
-    elevation: 2,
     gap: 8,
-  },
-  mapBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
   },
 });

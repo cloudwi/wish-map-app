@@ -1,8 +1,7 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   StyleSheet, View, Text, TouchableOpacity, FlatList,
-  Alert, TextInput, Modal, ScrollView, RefreshControl,
-  ActivityIndicator, Platform,
+  Alert, Modal, RefreshControl, ActivityIndicator,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, Stack } from 'expo-router';
@@ -10,8 +9,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../hooks/useTheme';
-import { KEYBOARD_DONE_ID } from '../components/KeyboardDoneBar';
-import { lunchVoteApi, LunchVoteResponse, LunchVoteCandidateResponse } from '../api/lunchVote';
+import { SearchInput } from '../components/SearchInput';
+import { lunchVoteApi, LunchVoteCandidateResponse } from '../api/lunchVote';
 import { placeApi } from '../api/place';
 import { Place } from '../types';
 import { lightTap, successTap, mediumTap } from '../utils/haptics';
@@ -22,7 +21,7 @@ import { CategoryPlaceholder } from '../components/CategoryPlaceholder';
 export default function LunchVoteScreen() {
   const c = useTheme();
   const insets = useSafeAreaInsets();
-  const { groupId, groupName } = useLocalSearchParams<{ groupId: string; groupName: string }>();
+  const { groupId } = useLocalSearchParams<{ groupId: string; groupName: string }>();
   const gid = Number(groupId);
   const queryClient = useQueryClient();
 
@@ -253,24 +252,14 @@ export default function LunchVoteScreen() {
             <Text style={[styles.modalTitle, { color: c.textPrimary }]}>맛집 추가</Text>
             <View style={{ width: 34 }} />
           </View>
-          <View style={[styles.searchWrap, { backgroundColor: c.searchBg }]}>
-            <Ionicons name="search-outline" size={18} color={c.textTertiary} />
-            <TextInput
-              style={[styles.searchInput, { color: c.textPrimary }]}
-              placeholder="장소 이름 검색"
-              placeholderTextColor={c.textDisabled}
-              value={searchQuery}
-              onChangeText={handleSearch}
-              autoFocus
-              returnKeyType="search"
-              inputAccessoryViewID={KEYBOARD_DONE_ID}
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => { setSearchQuery(''); setSearchResults([]); }}>
-                <Ionicons name="close-circle" size={18} color={c.textDisabled} />
-              </TouchableOpacity>
-            )}
-          </View>
+          <SearchInput
+            value={searchQuery}
+            onChangeText={handleSearch}
+            onClear={() => { setSearchQuery(''); setSearchResults([]); }}
+            placeholder="장소 이름 검색"
+            autoFocus
+            containerStyle={styles.searchWrap}
+          />
           {searching && <ActivityIndicator style={{ marginTop: 20 }} color={c.primary} />}
           <FlatList
             data={searchResults}
@@ -418,8 +407,7 @@ const styles = StyleSheet.create({
   modalContainer: { flex: 1 },
   modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 0.5 },
   modalTitle: { fontSize: 17, fontWeight: '700' },
-  searchWrap: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 16, marginTop: 12, borderRadius: 8, paddingHorizontal: 14, height: 44, gap: 10 },
-  searchInput: { flex: 1, fontSize: 15, paddingVertical: 0 },
+  searchWrap: { marginHorizontal: 16, marginTop: 12 },
   searchItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 0.5, gap: 12 },
   searchItemName: { fontSize: 15, fontWeight: '600' },
   searchItemCategory: { fontSize: 12, marginTop: 2 },

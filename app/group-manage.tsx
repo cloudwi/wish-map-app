@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, FlatList, TextInput, Alert, ActivityIndicator, SectionList, Modal, Platform } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, FlatList, Alert, ActivityIndicator, Modal, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../hooks/useTheme';
-import { KEYBOARD_DONE_ID } from '../components/KeyboardDoneBar';
-import { groupApi, GroupResponse, GroupDetailResponse, GroupMemberResponse } from '../api/group';
+import { SearchInput } from '../components/SearchInput';
+import { groupApi, GroupDetailResponse, GroupMemberResponse } from '../api/group';
 import { searchPlaces, PlaceResult } from '../api/search';
 import { friendApi, FriendResponse } from '../api/friend';
 import { useGroupStore } from '../stores/groupStore';
@@ -21,9 +21,6 @@ export default function GroupManageScreen() {
   const { groups, fetchGroups, createGroup, selectGroup, selectedGroupId } = useGroupStore();
   const { user } = useAuthStore();
   const [selectedGroup, setSelectedGroup] = useState<GroupDetailResponse | null>(null);
-  const [newGroupName, setNewGroupName] = useState('');
-  const [inviteNickname, setInviteNickname] = useState('');
-  const [creating, setCreating] = useState(false);
   const [loading, setLoading] = useState(false);
   const [friends, setFriends] = useState<FriendResponse[]>([]);
   const [invitingId, setInvitingId] = useState<number | null>(null);
@@ -77,35 +74,6 @@ export default function GroupManageScreen() {
       setLoading(false);
     }
   }, []);
-
-  const handleCreate = async () => {
-    if (!newGroupName.trim()) return;
-    setCreating(true);
-    try {
-      const group = await createGroup(newGroupName.trim());
-      setNewGroupName('');
-      successTap();
-      showSuccess('그룹 생성 완료', `'${group.name}' 그룹이 만들어졌습니다.`);
-      loadGroupDetail(group.id);
-    } catch (e: unknown) {
-      showError('생성 실패', getErrorMessage(e));
-    } finally {
-      setCreating(false);
-    }
-  };
-
-  const handleInvite = async () => {
-    if (!selectedGroup || !inviteNickname.trim()) return;
-    try {
-      await groupApi.inviteMember(selectedGroup.id, inviteNickname.trim());
-      setInviteNickname('');
-      successTap();
-      showSuccess('초대 완료', `'${inviteNickname.trim()}' 님을 초대했습니다.`);
-      loadGroupDetail(selectedGroup.id);
-    } catch (e: unknown) {
-      showError('초대 실패', getErrorMessage(e));
-    }
-  };
 
   const handleKick = (member: GroupMemberResponse) => {
     Alert.alert('추방 확인', `'${member.nickname}' 님을 추방하시겠습니까?`, [
@@ -314,24 +282,15 @@ export default function GroupManageScreen() {
               <Text style={[styles.headerTitle, { color: c.textPrimary }]}>기본 위치 설정</Text>
               <View style={{ width: 24 }} />
             </View>
-            <View style={[styles.locationSearchBar, { backgroundColor: c.searchBg }]}>
-              <Ionicons name="search-outline" size={17} color={c.textTertiary} />
-              <TextInput
-                style={[styles.locationSearchInput, { color: c.textPrimary }]}
-                placeholder="주소 또는 장소명 검색 (예: 교대역)"
-                placeholderTextColor={c.textDisabled}
-                value={locationQuery}
-                onChangeText={handleLocationSearch}
-                autoFocus
-                returnKeyType="search"
-                inputAccessoryViewID={KEYBOARD_DONE_ID}
-              />
-              {locationQuery.length > 0 && (
-                <TouchableOpacity onPress={() => { setLocationQuery(''); setLocationResults([]); }}>
-                  <Ionicons name="close-circle" size={17} color={c.textTertiary} />
-                </TouchableOpacity>
-              )}
-            </View>
+            <SearchInput
+              value={locationQuery}
+              onChangeText={handleLocationSearch}
+              onClear={() => { setLocationQuery(''); setLocationResults([]); }}
+              placeholder="주소 또는 장소명 검색 (예: 교대역)"
+              autoFocus
+              size="sm"
+              containerStyle={styles.locationSearchBar}
+            />
             {locationSearching && <ActivityIndicator style={{ marginTop: 20 }} color={c.primary} />}
             <FlatList
               data={locationResults}
@@ -361,7 +320,7 @@ export default function GroupManageScreen() {
                   >
                     <Ionicons name="navigate" size={18} color={c.primary} />
                     <Text style={{ fontSize: 14, fontWeight: '600', color: c.primary }}>
-                      '{locationQuery}' 근처로 설정
+                      &lsquo;{locationQuery}&rsquo; 근처로 설정
                     </Text>
                   </TouchableOpacity>
                 ) : null
@@ -451,7 +410,6 @@ export default function GroupManageScreen() {
               async (text) => {
                 const name = text?.trim();
                 if (!name) return;
-                setCreating(true);
                 try {
                   const group = await createGroup(name);
                   successTap();
@@ -459,8 +417,6 @@ export default function GroupManageScreen() {
                   loadGroupDetail(group.id);
                 } catch (e: unknown) {
                   showError('생성 실패', getErrorMessage(e));
-                } finally {
-                  setCreating(false);
                 }
               },
               'plain-text',
@@ -570,17 +526,10 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   locationSearchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
     marginHorizontal: 16,
     marginTop: 8,
     marginBottom: 4,
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    height: 44,
-    gap: 10,
   },
-  locationSearchInput: { flex: 1, fontSize: 14, paddingVertical: 0 },
   locationResultItem: {
     flexDirection: 'row',
     alignItems: 'center',

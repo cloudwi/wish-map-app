@@ -1,6 +1,7 @@
-import { StyleSheet, View, Text, FlatList, TouchableOpacity, RefreshControl, TextInput, ScrollView, Keyboard, TouchableWithoutFeedback } from 'react-native';
+import { StyleSheet, View, Text, FlatList, TouchableOpacity, RefreshControl, ScrollView, Keyboard, TouchableWithoutFeedback } from 'react-native';
+import { SearchInput } from '../../components/SearchInput';
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useQuery, useInfiniteQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, keepPreviousData } from '@tanstack/react-query';
 import { setItem, getItem } from '../../utils/secureStorage';
 import { MapListTabHeader } from '../../components/TabHeader';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,7 +13,6 @@ import { StatsSection } from '../../components/StatsSection';
 import { useTheme } from '../../hooks/useTheme';
 import { useGroupStore } from '../../stores/groupStore';
 import { lightTap } from '../../utils/haptics';
-import { KeyboardCheckButton } from '../../components/KeyboardCheckButton';
 import type * as LocationType from 'expo-location';
 
 
@@ -25,7 +25,6 @@ const SEARCH_DEBOUNCE_MS = 400;
 
 export default function ListScreen() {
   const c = useTheme();
-  const queryClient = useQueryClient();
   const { selectedGroupId } = useGroupStore();
 
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
@@ -182,10 +181,13 @@ export default function ListScreen() {
     return (
       <View style={[styles.container, { backgroundColor: c.background }]}>
         <MapListTabHeader />
-        <View style={[styles.searchWrap, { backgroundColor: c.searchBg }]}>
-          <Ionicons name="search-outline" size={18} color={c.textTertiary} style={styles.searchIcon} />
-          <TextInput style={[styles.searchInput, { color: c.textPrimary }]} placeholder="장소 이름 검색" placeholderTextColor={c.textDisabled} editable={false} returnKeyType="search" />
-        </View>
+        <SearchInput
+          value=""
+          onChangeText={() => {}}
+          placeholder="장소 이름 검색"
+          editable={false}
+          containerStyle={styles.searchWrap}
+        />
         <View style={styles.skeletonWrap}>
           {Array.from({ length: 6 }).map((_, i) => <PlaceCardSkeleton key={i} />)}
         </View>
@@ -199,27 +201,12 @@ export default function ListScreen() {
       <MapListTabHeader />
 
       {/* 검색 */}
-      <View style={[styles.searchWrap, { backgroundColor: c.searchBg }]}>
-        <Ionicons name="search-outline" size={18} color={c.textTertiary} style={styles.searchIcon} />
-        <TextInput
-          style={[styles.searchInput, { color: c.textPrimary }]}
-          placeholder="장소 이름 검색"
-          placeholderTextColor={c.textDisabled}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          returnKeyType="search"
-          autoCorrect={false}
-          autoCapitalize="none"
-          spellCheck={false}
-          autoComplete="off"
-          textContentType="oneTimeCode"
-        />
-        {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearBtn}>
-            <Ionicons name="close-circle" size={18} color={c.textDisabled} />
-          </TouchableOpacity>
-        )}
-      </View>
+      <SearchInput
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+        placeholder="장소 이름 검색"
+        containerStyle={styles.searchWrap}
+      />
 
       <StatsSection />
 
@@ -328,7 +315,6 @@ export default function ListScreen() {
         maxToRenderPerBatch={10}
         windowSize={5}
       />
-      <KeyboardCheckButton />
     </View>
     </TouchableWithoutFeedback>
   );
@@ -337,10 +323,7 @@ export default function ListScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   skeletonWrap: { paddingTop: 16 },
-  searchWrap: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 16, marginTop: 12, marginBottom: 4, borderRadius: 8, paddingHorizontal: 14, height: 44 },
-  searchIcon: { marginRight: 10 },
-  searchInput: { flex: 1, fontSize: 15, paddingVertical: 0 },
-  clearBtn: { padding: 8 },
+  searchWrap: { marginHorizontal: 16, marginTop: 12, marginBottom: 4 },
   filterRow: { flexGrow: 0, flexShrink: 0 },
   categoryContent: { paddingHorizontal: 14, paddingTop: 10, paddingBottom: 6, gap: 6, alignItems: 'center' },
   categoryBtn: { paddingHorizontal: 16, paddingVertical: 9, borderRadius: 8, marginRight: 6 },

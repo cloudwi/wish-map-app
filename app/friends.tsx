@@ -1,15 +1,17 @@
 import { useState, useCallback, useEffect } from 'react';
 import {
   StyleSheet, View, Text, FlatList, TouchableOpacity,
-  TextInput, Image, ActivityIndicator, Alert, Platform,
+  Image, Alert, Platform,
   Keyboard, TouchableWithoutFeedback,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../hooks/useTheme';
-import { KEYBOARD_DONE_ID } from '../components/KeyboardDoneBar';
+import { SearchInput } from '../components/SearchInput';
 import { AuthRequired } from '../components/AuthRequired';
+import { EmptyState } from '../components/EmptyState';
+import { LoadingOverlay } from '../components/LoadingOverlay';
 import { useAuthStore } from '../stores/authStore';
 import { friendApi, FriendResponse, FriendStatus, UserSearchResult } from '../api/friend';
 import { lightTap } from '../utils/haptics';
@@ -213,31 +215,19 @@ export default function FriendsScreen() {
         ),
       }} />
       {/* 검색 */}
-      <View style={[styles.searchWrap, { backgroundColor: c.searchBg }]}>
-        <Ionicons name="search-outline" size={17} color={c.textTertiary} />
-        <TextInput
-          style={[styles.searchInput, { color: c.textPrimary }]}
-          placeholder="닉네임으로 친구 검색 (2자 이상)"
-          placeholderTextColor={c.textDisabled}
-          value={searchQuery}
-          onChangeText={handleSearch}
-          returnKeyType="search"
-          autoCorrect={false}
-          inputAccessoryViewID={KEYBOARD_DONE_ID}
-        />
-        {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => { setSearchQuery(''); setSearchResults([]); }}>
-            <Ionicons name="close-circle" size={17} color={c.textTertiary} />
-          </TouchableOpacity>
-        )}
-      </View>
+      <SearchInput
+        value={searchQuery}
+        onChangeText={handleSearch}
+        onClear={() => { setSearchQuery(''); setSearchResults([]); }}
+        placeholder="닉네임으로 친구 검색 (2자 이상)"
+        size="sm"
+        containerStyle={styles.searchWrap}
+      />
 
       {/* 검색 결과 */}
       {isSearching ? (
         searching ? (
-          <View style={styles.centered}>
-            <ActivityIndicator color={c.primary} />
-          </View>
+          <LoadingOverlay />
         ) : (
           <FlatList
             data={searchResults}
@@ -245,11 +235,7 @@ export default function FriendsScreen() {
             renderItem={renderSearchResult}
             keyboardDismissMode="on-drag"
             contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 20 }]}
-            ListEmptyComponent={
-              <View style={styles.centered}>
-                <Text style={[styles.emptyText, { color: c.textTertiary }]}>검색 결과가 없어요</Text>
-              </View>
-            }
+            ListEmptyComponent={<EmptyState title="검색 결과가 없어요" />}
           />
         )
       ) : (
@@ -275,9 +261,7 @@ export default function FriendsScreen() {
           </View>
 
           {loading ? (
-            <View style={styles.centered}>
-              <ActivityIndicator color={c.primary} />
-            </View>
+            <LoadingOverlay />
           ) : tab === 'friends' ? (
             <FlatList
               data={friends}
@@ -286,13 +270,11 @@ export default function FriendsScreen() {
               keyboardDismissMode="on-drag"
               contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 20 }]}
               ListEmptyComponent={
-                <View style={styles.emptyWrap}>
-                  <Ionicons name="people-outline" size={56} color={c.textDisabled} />
-                  <Text style={[styles.emptyTitle, { color: c.textSecondary }]}>아직 친구가 없어요</Text>
-                  <Text style={[styles.emptyDesc, { color: c.textTertiary }]}>
-                    닉네임을 검색해서{'\n'}친구를 추가해보세요!
-                  </Text>
-                </View>
+                <EmptyState
+                  icon="people-outline"
+                  title="아직 친구가 없어요"
+                  description={'닉네임을 검색해서\n친구를 추가해보세요!'}
+                />
               }
             />
           ) : (
@@ -303,10 +285,7 @@ export default function FriendsScreen() {
               keyboardDismissMode="on-drag"
               contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 20 }]}
               ListEmptyComponent={
-                <View style={styles.emptyWrap}>
-                  <Ionicons name="mail-outline" size={56} color={c.textDisabled} />
-                  <Text style={[styles.emptyTitle, { color: c.textSecondary }]}>받은 친구 요청이 없어요</Text>
-                </View>
+                <EmptyState icon="mail-outline" title="받은 친구 요청이 없어요" />
               }
             />
           )}
@@ -320,17 +299,10 @@ export default function FriendsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   searchWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
     marginHorizontal: 16,
     marginTop: 12,
     marginBottom: 4,
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    height: 44,
-    gap: 10,
   },
-  searchInput: { flex: 1, fontSize: 14, paddingVertical: 0 },
 
   // Tabs
   tabs: {
@@ -403,16 +375,4 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   acceptBtnText: { fontSize: 13, fontWeight: '600', color: '#fff' },
-
-  // Empty
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 80 },
-  emptyWrap: {
-    alignItems: 'center',
-    gap: 10,
-    paddingTop: 80,
-    paddingBottom: 40,
-  },
-  emptyTitle: { fontSize: 17, fontWeight: '600' },
-  emptyDesc: { fontSize: 14, textAlign: 'center', lineHeight: 20 },
-  emptyText: { fontSize: 14 },
 });
