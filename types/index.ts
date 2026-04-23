@@ -100,7 +100,9 @@ export interface PlaceDetail extends Place {
   description: string | null;
   images: string[];
   commentCount: number;
+  /** @deprecated visitedToday와 동일. 하위호환용. */
   isVisited: boolean;
+  visitedToday: boolean;
   createdAt: string;
   updatedAt: string;
 }

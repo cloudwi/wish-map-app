@@ -11,7 +11,7 @@ export default ({ config }: ConfigContext): WishMapExpoConfig => ({
   ...config,
   name: '위시맵',
   slug: 'wish-map-app',
-  version: '1.1.5',
+  version: '1.1.6',
   orientation: 'portrait',
   icon: './assets/images/icon.png',
   scheme: 'wishmap',
@@ -61,7 +61,6 @@ export default ({ config }: ConfigContext): WishMapExpoConfig => ({
     adaptiveIcon: {
       backgroundColor: '#E6F4FE',
       foregroundImage: './assets/images/android-icon-foreground.png',
-      backgroundImage: './assets/images/android-icon-background.png',
       monochromeImage: './assets/images/android-icon-monochrome.png',
     },
     edgeToEdgeEnabled: true,

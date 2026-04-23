@@ -1,9 +1,9 @@
-import { StyleSheet, View, Text, ActivityIndicator, TouchableOpacity, Keyboard, Linking, Dimensions } from 'react-native';
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { StyleSheet, View, Text, ActivityIndicator, TouchableOpacity, Keyboard, Linking } from 'react-native';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
-import BottomSheet, { BottomSheetFlatList, BottomSheetView } from '@gorhom/bottom-sheet';
+import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 import type * as LocationType from 'expo-location';
 import { type NaverMapViewRef } from '@mj-studio/react-native-naver-map';
 import { Place, MapBounds, PlaceCategory } from '../../types';
@@ -11,7 +11,6 @@ import { placeApi } from '../../api/place';
 import { placeCategoryApi } from '../../api/placeCategory';
 import { PlaceResult } from '../../api/search';
 import NaverMap from '../../components/NaverMap';
-import { PlaceCard } from '../../components/PlaceCard';
 import { PlaceDetailSheet } from '../../components/PlaceDetailSheet';
 import { SearchBar } from '../../components/map/SearchBar';
 import { FilterChips, TrendFilter } from '../../components/map/FilterChips';
@@ -46,37 +45,15 @@ export default function MapScreen() {
   const [categoryFilter, setCategoryFilter] = useState<number | null>(null);
   const [trendFilter, setTrendFilter] = useState<TrendFilter | null>(null);
   const [statsRefreshKey, setStatsRefreshKey] = useState(0);
-  const PAGE_SIZE = 20;
-  const [listPage, setListPage] = useState(1);
-  // F5: 정렬용이므로 Manhattan 거리로 충분, deps 세분화
-  const sortedPlaces = useMemo(() => {
-    if (!userLocation) return places;
-    return [...places].sort((a, b) => {
-      const dA = Math.abs(a.lat - userLocation.latitude) + Math.abs(a.lng - userLocation.longitude);
-      const dB = Math.abs(b.lat - userLocation.latitude) + Math.abs(b.lng - userLocation.longitude);
-      return dA - dB;
-    });
-  }, [places, userLocation?.latitude, userLocation?.longitude]);
-  const visiblePlaces = useMemo(() => sortedPlaces.slice(0, listPage * PAGE_SIZE), [sortedPlaces, listPage]);
-  const handleLoadMore = useCallback(() => {
-    if (visiblePlaces.length < places.length) {
-      setListPage(p => p + 1);
-    }
-  }, [visiblePlaces.length, places.length]);
 
   const [slotVisible, setSlotVisible] = useState(false);
   const [slotCandidates, setSlotCandidates] = useState<Place[]>([]);
   const [slotWinner, setSlotWinner] = useState<Place | null>(null);
 
-  const bottomSheetRef = useRef<BottomSheet>(null);
   const detailSheetRef = useRef<BottomSheet>(null);
   const mapRef = useRef<NaverMapViewRef>(null);
   const currentBoundsRef = useRef<MapBounds>(INITIAL_BOUNDS);
   const currentCameraRef = useRef<{ latitude: number; longitude: number; zoom: number }>({ latitude: 37.5665, longitude: 126.9780, zoom: 14 });
-  const screenHeight = Dimensions.get('window').height;
-  // 최대 높이: 검색바 + 그룹칩 아래까지만 (상태바 + 검색바 48 + 간격 8 + 그룹칩 36 + 여유 8)
-  const maxSheetHeight = screenHeight - (insets.top + 48 + 8 + 36 + 8);
-  const snapPoints = useMemo(() => [240, maxSheetHeight], [maxSheetHeight]);
 
   useEffect(() => {
     if (isAuthenticated) fetchGroups();
@@ -155,7 +132,6 @@ export default function MapScreen() {
             size: 500,
           });
       setPlaces(response.content);
-      setListPage(1);
       setShowResearchBtn(false);
     } catch (error) {
       console.warn('[fetchPlaces]', error);
@@ -199,13 +175,8 @@ export default function MapScreen() {
           const { latitude, longitude } = location.coords;
           setUserLocation({ latitude, longitude });
           mapRef.current?.animateCameraTo({ latitude, longitude, zoom: 15 });
-          const bounds: MapBounds = {
-            minLat: latitude - 0.01,
-            maxLat: latitude + 0.01,
-            minLng: longitude - 0.01,
-            maxLng: longitude + 0.01,
-          };
-          fetchPlaces(bounds);
+          // fetchPlaces는 카메라 이동 완료 후 onBoundsChange에서 실제 지도 뷰포트로 자동 호출.
+          // 기기 화면 크기/비율에 관계없이 "지금 화면에 보이는 범위"만 조회된다.
           subscription = await Location.watchPositionAsync(
             { accuracy: Location.Accuracy.Balanced, distanceInterval: 10 },
             (loc) => { if (mounted) setUserLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude }); },
@@ -225,11 +196,14 @@ export default function MapScreen() {
   const handleBoundsChange = useCallback((bounds: MapBounds, camera: { latitude: number; longitude: number; zoom: number }) => {
     currentBoundsRef.current = bounds;
     currentCameraRef.current = camera;
-    if (initialLoadDone.current) {
-      if (boundsDebounceRef.current) clearTimeout(boundsDebounceRef.current);
-      boundsDebounceRef.current = setTimeout(() => setShowResearchBtn(true), 300);
+    if (!initialLoadDone.current) {
+      // 첫 카메라 이동 완료 시점에 실제 뷰포트 bounds로 초기 장소 조회.
+      fetchPlaces(bounds);
+      return;
     }
-  }, []);
+    if (boundsDebounceRef.current) clearTimeout(boundsDebounceRef.current);
+    boundsDebounceRef.current = setTimeout(() => setShowResearchBtn(true), 300);
+  }, [fetchPlaces]);
 
   const handleResearch = useCallback(() => {
     mediumTap();
@@ -249,7 +223,6 @@ export default function MapScreen() {
       longitude: place.lng,
       zoom: 16,
     });
-    bottomSheetRef.current?.snapToIndex(0);
     setTimeout(() => detailSheetRef.current?.expand(), 100);
   };
 
@@ -257,8 +230,6 @@ export default function MapScreen() {
     detailSheetRef.current?.close();
     setSelectedPlace(null);
     setSelected(null);
-
-    bottomSheetRef.current?.snapToIndex(0);
   };
 
   const openNaverMap = async (place: PlaceResult) => {
@@ -281,11 +252,12 @@ export default function MapScreen() {
     Linking.openURL(`tel:${phone}`);
   };
 
-  const handleMarkerClick = useCallback(async (tapped: Place) => {
+  // 마커 탭 → 상세 시트 즉시 오픈. 이미 가진 Place 데이터로 즉시 렌더,
+  // 주소/전화는 백그라운드 네이버 검색으로 보강 (네트워크 대기 없음).
+  const handleMarkerClick = useCallback((tapped: Place) => {
     lightTap();
     setSelected(tapped);
-    // Place를 PlaceResult로 변환하여 동일한 바텀시트 표시
-    const placeResult: PlaceResult = {
+    setSelectedPlace({
       id: tapped.naverPlaceId || '',
       name: tapped.name,
       address: '',
@@ -295,28 +267,30 @@ export default function MapScreen() {
       category: tapped.category || '',
       phone: '',
       link: '',
-    };
-    // 네이버 검색으로 주소/전화번호 보강
-    try {
-      const { searchPlaces } = require('../../api/search');
-      const results = await searchPlaces(tapped.name);
-      // 좌표가 가장 가까운 결과 매칭
-      const match = results.length > 0
-        ? results.reduce((closest: PlaceResult, r: PlaceResult) => {
-            const distR = Math.abs(r.lat - tapped.lat) + Math.abs(r.lng - tapped.lng);
-            const distC = Math.abs(closest.lat - tapped.lat) + Math.abs(closest.lng - tapped.lng);
-            return distR < distC ? r : closest;
-          })
-        : null;
-      if (match) {
-        placeResult.address = match.address;
-        placeResult.roadAddress = match.roadAddress;
-        placeResult.phone = match.phone;
-        placeResult.link = match.link;
-        if (!placeResult.id && match.id) placeResult.id = match.id;
-      }
-    } catch {}
-    setSelectedPlace(placeResult);
+    });
+    setTimeout(() => detailSheetRef.current?.expand(), 50);
+
+    // 백그라운드로 주소/전화 보강
+    (async () => {
+      try {
+        const { searchPlaces } = require('../../api/search');
+        const results: PlaceResult[] = await searchPlaces(tapped.name);
+        if (!results.length) return;
+        const match = results.reduce((closest, r) => {
+          const dR = Math.abs(r.lat - tapped.lat) + Math.abs(r.lng - tapped.lng);
+          const dC = Math.abs(closest.lat - tapped.lat) + Math.abs(closest.lng - tapped.lng);
+          return dR < dC ? r : closest;
+        });
+        setSelectedPlace(prev => prev && prev.name === tapped.name ? {
+          ...prev,
+          address: match.address || prev.address,
+          roadAddress: match.roadAddress || prev.roadAddress,
+          phone: match.phone || prev.phone,
+          link: match.link || prev.link,
+          id: prev.id || match.id || '',
+        } : prev);
+      } catch {}
+    })();
   }, []);
 
   const handleRegisterCustomPlace = useCallback((categoryId: number, categoryName: string) => {
@@ -374,10 +348,6 @@ export default function MapScreen() {
     mapRef.current?.animateCameraTo({ latitude: place.lat, longitude: place.lng, zoom: 16 });
   }, [handleMarkerClick]);
 
-  const renderListItem = useCallback(({ item, index }: { item: Place; index: number }) => (
-    <PlaceCard item={item} index={index} placeCategories={placeCategories} />
-  ), [placeCategories]);
-
   return (
     <View style={styles.container}>
       {/* 지도 화면에서는 항상 밝은 상태바 (그라데이션 오버레이와 함께) */}
@@ -388,7 +358,7 @@ export default function MapScreen() {
         placeCategories={placeCategories}
         onMarkerClick={handleMarkerClick}
         onBoundsChange={handleBoundsChange}
-        onTapMap={() => Keyboard.dismiss()}
+        onTapMap={() => { Keyboard.dismiss(); setSelected(null); }}
         userLocation={userLocation}
         selectedPlace={selectedPlace}
         selectedId={selected?.id ?? null}
@@ -459,49 +429,12 @@ export default function MapScreen() {
         </View>
       )}
 
-      <BottomSheet
-        ref={bottomSheetRef}
-        index={0}
-        snapPoints={snapPoints}
-        backgroundStyle={[styles.sheetBg, { backgroundColor: c.sheetBg }]}
-        handleIndicatorStyle={{ backgroundColor: c.textDisabled, width: 40 }}
-        enablePanDownToClose={false}
-        enableOverDrag={false}
-        topInset={insets.top + 100}
-        containerStyle={{ zIndex: 10 }}
-      >
-        <View style={styles.listWrap}>
-          <View style={styles.listHeader}>
-            <Ionicons name="location" size={18} color={c.textSecondary} />
-            <Text style={[styles.listTitle, { color: c.textPrimary }]}>주변 장소 {places.length}개</Text>
-          </View>
-          <BottomSheetFlatList
-            data={visiblePlaces}
-            keyExtractor={(item: Place) => item.id.toString()}
-            renderItem={renderListItem}
-            contentContainerStyle={styles.listContent}
-            onEndReached={handleLoadMore}
-            onEndReachedThreshold={0.5}
-            ListEmptyComponent={
-              <Text style={[styles.emptyText, { color: c.textSecondary }]}>
-                {loading ? '장소를 불러오는 중...' : '이 지역에 등록된 장소가 없습니다'}
-              </Text>
-            }
-            ListFooterComponent={
-              visiblePlaces.length < places.length ? (
-                <ActivityIndicator size="small" color={c.textDisabled} style={{ paddingVertical: 16 }} />
-              ) : null
-            }
-          />
-        </View>
-      </BottomSheet>
-
       {selectedPlace && (
         <BottomSheet
           ref={detailSheetRef}
           enableDynamicSizing
           enablePanDownToClose
-          onClose={() => { setSelectedPlace(null); bottomSheetRef.current?.snapToIndex(0); }}
+          onClose={() => { setSelectedPlace(null); setSelected(null); }}
           backgroundStyle={[styles.sheetBg, { backgroundColor: c.sheetBg }]}
           handleIndicatorStyle={{ backgroundColor: c.textDisabled, width: 40 }}
           containerStyle={{ zIndex: 20 }}
@@ -509,6 +442,14 @@ export default function MapScreen() {
           <BottomSheetView>
             <PlaceDetailSheet
               place={selectedPlace}
+              restaurantId={selected?.id ?? null}
+              initialSummary={selected ? {
+                visitCount: selected.visitCount,
+                priceRange: selected.priceRange,
+                placeCategoryId: selected.placeCategoryId,
+                lastVisitedAt: selected.lastVisitedAt,
+                thumbnailImage: selected.thumbnailImage,
+              } : null}
               onClose={closePlaceDetail}
               onOpenNaverMap={openNaverMap}
               onCallPhone={callPhone}
@@ -580,15 +521,4 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 6,
   },
-  listWrap: { flex: 1 },
-  listHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 16,
-    paddingBottom: 10,
-  },
-  listTitle: { fontSize: 15, fontWeight: '600' },
-  listContent: { paddingHorizontal: 16, paddingBottom: 120 },
-  emptyText: { textAlign: 'center', paddingVertical: 30, fontSize: 14 },
 });

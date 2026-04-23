@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Pressable, Platform } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { SymbolView } from 'expo-symbols';
@@ -10,13 +10,25 @@ import { placeApi, PlaceStatsResponse } from '../api/place';
 import { useAuthStore } from '../stores/authStore';
 import { useTheme } from '../hooks/useTheme';
 import { lightTap } from '../utils/haptics';
-import { PRICE_RANGE_LABELS, PlaceCategory } from '../types';
+import { PRICE_RANGE_LABELS, PlaceCategory, PriceRange } from '../types';
 import { CategoryPlaceholder } from './CategoryPlaceholder';
 
 const TAB_BAR_HEIGHT = 49;
 
+export interface PlaceDetailInitialSummary {
+  visitCount: number;
+  priceRange: PriceRange | null;
+  placeCategoryId: number | null;
+  lastVisitedAt: string | null;
+  thumbnailImage: string | null;
+}
+
 interface PlaceDetailSheetProps {
   place: PlaceResult;
+  /** DB id (마커/리스트 경로). 있으면 id 기반 getPlaceDetail 호출. 없으면 naverPlaceId 기반 getPlaceStats. */
+  restaurantId?: number | null;
+  /** 이미 가진 Place 데이터의 요약. 네트워크 대기 없이 초기 렌더에 사용. */
+  initialSummary?: PlaceDetailInitialSummary | null;
   onClose: () => void;
   onOpenNaverMap: (place: PlaceResult) => void;
   onCallPhone: (phone: string) => void;
@@ -26,35 +38,68 @@ interface PlaceDetailSheetProps {
   refreshKey?: number;
 }
 
-export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, onVisitSuccess, weeklyChampion, placeCategories, refreshKey }: PlaceDetailSheetProps) {
+export function PlaceDetailSheet({ place, restaurantId, initialSummary, onClose, onOpenNaverMap, onCallPhone, onVisitSuccess, weeklyChampion, placeCategories, refreshKey }: PlaceDetailSheetProps) {
   const c = useTheme();
   const insets = useSafeAreaInsets();
   const { isAuthenticated } = useAuthStore();
-  const [stats, setStats] = useState<PlaceStatsResponse | null | undefined>(undefined);
-  const [thumbnail, setThumbnail] = useState<string | null>(null);
+  // initialSummary로 즉시 채우고, 서버 응답이 오면 visitedToday 등 보강.
+  const [stats, setStats] = useState<PlaceStatsResponse | null | undefined>(() =>
+    initialSummary && restaurantId
+      ? {
+          restaurantId,
+          visitCount: initialSummary.visitCount,
+          avgRating: null,
+          visitedToday: false,
+          priceRange: initialSummary.priceRange,
+          placeCategoryId: initialSummary.placeCategoryId,
+          recentReviews: [],
+          lastVisitedAt: initialSummary.lastVisitedAt,
+        }
+      : undefined
+  );
+  const [thumbnail, setThumbnail] = useState<string | null>(initialSummary?.thumbnailImage ?? null);
   const [registering, setRegistering] = useState(false);
 
   const refreshStats = useCallback(() => {
+    // 1순위: DB id가 있으면 /places/{id}
+    if (restaurantId) {
+      placeApi.getPlaceDetail(restaurantId)
+        .then((detail) => {
+          setStats({
+            restaurantId: detail.id,
+            visitCount: detail.visitCount,
+            avgRating: null,
+            visitedToday: detail.visitedToday ?? detail.isVisited ?? false,
+            priceRange: detail.priceRange,
+            placeCategoryId: detail.placeCategoryId,
+            recentReviews: [],
+            lastVisitedAt: detail.lastVisitedAt,
+          });
+          if (detail.thumbnailImage) setThumbnail(detail.thumbnailImage);
+        })
+        .catch(() => {});
+      return;
+    }
+    // 2순위: naverPlaceId 기반 (검색 결과 → DB 미등록일 수도 있음)
     if (!place.id) { setStats(null); return; }
     placeApi.getPlaceStats(place.id).then(setStats).catch(() => setStats(null));
-  }, [place.id]);
+  }, [restaurantId, place.id]);
 
-  // place 변경 시 초기화 + 조회
   useEffect(() => {
-    setStats(undefined);
     refreshStats();
-  }, [place.id]);
+  }, [restaurantId, place.id]);
 
   // refreshKey 변경 시 조용히 재조회 (방문 인증 후 돌아올 때)
   useEffect(() => {
     if (refreshKey) refreshStats();
   }, [refreshKey, refreshStats]);
 
-
+  // 썸네일: 이미 있으면 네이버 이미지 검색 스킵
   useEffect(() => {
+    if (initialSummary?.thumbnailImage) return;
     setThumbnail(null);
     searchPlaceImage(place.name).then(setThumbnail);
-  }, [place.name]);
+  }, [place.name, initialSummary?.thumbnailImage]);
 
   const visitedToday = stats?.visitedToday ?? false;
 
@@ -153,15 +198,33 @@ export function PlaceDetailSheet({ place, onClose, onOpenNaverMap, onCallPhone, 
             )}
           </View>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
-          <SymbolView
-            name="xmark.circle.fill"
-            size={34}
-            type="hierarchical"
-            tintColor={c.textSecondary}
-            fallback={<Ionicons name="close-circle" size={28} color={c.textDisabled} />}
-          />
-        </TouchableOpacity>
+        {Platform.OS === 'ios' ? (
+          // iOS: SF Symbol(UIKit) + 햅틱 + 마운트 시 bounce 미세 피드백
+          <TouchableOpacity
+            style={styles.closeBtn}
+            onPress={() => { lightTap(); onClose(); }}
+            hitSlop={8}
+          >
+            <SymbolView
+              name="xmark.circle.fill"
+              size={30}
+              type="hierarchical"
+              tintColor={c.textSecondary}
+              animationSpec={{ effect: { type: 'bounce' } }}
+              fallback={<Ionicons name="close-circle" size={28} color={c.textDisabled} />}
+            />
+          </TouchableOpacity>
+        ) : (
+          // Android: Material 스타일 — 일반 X 아이콘 + 원형 ripple
+          <Pressable
+            style={styles.closeBtn}
+            onPress={() => { lightTap(); onClose(); }}
+            hitSlop={8}
+            android_ripple={{ color: c.gray100, borderless: true, radius: 22 }}
+          >
+            <Ionicons name="close" size={26} color={c.textSecondary} />
+          </Pressable>
+        )}
       </View>
 
       {/* 방문왕 */}
