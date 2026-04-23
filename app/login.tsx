@@ -1,9 +1,10 @@
 import {
   StyleSheet, View, Text, TouchableOpacity,
-  Image, ActivityIndicator, Platform,
+  Image, ActivityIndicator, Platform, useColorScheme,
 } from 'react-native';
 import { useState, useEffect } from 'react';
 import { router, Stack } from 'expo-router';
+import { useThemeStore } from '../stores/themeStore';
 import { Ionicons } from '@expo/vector-icons';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { login as kakaoLogin } from '@react-native-seoul/kakao-login';
@@ -28,6 +29,9 @@ GoogleSignin.configure({
 
 export default function LoginScreen() {
   const c = useTheme();
+  const systemScheme = useColorScheme();
+  const themeMode = useThemeStore((s) => s.mode);
+  const isDark = (themeMode === 'system' ? systemScheme : themeMode) === 'dark';
   const { login, setTermsAgreed, logout } = useAuthStore();
   const [loading, setLoading] = useState<AuthProvider | null>(null);
   const [showTerms, setShowTerms] = useState(false);
@@ -167,8 +171,23 @@ export default function LoginScreen() {
           <Text style={[styles.tagline, { color: c.textSecondary }]}>우리 동네 장소 지도</Text>
         </View>
 
-        {/* 소셜 로그인 버튼 */}
+        {/* 소셜 로그인 버튼 - iOS는 App Store 가이드라인(4.8) 준수를 위해 Apple을 최상단에 배치 */}
         <View style={styles.buttonContainer}>
+          {/* 애플 (iOS 최상단) */}
+          {Platform.OS === 'ios' && (
+            <AppleAuthentication.AppleAuthenticationButton
+              buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+              buttonStyle={
+                isDark
+                  ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE
+                  : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
+              }
+              cornerRadius={8}
+              style={[styles.appleButton, isDisabled && styles.dimmed]}
+              onPress={handleApple}
+            />
+          )}
+
           {/* 카카오 */}
           <TouchableOpacity
             style={[styles.socialButton, styles.kakaoButton, isDisabled && loading !== 'KAKAO' && styles.dimmed]}
@@ -185,23 +204,6 @@ export default function LoginScreen() {
                   style={styles.socialIcon}
                 />
                 <Text style={styles.kakaoButtonText}>카카오로 시작하기</Text>
-              </>
-            )}
-          </TouchableOpacity>
-
-          {/* 구글 */}
-          <TouchableOpacity
-            style={[styles.socialButton, styles.googleButton, { borderColor: c.border }, isDisabled && loading !== 'GOOGLE' && styles.dimmed]}
-            onPress={handleGoogle}
-            disabled={isDisabled}
-            activeOpacity={0.85}
-          >
-            {loading === 'GOOGLE' ? (
-              <ActivityIndicator color={c.textSecondary} />
-            ) : (
-              <>
-                <Ionicons name="logo-google" size={20} color="#DB4437" />
-                <Text style={[styles.googleButtonText, { color: c.textSecondary }]}>Google로 시작하기</Text>
               </>
             )}
           </TouchableOpacity>
@@ -223,16 +225,22 @@ export default function LoginScreen() {
             )}
           </TouchableOpacity>
 
-          {/* 애플 (iOS만) */}
-          {Platform.OS === 'ios' && (
-            <AppleAuthentication.AppleAuthenticationButton
-              buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-              buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-              cornerRadius={8}
-              style={[styles.appleButton, isDisabled && styles.dimmed]}
-              onPress={handleApple}
-            />
-          )}
+          {/* 구글 */}
+          <TouchableOpacity
+            style={[styles.socialButton, styles.googleButton, { borderColor: c.border }, isDisabled && loading !== 'GOOGLE' && styles.dimmed]}
+            onPress={handleGoogle}
+            disabled={isDisabled}
+            activeOpacity={0.85}
+          >
+            {loading === 'GOOGLE' ? (
+              <ActivityIndicator color={c.textSecondary} />
+            ) : (
+              <>
+                <Ionicons name="logo-google" size={20} color="#DB4437" />
+                <Text style={[styles.googleButtonText, { color: c.textSecondary }]}>Google로 시작하기</Text>
+              </>
+            )}
+          </TouchableOpacity>
         </View>
 
         {/* 건너뛰기 */}
@@ -244,8 +252,21 @@ export default function LoginScreen() {
 
         {/* 약관 */}
         <Text style={[styles.terms, { color: c.textTertiary }]}>
-          로그인 시 <Text style={{ color: c.primary }}>이용약관</Text> 및{' '}
-          <Text style={{ color: c.primary }}>개인정보처리방침</Text>에 동의하게 됩니다.
+          로그인 시{' '}
+          <Text
+            style={[styles.termsLink, { color: c.primary }]}
+            onPress={() => router.push('/legal/terms')}
+          >
+            이용약관
+          </Text>
+          {' '}및{' '}
+          <Text
+            style={[styles.termsLink, { color: c.primary }]}
+            onPress={() => router.push('/legal/privacy')}
+          >
+            개인정보처리방침
+          </Text>
+          에 동의하게 됩니다.
         </Text>
       </View>
     </>
@@ -281,4 +302,5 @@ const styles = StyleSheet.create({
     position: 'absolute', bottom: 40, left: 30, right: 30,
     textAlign: 'center', fontSize: 12, lineHeight: 18,
   },
+  termsLink: { textDecorationLine: 'underline', fontWeight: '600' },
 });

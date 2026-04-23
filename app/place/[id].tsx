@@ -1,4 +1,4 @@
-import { StyleSheet, View, Text, ScrollView, FlatList, TouchableOpacity, Platform, RefreshControl, Linking, Dimensions, Modal, Pressable, ActivityIndicator, Share } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, FlatList, TouchableOpacity, Platform, RefreshControl, Linking, Dimensions, Modal, Pressable, ActivityIndicator, Share, ActionSheetIOS, Alert } from 'react-native';
 import { Image } from 'expo-image';
 import { useState, useEffect, useCallback } from 'react';
 import { useLocalSearchParams, Stack, router, useFocusEffect } from 'expo-router';
@@ -6,13 +6,18 @@ import { Ionicons } from '@expo/vector-icons';
 import { PlaceDetail, Comment, PlaceCategory } from '../../types';
 import { placeApi } from '../../api/place';
 import { commentApi } from '../../api/comment';
+import { blockApi } from '../../api/block';
 import { useAuthStore } from '../../stores/authStore';
 import { useTheme } from '../../hooks/useTheme';
 import { lightTap } from '../../utils/haptics';
 import { TaggedContent } from '../../components/TaggedContent';
 import Skeleton from '../../components/Skeleton';
 import { CategoryPlaceholder } from '../../components/CategoryPlaceholder';
+import { ReportModal } from '../../components/ReportModal';
+import { PlaceTagStats } from '../../components/PlaceTagStats';
 import { placeCategoryApi } from '../../api/placeCategory';
+import { showSuccess, showError } from '../../utils/toast';
+import { getErrorMessage } from '../../utils/getErrorMessage';
 
 export default function PlaceDetailScreen() {
   const c = useTheme();
@@ -29,6 +34,8 @@ export default function PlaceDetailScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [viewerImage, setViewerImage] = useState<string | null>(null);
   const [placeCategories, setPlaceCategories] = useState<PlaceCategory[]>([]);
+  const [reportTarget, setReportTarget] = useState<Comment | null>(null);
+  const [photoOnly, setPhotoOnly] = useState(false);
 
   const fetchPlace = useCallback(async () => {
     try {
@@ -52,8 +59,7 @@ export default function PlaceDetailScreen() {
 
   useEffect(() => {
     (async () => {
-      await fetchPlace();
-      await fetchComments(null, true);
+      await Promise.all([fetchPlace(), fetchComments(null, true)]);
       setLoading(false);
     })();
   }, [fetchPlace, fetchComments]);
@@ -133,7 +139,70 @@ export default function PlaceDetailScreen() {
     } catch {}
   };
 
-  const activeComments = comments.filter(r => !r.isDeleted && (r.content || r.tags?.length > 0 || r.images?.length > 0));
+  const activeComments = comments.filter(r =>
+    !r.isDeleted
+    && (r.content || r.tags?.length > 0 || r.images?.length > 0)
+    && (!photoOnly || r.images?.length > 0)
+  );
+  const hasAnyActiveComments = comments.some(r => !r.isDeleted && (r.content || r.tags?.length > 0 || r.images?.length > 0));
+
+  const handleBlockUser = useCallback((comment: Comment) => {
+    Alert.alert(
+      `${comment.user.nickname}님 차단`,
+      '차단하면 해당 사용자의 방문 기록과 댓글이 더 이상 보이지 않습니다. 마이페이지 > 차단 목록에서 해제할 수 있습니다.',
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '차단',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await blockApi.block(comment.user.id);
+              setComments(prev => prev.filter(c => c.user.id !== comment.user.id));
+              showSuccess('차단 완료', `${comment.user.nickname}님을 차단했습니다`);
+            } catch (e) {
+              showError('차단 실패', getErrorMessage(e));
+            }
+          },
+        },
+      ],
+    );
+  }, []);
+
+  const handleOpenCommentMenu = useCallback((comment: Comment) => {
+    if (!isAuthenticated) {
+      router.push('/login');
+      return;
+    }
+    if (comment.isMine) return;
+    lightTap();
+
+    const options = ['신고하기', `${comment.user.nickname}님 차단`, '취소'];
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options,
+          cancelButtonIndex: 2,
+          destructiveButtonIndex: 0,
+          title: comment.user.nickname,
+        },
+        (index) => {
+          if (index === 0) setReportTarget(comment);
+          else if (index === 1) handleBlockUser(comment);
+        },
+      );
+    } else {
+      Alert.alert(
+        comment.user.nickname,
+        undefined,
+        [
+          { text: '신고하기', style: 'destructive', onPress: () => setReportTarget(comment) },
+          { text: `${comment.user.nickname}님 차단`, onPress: () => handleBlockUser(comment) },
+          { text: '취소', style: 'cancel' },
+        ],
+      );
+    }
+  }, [isAuthenticated, handleBlockUser]);
 
   if (loading) {
     return (
@@ -266,28 +335,80 @@ export default function PlaceDetailScreen() {
                 {place.description && (
                   <Text style={[styles.description, { color: c.textPrimary }]}>{place.description}</Text>
                 )}
-
-                <View style={styles.metaRow}>
-                  <Text style={[styles.metaText, { color: c.textTertiary }]}>
-                    {new Date(place.createdAt).toLocaleDateString()}
-                  </Text>
-                </View>
               </View>
 
+              {/* 인기 태그 집계 */}
+              <PlaceTagStats stats={place.topTags ?? []} />
+
               {/* 방문 기록 타이틀 */}
-              {activeComments.length > 0 && (
+              {hasAnyActiveComments && (
                 <View style={[styles.visitLogSection, { borderTopColor: c.background }]}>
                   <Text style={[styles.sectionTitle, { color: c.textPrimary }]}>
                     방문 기록 {activeComments.length}개
                   </Text>
+                  <TouchableOpacity
+                    onPress={() => { lightTap(); setPhotoOnly(v => !v); }}
+                    activeOpacity={0.8}
+                    style={[
+                      styles.filterChip,
+                      photoOnly
+                        ? { backgroundColor: c.primaryBg }
+                        : { backgroundColor: c.chipBg },
+                    ]}
+                    accessibilityLabel="사진 있는 기록만 보기"
+                  >
+                    <Ionicons
+                      name="images-outline"
+                      size={13}
+                      color={photoOnly ? c.primary : c.textSecondary}
+                    />
+                    <Text
+                      style={[
+                        styles.filterChipText,
+                        { color: photoOnly ? c.primary : c.textSecondary },
+                      ]}
+                    >
+                      사진만
+                    </Text>
+                  </TouchableOpacity>
                 </View>
               )}
             </>
+          }
+          ListEmptyComponent={
+            !loading ? (
+              <View style={styles.emptyWrap}>
+                <Ionicons name="people-outline" size={40} color={c.textDisabled} />
+                <Text style={[styles.emptyTitle, { color: c.textSecondary }]}>
+                  {photoOnly && hasAnyActiveComments
+                    ? '사진이 있는 방문 기록이 없어요'
+                    : '아직 방문 기록이 없어요'}
+                </Text>
+                <Text style={[styles.emptyDesc, { color: c.textTertiary }]}>
+                  {photoOnly && hasAnyActiveComments
+                    ? '필터를 해제하면 전체 기록을 볼 수 있어요'
+                    : '첫 방문자가 되어보세요'}
+                </Text>
+              </View>
+            ) : null
           }
           renderItem={({ item }) => (
             <View style={[styles.visitLogItem, { borderBottomColor: c.divider, marginHorizontal: 20 }]}>
               <View style={styles.visitLogHeader}>
                 <View style={styles.visitLogAuthorRow}>
+                  {item.user.profileImage ? (
+                    <Image
+                      source={{ uri: item.user.profileImage }}
+                      style={[styles.avatar, { backgroundColor: c.imagePlaceholderBg }]}
+                      contentFit="cover"
+                    />
+                  ) : (
+                    <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: c.chipBg }]}>
+                      <Text style={[styles.avatarInitial, { color: c.textSecondary }]}>
+                        {item.user.nickname?.[0]?.toUpperCase() ?? '?'}
+                      </Text>
+                    </View>
+                  )}
                   <Text style={[styles.visitLogAuthor, { color: c.textPrimary }]}>{item.user.nickname}</Text>
                   {item.userVisitCount > 0 && (
                     <View style={[styles.visitBadge, { backgroundColor: c.chipBg }]}>
@@ -297,9 +418,21 @@ export default function PlaceDetailScreen() {
                     </View>
                   )}
                 </View>
-                <Text style={[styles.visitLogDate, { color: c.textTertiary }]}>
-                  {new Date(item.createdAt).toLocaleDateString()}
-                </Text>
+                <View style={styles.visitLogRight}>
+                  <Text style={[styles.visitLogDate, { color: c.textTertiary }]}>
+                    {new Date(item.createdAt).toLocaleDateString()}
+                  </Text>
+                  {!item.isMine && (
+                    <TouchableOpacity
+                      onPress={() => handleOpenCommentMenu(item)}
+                      hitSlop={10}
+                      style={styles.moreButton}
+                      accessibilityLabel="더보기"
+                    >
+                      <Ionicons name="ellipsis-horizontal" size={16} color={c.textTertiary} />
+                    </TouchableOpacity>
+                  )}
+                </View>
               </View>
               {item.images?.length > 0 && (
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.visitLogImageRow}>
@@ -352,6 +485,14 @@ export default function PlaceDetailScreen() {
         </View>
       </View>
 
+      {/* 신고 모달 */}
+      <ReportModal
+        visible={!!reportTarget}
+        targetType="COMMENT"
+        targetId={reportTarget?.id ?? 0}
+        onClose={() => setReportTarget(null)}
+      />
+
       {/* 이미지 확대 뷰어 */}
       <Modal visible={!!viewerImage} transparent animationType="fade" onRequestClose={() => setViewerImage(null)}>
         <Pressable style={styles.viewerOverlay} onPress={() => setViewerImage(null)}>
@@ -387,13 +528,39 @@ const styles = StyleSheet.create({
 
   naverMapLink: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 12 },
   naverMapLinkText: { fontSize: 13 },
-  description: { fontSize: 15, lineHeight: 22, marginBottom: 16 },
-  metaRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  metaText: { fontSize: 12 },
+  description: { fontSize: 15, lineHeight: 22 },
 
   // 방문 기록
-  visitLogSection: { paddingHorizontal: 20, paddingTop: 20, borderTopWidth: 8 },
+  visitLogSection: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    borderTopWidth: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   sectionTitle: { fontSize: 18, fontWeight: '700' },
+  filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  filterChipText: { fontSize: 12, fontWeight: '600' },
+  avatar: { width: 28, height: 28, borderRadius: 14 },
+  avatarFallback: { justifyContent: 'center', alignItems: 'center' },
+  avatarInitial: { fontSize: 13, fontWeight: '700' },
+  emptyWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 56,
+    paddingHorizontal: 20,
+    gap: 8,
+  },
+  emptyTitle: { fontSize: 14, fontWeight: '600' },
+  emptyDesc: { fontSize: 12 },
   loadingMoreWrap: { paddingVertical: 20, alignItems: 'center' },
   visitLogItem: { paddingVertical: 16, borderBottomWidth: 0.5 },
   visitLogHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
@@ -402,6 +569,8 @@ const styles = StyleSheet.create({
   visitBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
   visitBadgeText: { fontSize: 11, fontWeight: '500' },
   visitLogDate: { fontSize: 11 },
+  visitLogRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  moreButton: { padding: 2 },
   visitLogImageRow: { marginBottom: 10 },
   visitLogImage: { height: 160, aspectRatio: 3 / 4, borderRadius: 10, marginRight: 8 },
 

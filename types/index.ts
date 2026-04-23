@@ -105,6 +105,7 @@ export interface PlaceDetail extends Place {
   visitedToday: boolean;
   createdAt: string;
   updatedAt: string;
+  topTags: TagStat[];
 }
 
 export interface UserSummary {
@@ -137,6 +138,12 @@ export interface Comment {
   isEdited: boolean;
   isDeleted: boolean;
   isMine: boolean;
+}
+
+// Tag Stats (장소별 태그 집계)
+export interface TagStat {
+  tag: string;
+  count: number;
 }
 
 // API Response
