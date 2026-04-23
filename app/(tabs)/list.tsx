@@ -1,4 +1,4 @@
-import { StyleSheet, View, Text, FlatList, TouchableOpacity, RefreshControl, ScrollView, Keyboard, TouchableWithoutFeedback } from 'react-native';
+import { StyleSheet, View, Text, FlatList, TouchableOpacity, RefreshControl, ScrollView } from 'react-native';
 import { SearchInput } from '../../components/SearchInput';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useQuery, useInfiniteQuery, keepPreviousData } from '@tanstack/react-query';
@@ -177,29 +177,8 @@ export default function ListScreen() {
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  if (isLoading && places.length === 0) {
-    return (
-      <View style={[styles.container, { backgroundColor: c.background }]}>
-        <MapListTabHeader />
-        <SearchInput
-          value=""
-          onChangeText={() => {}}
-          placeholder="장소 이름 검색"
-          editable={false}
-          containerStyle={styles.searchWrap}
-        />
-        <View style={styles.skeletonWrap}>
-          {Array.from({ length: 6 }).map((_, i) => <PlaceCardSkeleton key={i} />)}
-        </View>
-      </View>
-    );
-  }
-
-  return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-    <View style={[styles.container, { backgroundColor: c.background }]}>
-      <MapListTabHeader />
-
+  const ListHeader = (
+    <>
       {/* 검색 */}
       <SearchInput
         value={searchQuery}
@@ -211,7 +190,7 @@ export default function ListScreen() {
       <StatsSection />
 
       {/* 카테고리 */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow} contentContainerStyle={styles.categoryContent}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow} contentContainerStyle={styles.categoryContent} keyboardShouldPersistTaps="handled">
         <TouchableOpacity
           style={[styles.categoryBtn, { backgroundColor: selectedCategoryId === null ? c.chipActiveBg : c.chipBg }]}
           onPress={() => { lightTap(); setSelectedCategoryId(null); setSelectedTags([]); }}
@@ -233,7 +212,7 @@ export default function ListScreen() {
 
       {/* 서브 필터 (태그 - 다중 선택) */}
       {selectedCategoryData && (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow} contentContainerStyle={styles.subFilterContent}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow} contentContainerStyle={styles.subFilterContent} keyboardShouldPersistTaps="handled">
           {selectedCategoryData.tagGroups.flatMap(g => g.tags).map((t) => {
             const isActive = selectedTags.includes(t);
             return (
@@ -277,8 +256,15 @@ export default function ListScreen() {
           </TouchableOpacity>
         </View>
       </View>
+    </>
+  );
 
-      {/* 리스트 */}
+  const showInitialSkeleton = isLoading && places.length === 0;
+
+  return (
+    <View style={[styles.container, { backgroundColor: c.background }]}>
+      <MapListTabHeader />
+
       <FlatList
         data={displayPlaces}
         keyExtractor={(item) => item.id.toString()}
@@ -292,11 +278,17 @@ export default function ListScreen() {
         }}
         contentContainerStyle={styles.listContent}
         keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled"
+        ListHeaderComponent={ListHeader}
         refreshControl={<RefreshControl refreshing={isRefetching && !isFetchingNextPage} onRefresh={onRefresh} colors={[c.primary]} />}
         onEndReached={loadMore}
         onEndReachedThreshold={0.3}
         ListEmptyComponent={
-          !isLoading && !isFetching && !isPlaceholderData ? (
+          showInitialSkeleton ? (
+            <View style={styles.skeletonWrap}>
+              {Array.from({ length: 6 }).map((_, i) => <PlaceCardSkeleton key={i} />)}
+            </View>
+          ) : !isFetching && !isPlaceholderData ? (
             <View style={styles.empty}>
               <Ionicons name="search-outline" size={48} color={c.textDisabled} />
               <Text style={[styles.emptyTitle, { color: c.textSecondary }]}>장소를 찾을 수 없습니다</Text>
@@ -316,7 +308,6 @@ export default function ListScreen() {
         windowSize={5}
       />
     </View>
-    </TouchableWithoutFeedback>
   );
 }
 
