@@ -37,8 +37,6 @@ export default function MapScreen() {
   const [showResearchBtn, setShowResearchBtn] = useState(false);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const initialLoadDone = useRef(false);
-  // 앱이 animateCameraTo로 이동시킨 후, 정지 시점에 1회 fetch를 트리거하기 위한 플래그
-  const fetchOnNextIdleRef = useRef(false);
 
   const { searchQuery, searchResults, searching, handleSearch, searchNow, clearSearch } = useSearch();
   const [selectedPlace, setSelectedPlace] = useState<PlaceResult | null>(null);
@@ -68,8 +66,8 @@ export default function MapScreen() {
       .catch(() => {});
   }, []);
 
-  // F6: 그룹 선택/해제 시 자동으로 맛집 다시 로드 + 카메라 이동
-  // 첫 mount 시에는 실행하지 않음 (초기 카메라 이동 + onCameraIdle이 알아서 fetch).
+  // F6: 그룹 선택/해제 시 카메라 이동 + 맛집 재조회. 필터 전환이므로 즉시 fetch.
+  // 첫 mount에서는 초기 fetch가 별도 useEffect에서 수행되므로 스킵.
   const isFirstGroupEffect = useRef(true);
   useEffect(() => {
     if (isFirstGroupEffect.current) { isFirstGroupEffect.current = false; return; }
@@ -79,14 +77,12 @@ export default function MapScreen() {
       if (group?.baseLat && group?.baseLng) {
         const radius = group.baseRadius || 1000;
         const zoom = radius <= 300 ? 17 : radius <= 500 ? 16 : 15;
-        fetchOnNextIdleRef.current = true;
         mapRef.current?.animateCameraTo({
           latitude: group.baseLat, longitude: group.baseLng, zoom,
         });
-        // 애니메이션 완료 후 onCameraIdle이 fetchPlaces를 호출한다.
-        return;
       }
     }
+    // 그룹 선택/해제 모두 fetchPlaces 내부에서 groupId 기반으로 적절한 bounds 사용.
     if (currentBoundsRef.current) {
       fetchPlaces(currentBoundsRef.current);
     }
@@ -184,8 +180,7 @@ export default function MapScreen() {
           if (!mounted) return;
           const { latitude, longitude } = location.coords;
           setUserLocation({ latitude, longitude });
-          // 카메라 이동 완료 후 onCameraIdle에서 실제 뷰포트로 재조회되도록 플래그 세팅.
-          fetchOnNextIdleRef.current = true;
+          // B안: GPS 도착 시 카메라만 이동. 뷰포트 변경은 재검색 버튼으로 사용자가 트리거.
           mapRef.current?.animateCameraTo({ latitude, longitude, zoom: 15 });
           subscription = await Location.watchPositionAsync(
             { accuracy: Location.Accuracy.Balanced, distanceInterval: 10 },
@@ -199,23 +194,18 @@ export default function MapScreen() {
     return () => { mounted = false; subscription?.remove(); };
   }, [fetchPlaces]);
 
-  // onCameraIdle에서만 호출됨 (카메라 정지 시 1회). 애니메이션 중 프레임 스팸 없음.
-  // - Gesture/Control(사용자 조작): 재검색 버튼만 노출.
-  // - Developer/Location(앱이 animateCameraTo 등): 첫 로드 때만 자동 조회, 이후는 버튼.
+  // B안: 카메라가 정지할 때마다 "재검색" 버튼만 노출. 자동 fetch 없음.
+  // 초기 조회는 mount useEffect에서, 필터/그룹 변경은 각 effect에서 직접 fetch.
   const handleBoundsChange = useCallback((
     bounds: MapBounds,
     camera: { latitude: number; longitude: number; zoom: number },
-    reason: CameraChangeReason,
+    _reason: CameraChangeReason,
   ) => {
     currentBoundsRef.current = bounds;
     currentCameraRef.current = camera;
-    if (!initialLoadDone.current || fetchOnNextIdleRef.current) {
-      fetchOnNextIdleRef.current = false;
-      fetchPlaces(bounds);
-      return;
-    }
+    if (!initialLoadDone.current) return;
     setShowResearchBtn(true);
-  }, [fetchPlaces]);
+  }, []);
 
   const handleResearch = useCallback(() => {
     mediumTap();
