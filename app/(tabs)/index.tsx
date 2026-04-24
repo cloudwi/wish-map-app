@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 import type * as LocationType from 'expo-location';
 import { type NaverMapViewRef } from '@mj-studio/react-native-naver-map';
+import type { CameraChangeReason } from '@mj-studio/react-native-naver-map';
 import { Place, MapBounds, PlaceCategory } from '../../types';
 import { placeApi } from '../../api/place';
 import { placeCategoryApi } from '../../api/placeCategory';
@@ -36,6 +37,8 @@ export default function MapScreen() {
   const [showResearchBtn, setShowResearchBtn] = useState(false);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const initialLoadDone = useRef(false);
+  // 앱이 animateCameraTo로 이동시킨 후, 정지 시점에 1회 fetch를 트리거하기 위한 플래그
+  const fetchOnNextIdleRef = useRef(false);
 
   const { searchQuery, searchResults, searching, handleSearch, searchNow, clearSearch } = useSearch();
   const [selectedPlace, setSelectedPlace] = useState<PlaceResult | null>(null);
@@ -65,24 +68,23 @@ export default function MapScreen() {
       .catch(() => {});
   }, []);
 
-  // F6: 그룹 선택/해제 시 자동으로 맛집 다시 로드 + 카메라 이동 (timeout race 방지)
-  const groupFetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
+  // F6: 그룹 선택/해제 시 자동으로 맛집 다시 로드 + 카메라 이동
+  // 첫 mount 시에는 실행하지 않음 (초기 카메라 이동 + onCameraIdle이 알아서 fetch).
+  const isFirstGroupEffect = useRef(true);
   useEffect(() => {
-    if (groupFetchTimerRef.current) clearTimeout(groupFetchTimerRef.current);
+    if (isFirstGroupEffect.current) { isFirstGroupEffect.current = false; return; }
 
     if (selectedGroupId) {
       const group = groups.find(g => g.id === selectedGroupId);
       if (group?.baseLat && group?.baseLng) {
         const radius = group.baseRadius || 1000;
         const zoom = radius <= 300 ? 17 : radius <= 500 ? 16 : 15;
+        fetchOnNextIdleRef.current = true;
         mapRef.current?.animateCameraTo({
           latitude: group.baseLat, longitude: group.baseLng, zoom,
         });
-        groupFetchTimerRef.current = setTimeout(() => {
-          if (currentBoundsRef.current) fetchPlaces(currentBoundsRef.current);
-        }, 800);
-        return () => { if (groupFetchTimerRef.current) clearTimeout(groupFetchTimerRef.current); };
+        // 애니메이션 완료 후 onCameraIdle이 fetchPlaces를 호출한다.
+        return;
       }
     }
     if (currentBoundsRef.current) {
@@ -90,8 +92,10 @@ export default function MapScreen() {
     }
   }, [selectedGroupId]);
 
-  // 트렌드 필터 변경 시 자동 조회
+  // 트렌드 필터 변경 시 자동 조회 (첫 mount 제외)
+  const isFirstTrendEffect = useRef(true);
   useEffect(() => {
+    if (isFirstTrendEffect.current) { isFirstTrendEffect.current = false; return; }
     if (currentBoundsRef.current) {
       fetchPlaces(currentBoundsRef.current);
     }
@@ -191,18 +195,22 @@ export default function MapScreen() {
     return () => { mounted = false; subscription?.remove(); };
   }, [fetchPlaces]);
 
-  // F4: debounce로 카메라 이동 중 불필요한 리렌더 방지
-  const boundsDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const handleBoundsChange = useCallback((bounds: MapBounds, camera: { latitude: number; longitude: number; zoom: number }) => {
+  // onCameraIdle에서만 호출됨 (카메라 정지 시 1회). 애니메이션 중 프레임 스팸 없음.
+  // - Gesture/Control(사용자 조작): 재검색 버튼만 노출.
+  // - Developer/Location(앱이 animateCameraTo 등): 첫 로드 때만 자동 조회, 이후는 버튼.
+  const handleBoundsChange = useCallback((
+    bounds: MapBounds,
+    camera: { latitude: number; longitude: number; zoom: number },
+    reason: CameraChangeReason,
+  ) => {
     currentBoundsRef.current = bounds;
     currentCameraRef.current = camera;
-    if (!initialLoadDone.current) {
-      // 첫 카메라 이동 완료 시점에 실제 뷰포트 bounds로 초기 장소 조회.
+    if (!initialLoadDone.current || fetchOnNextIdleRef.current) {
+      fetchOnNextIdleRef.current = false;
       fetchPlaces(bounds);
       return;
     }
-    if (boundsDebounceRef.current) clearTimeout(boundsDebounceRef.current);
-    boundsDebounceRef.current = setTimeout(() => setShowResearchBtn(true), 300);
+    setShowResearchBtn(true);
   }, [fetchPlaces]);
 
   const handleResearch = useCallback(() => {
