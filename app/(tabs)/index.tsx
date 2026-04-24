@@ -162,9 +162,15 @@ export default function MapScreen() {
   }, [userLocation]);
 
   // F2: mounted flag로 unmount 후 state 업데이트 방지
+  const initialMountFetchedRef = useRef(false);
   useEffect(() => {
     let subscription: { remove: () => void } | null = null;
     let mounted = true;
+    // 화면 진입 즉시 1회 조회. GPS 권한/응답을 기다리지 않고 초기 bounds로 우선 표시.
+    if (!initialMountFetchedRef.current) {
+      initialMountFetchedRef.current = true;
+      fetchPlaces(INITIAL_BOUNDS);
+    }
     (async () => {
       try {
         const Location = require('expo-location') as typeof LocationType;
@@ -178,19 +184,17 @@ export default function MapScreen() {
           if (!mounted) return;
           const { latitude, longitude } = location.coords;
           setUserLocation({ latitude, longitude });
+          // 카메라 이동 완료 후 onCameraIdle에서 실제 뷰포트로 재조회되도록 플래그 세팅.
+          fetchOnNextIdleRef.current = true;
           mapRef.current?.animateCameraTo({ latitude, longitude, zoom: 15 });
-          // fetchPlaces는 카메라 이동 완료 후 onBoundsChange에서 실제 지도 뷰포트로 자동 호출.
-          // 기기 화면 크기/비율에 관계없이 "지금 화면에 보이는 범위"만 조회된다.
           subscription = await Location.watchPositionAsync(
             { accuracy: Location.Accuracy.Balanced, distanceInterval: 10 },
             (loc) => { if (mounted) setUserLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude }); },
           );
-          return;
         }
       } catch (e) {
         console.warn('[Location Error]', e);
       }
-      if (mounted) fetchPlaces(INITIAL_BOUNDS);
     })();
     return () => { mounted = false; subscription?.remove(); };
   }, [fetchPlaces]);
