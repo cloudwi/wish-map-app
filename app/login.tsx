@@ -14,7 +14,6 @@ import { useAuthStore } from '../stores/authStore';
 import { useTheme } from '../hooks/useTheme';
 import { AuthProvider } from '../types';
 import { showError } from '../utils/toast';
-import { TermsAgreementModal } from '../components/TermsAgreementModal';
 
 const GOOGLE_IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || '';
 const NAVER_CONSUMER_KEY = process.env.EXPO_PUBLIC_NAVER_CONSUMER_KEY || '';
@@ -32,9 +31,8 @@ export default function LoginScreen() {
   const systemScheme = useColorScheme();
   const themeMode = useThemeStore((s) => s.mode);
   const isDark = (themeMode === 'system' ? systemScheme : themeMode) === 'dark';
-  const { login, setTermsAgreed, logout } = useAuthStore();
+  const { login } = useAuthStore();
   const [loading, setLoading] = useState<AuthProvider | null>(null);
-  const [showTerms, setShowTerms] = useState(false);
 
   useEffect(() => {
     NaverLogin.initialize({
@@ -46,25 +44,10 @@ export default function LoginScreen() {
     });
   }, []);
 
+  // 모달로 push된 경우 back()으로 이전 상태 유지, 아니면 replace.
+  // 약관 미동의 상태는 (tabs)/_layout.tsx의 모달이 자동 감지해 처리.
   const navigateAfterLogin = () => {
-    const { hasAgreedToTerms } = useAuthStore.getState();
-    if (hasAgreedToTerms) {
-      // 모달로 push된 경우 back()으로 이전 상태 유지, 아니면 replace
-      router.canGoBack() ? router.back() : router.replace('/(tabs)');
-    } else {
-      setShowTerms(true);
-    }
-  };
-
-  const handleTermsAgree = () => {
-    setTermsAgreed();
-    setShowTerms(false);
     router.canGoBack() ? router.back() : router.replace('/(tabs)');
-  };
-
-  const handleTermsCancel = async () => {
-    setShowTerms(false);
-    await logout();
   };
 
   const handleKakao = async () => {
@@ -106,16 +89,16 @@ export default function LoginScreen() {
       const result = await NaverLogin.login();
       if (!result.isSuccess || !result.successResponse) {
         if (result.failureResponse?.isCancel) return;
-        const detail = result.failureResponse?.lastErrorDescriptionFromNaverSDK
-          || result.failureResponse?.message
+        console.warn('[AUTH] 네이버 로그인 실패:', JSON.stringify(result.failureResponse));
+        const detail = result.failureResponse?.message
+          || result.failureResponse?.lastErrorDescriptionFromNaverSDK
           || '알 수 없는 오류';
-        console.warn('[AUTH] 네이버 로그인 실패:', result.failureResponse);
-        throw new Error(`네이버 로그인 실패: ${detail}`);
+        throw new Error(detail);
       }
       await login('NAVER', result.successResponse.accessToken);
       navigateAfterLogin();
     } catch (e: any) {
-      showError('로그인 실패', e.message || '네이버 로그인 중 오류가 발생했습니다.');
+      showError('네이버 로그인 실패', e.message || '네이버 로그인 중 오류가 발생했습니다.');
     } finally {
       setLoading(null);
     }
@@ -146,11 +129,6 @@ export default function LoginScreen() {
 
   return (
     <>
-      <TermsAgreementModal
-        visible={showTerms}
-        onAgree={handleTermsAgree}
-        onCancel={handleTermsCancel}
-      />
       <Stack.Screen
         options={{
           title: '로그인',

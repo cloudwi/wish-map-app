@@ -11,7 +11,7 @@ import { TermsAgreementModal } from '../../components/TermsAgreementModal';
 const isIOS26 = Platform.OS === 'ios' && parseInt(Platform.Version as string, 10) >= 19;
 
 export default function TabLayout() {
-  const { checkAuth, isAuthenticated, isLoading, hasAgreedToTerms, setTermsAgreed, logout } = useAuthStore();
+  const { checkAuth, isAuthenticated, isLoading, hasAgreedToTerms, isCheckingTerms, setTermsAgreed, logout } = useAuthStore();
   const c = useTheme();
   const insets = useSafeAreaInsets();
 
@@ -26,7 +26,7 @@ export default function TabLayout() {
 
   const termsModal = (
     <TermsAgreementModal
-      visible={isAuthenticated && !hasAgreedToTerms && !isLoading}
+      visible={isAuthenticated && !hasAgreedToTerms && !isLoading && !isCheckingTerms}
       onAgree={setTermsAgreed}
       onCancel={handleTermsCancel}
     />
