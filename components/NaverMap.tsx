@@ -1,5 +1,5 @@
 // Native (iOS/Android) - 네이버 지도 네이티브 SDK
-import { useCallback, forwardRef, useRef } from 'react';
+import { useCallback, forwardRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -9,7 +9,6 @@ import {
   type Camera,
   type Region,
   type NaverMapViewRef,
-  type CameraChangeReason,
 } from '@mj-studio/react-native-naver-map';
 import { Place, MapBounds, PlaceCategory } from '../types';
 import { PlaceResult } from '../api/search';
@@ -18,7 +17,7 @@ interface Props {
   places: Place[];
   placeCategories?: PlaceCategory[];
   onMarkerClick: (place: Place) => void;
-  onBoundsChange: (bounds: MapBounds, camera: { latitude: number; longitude: number; zoom: number }, reason: CameraChangeReason) => void;
+  onBoundsChange: (bounds: MapBounds, camera: { latitude: number; longitude: number; zoom: number }) => void;
   onTapMap?: (lat: number, lng: number) => void;
   userLocation?: { latitude: number; longitude: number } | null;
   selectedPlace?: PlaceResult | null;
@@ -54,17 +53,8 @@ const NaverMap = forwardRef<NaverMapViewRef, Props>(({
   initialLng = 126.9780,
   initialZoom = 14,
 }, ref) => {
-  // onCameraChanged는 애니메이션 중 매 프레임마다 발생 → fetch 스팸의 원인이었다.
-  // reason만 캐치해두고, 실제 dispatch는 onCameraIdle(카메라 정지 시 1회)에서 수행.
-  const lastReasonRef = useRef<CameraChangeReason>('Developer');
-
-  const handleCameraChanged = useCallback(
-    (params: Camera & { reason: CameraChangeReason; region: Region }) => {
-      lastReasonRef.current = params.reason;
-    },
-    [],
-  );
-
+  // onCameraChanged는 애니메이션 프레임마다 발생해 요청 스팸의 원인이 된다.
+  // 카메라 정지 시 1회만 발생하는 onCameraIdle로 dispatch.
   const handleCameraIdle = useCallback(
     (params: Camera & { region: Region }) => {
       const { region } = params;
@@ -76,7 +66,6 @@ const NaverMap = forwardRef<NaverMapViewRef, Props>(({
           maxLng: region.longitude + region.longitudeDelta,
         },
         { latitude: params.latitude, longitude: params.longitude, zoom: params.zoom ?? 14 },
-        lastReasonRef.current,
       );
     },
     [onBoundsChange],
@@ -91,7 +80,6 @@ const NaverMap = forwardRef<NaverMapViewRef, Props>(({
         longitude: initialLng,
         zoom: initialZoom,
       }}
-      onCameraChanged={handleCameraChanged}
       onCameraIdle={handleCameraIdle}
       onTapMap={onTapMap ? (params) => onTapMap(params.latitude, params.longitude) : undefined}
       isShowZoomControls={false}
