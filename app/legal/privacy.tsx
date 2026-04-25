@@ -62,7 +62,7 @@ const SECTIONS = [
   },
   {
     title: '8. 개인정보 보호책임자',
-    content: `• 이메일: support@wishmap.app
+    content: `• 이메일: cloudwiiiii@gmail.com
 
 개인정보 관련 문의, 불만 처리, 피해 구제에 대해 위 이메일로 연락해 주시면 신속하게 처리하겠습니다.`,
   },

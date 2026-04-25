@@ -46,7 +46,7 @@ function SettingRow({ icon, label, subtitle, onPress, rightElement, destructive,
   );
 }
 
-const SUPPORT_EMAIL = 'support@wishmap.app';
+const SUPPORT_EMAIL = 'cloudwiiiii@gmail.com';
 
 export default function MyPageScreen() {
   const c = useTheme();
