@@ -7,7 +7,6 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   KeyboardAvoidingView,
-  Platform,
   TextInput,
 } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
@@ -114,7 +113,8 @@ export function PromptModal({
       <TouchableWithoutFeedback onPress={dismiss}>
         <View style={[styles.overlay, { backgroundColor: c.dimmed }]}>
           <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            behavior="padding"
+            style={styles.kbAvoider}
           >
             <TouchableWithoutFeedback>
               <View style={[styles.sheet, { backgroundColor: c.surface }]}>
@@ -171,6 +171,10 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     paddingHorizontal: spacing.xl,
+  },
+  kbAvoider: {
+    // KeyboardAvoidingView 가 sheet 를 키보드 위로 밀어올릴 때 시트가 화면 가운데를 유지하도록.
+    width: '100%',
   },
   sheet: {
     borderRadius: radius.xl,

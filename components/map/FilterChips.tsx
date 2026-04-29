@@ -50,31 +50,32 @@ export function FilterChips({ top, activeTrend, onTrendSelect }: FilterChipsProp
       style={[styles.container, { top }]}
       contentContainerStyle={styles.content}
     >
-      {/* 그룹 칩 */}
-      {isAuthenticated && (
-        <TouchableOpacity
-          style={[
-            styles.chip,
-            selectedGroup
-              ? { backgroundColor: c.primary + '15', borderColor: c.primary }
-              : { backgroundColor: c.surface, borderColor: c.border },
-          ]}
-          onPress={() => { lightTap(); router.push('/group-manage'); }}
-          activeOpacity={0.7}
-        >
-          <Ionicons
-            name={selectedGroup ? 'people' : 'people-outline'}
-            size={13}
-            color={selectedGroup ? c.primary : c.textTertiary}
-          />
-          <Text style={[styles.chipText, { color: selectedGroup ? c.primary : c.textTertiary }]}>
-            {selectedGroup ? selectedGroup.name : groups.length > 0 ? '그룹 선택' : '+ 그룹'}
-          </Text>
-        </TouchableOpacity>
-      )}
+      {/* 그룹 칩 — 비로그인 시에도 노출. 탭 시 로그인으로 유도 */}
+      <TouchableOpacity
+        style={[
+          styles.chip,
+          selectedGroup
+            ? { backgroundColor: c.primary + '15', borderColor: c.primary }
+            : { backgroundColor: c.surface, borderColor: c.border },
+        ]}
+        onPress={() => {
+          lightTap();
+          router.push(isAuthenticated ? '/group-manage' : '/login');
+        }}
+        activeOpacity={0.7}
+      >
+        <Ionicons
+          name={selectedGroup ? 'people' : 'people-outline'}
+          size={13}
+          color={selectedGroup ? c.primary : c.textTertiary}
+        />
+        <Text style={[styles.chipText, { color: selectedGroup ? c.primary : c.textTertiary }]}>
+          {selectedGroup ? selectedGroup.name : groups.length > 0 ? '그룹 선택' : '+ 그룹'}
+        </Text>
+      </TouchableOpacity>
 
       {/* 구분선 */}
-      {isAuthenticated && trends.length > 0 && (
+      {trends.length > 0 && (
         <View style={[styles.divider, { backgroundColor: c.border }]} />
       )}
 

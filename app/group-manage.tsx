@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../hooks/useTheme';
 import { SearchInput } from '../components/SearchInput';
+import { PromptModal } from '../components/PromptModal';
 import { groupApi, GroupDetailResponse, GroupMemberResponse } from '../api/group';
 import { searchPlaces, PlaceResult } from '../api/search';
 import { friendApi, FriendResponse } from '../api/friend';
@@ -30,6 +31,7 @@ export default function GroupManageScreen() {
   const [locationQuery, setLocationQuery] = useState('');
   const [locationResults, setLocationResults] = useState<PlaceResult[]>([]);
   const [locationSearching, setLocationSearching] = useState(false);
+  const [createGroupModal, setCreateGroupModal] = useState(false);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const handleLocationSearch = useCallback((query: string) => {
@@ -404,25 +406,7 @@ export default function GroupManageScreen() {
         <TouchableOpacity
           onPress={() => {
             lightTap();
-            Alert.prompt(
-              '새 그룹 만들기',
-              '그룹 이름을 입력해주세요',
-              async (text) => {
-                const name = text?.trim();
-                if (!name) return;
-                try {
-                  const group = await createGroup(name);
-                  successTap();
-                  showSuccess('그룹 생성 완료', `'${group.name}' 그룹이 만들어졌습니다.`);
-                  loadGroupDetail(group.id);
-                } catch (e: unknown) {
-                  showError('생성 실패', getErrorMessage(e));
-                }
-              },
-              'plain-text',
-              '',
-              'default',
-            );
+            setCreateGroupModal(true);
           }}
         >
           <Ionicons name="add-circle-outline" size={26} color={c.primary} />
@@ -474,6 +458,27 @@ export default function GroupManageScreen() {
             </View>
           );
         }}
+      />
+      <PromptModal
+        visible={createGroupModal}
+        title="새 그룹 만들기"
+        subtitle="그룹 이름을 입력해주세요"
+        placeholder="예: 회사 점심팀"
+        maxLength={20}
+        submitLabel="만들기"
+        onClose={() => setCreateGroupModal(false)}
+        onSubmit={async (name) => {
+          try {
+            const group = await createGroup(name);
+            successTap();
+            showSuccess('그룹 생성 완료', `'${group.name}' 그룹이 만들어졌습니다.`);
+            setCreateGroupModal(false);
+            loadGroupDetail(group.id);
+          } catch (e: unknown) {
+            showError('생성 실패', getErrorMessage(e));
+          }
+        }}
+        validate={(v) => (!v ? '그룹 이름을 입력해주세요' : null)}
       />
     </View>
   );

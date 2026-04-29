@@ -44,10 +44,10 @@ export default function LoginScreen() {
     });
   }, []);
 
-  // 모달로 push된 경우 back()으로 이전 상태 유지, 아니면 replace.
+  // 로그인 성공 후엔 항상 지도 탭으로 진입.
   // 약관 미동의 상태는 (tabs)/_layout.tsx의 모달이 자동 감지해 처리.
   const navigateAfterLogin = () => {
-    router.canGoBack() ? router.back() : router.replace('/(tabs)');
+    router.replace('/(tabs)');
   };
 
   const handleKakao = async () => {

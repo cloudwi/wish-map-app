@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import {
   Modal, View, Text, TouchableOpacity, TextInput, StyleSheet,
-  KeyboardAvoidingView, Platform, ActivityIndicator,
+  KeyboardAvoidingView, ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../hooks/useTheme';
 import { reportApi, ReportTargetType, ReportReason } from '../api/report';
 import { showSuccess, showError } from '../utils/toast';
@@ -27,6 +28,7 @@ const REASONS: { key: ReportReason; label: string; desc: string }[] = [
 
 export function ReportModal({ visible, targetType, targetId, onClose, onReported }: ReportModalProps) {
   const c = useTheme();
+  const insets = useSafeAreaInsets();
   const [reason, setReason] = useState<ReportReason | null>(null);
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -59,10 +61,10 @@ export function ReportModal({ visible, targetType, targetId, onClose, onReported
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <KeyboardAvoidingView
         style={styles.overlay}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior="padding"
       >
         <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={onClose} />
-        <View style={[styles.sheet, { backgroundColor: c.surface }]}>
+        <View style={[styles.sheet, { backgroundColor: c.surface, paddingBottom: Math.max(insets.bottom, 20) + 8 }]}>
           <View style={styles.header}>
             <Text style={[styles.title, { color: c.textPrimary }]}>신고하기</Text>
             <TouchableOpacity onPress={onClose} hitSlop={8}>
@@ -133,7 +135,7 @@ const styles = StyleSheet.create({
   overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' },
   sheet: {
     borderTopLeftRadius: 16, borderTopRightRadius: 16,
-    padding: 20, paddingBottom: Platform.OS === 'ios' ? 32 : 20,
+    padding: 20,
     gap: 16,
   },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

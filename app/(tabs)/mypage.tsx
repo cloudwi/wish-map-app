@@ -147,14 +147,18 @@ export default function MyPageScreen() {
   const handleLogout = () => {
     Alert.alert('로그아웃', '정말 로그아웃 하시겠습니까?', [
       { text: '취소', style: 'cancel' },
-      { text: '로그아웃', style: 'destructive', onPress: async () => { await logout(); router.navigate('/(tabs)'); } },
+      { text: '로그아웃', style: 'destructive', onPress: async () => {
+        // 탭 먼저 전환 → 그 다음 토큰 정리. 순서 반대로 하면 mypage 가 한 프레임 AuthRequired 로 깜빡임.
+        router.navigate('/(tabs)');
+        await logout();
+      } },
     ]);
   };
 
   const handleDeleteAccount = () => {
     Alert.alert(
       '계정 탈퇴',
-      '정말 탈퇴하시겠습니까?\n\n모든 데이터(방문 인증, 방문 기록, 컬렉션 등)가 영구적으로 삭제되며 복구할 수 없습니다.',
+      '정말 탈퇴하시겠습니까?\n\n방문 인증·댓글·알림·그룹 멤버십 등 내 활동 기록은 영구 삭제됩니다.\n내가 제보한 장소는 익명으로 남아 동료들이 계속 사용할 수 있습니다.',
       [
         { text: '취소', style: 'cancel' },
         {
@@ -163,8 +167,9 @@ export default function MyPageScreen() {
           onPress: async () => {
             try {
               await authApi.deleteAccount();
-              await logout();
+              // 탈퇴도 동일 — 탭 먼저 옮긴 뒤 토큰 정리.
               router.navigate('/(tabs)');
+              await logout();
               showSuccess('탈퇴 완료', '계정이 삭제되었습니다');
             } catch (e: unknown) {
               showError('오류', getErrorMessage(e, '계정 삭제 중 오류가 발생했습니다'));
@@ -268,6 +273,7 @@ export default function MyPageScreen() {
       <View style={styles.section}>
         <Text style={[styles.sectionLabel, { color: c.textTertiary }]}>정보</Text>
         <View style={[styles.card, { backgroundColor: c.cardBg }]}>
+          <SettingRow icon="sparkles-outline" label="튜토리얼 다시 보기" onPress={() => router.push('/tutorial')} />
           <SettingRow icon="document-text-outline" label="개인정보 처리방침" onPress={() => router.push('/legal/privacy')} />
           <SettingRow icon="document-outline" label="이용약관" onPress={() => router.push('/legal/terms')} />
           <SettingRow icon="chatbubble-outline" label="문의하기" onPress={handleContact} isLast />

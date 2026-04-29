@@ -3,6 +3,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as SplashScreen from 'expo-splash-screen';
 import Toast from 'react-native-toast-message';
@@ -93,8 +94,9 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <StatusBar style={isDark ? 'light' : 'dark'} />
+      <SafeAreaProvider>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <StatusBar style={isDark ? 'light' : 'dark'} />
         {forceUpdate ? (
           <ForceUpdateScreen />
         ) : isMaintenance ? (
@@ -122,6 +124,7 @@ export default function RootLayout() {
               <Stack.Screen name="visit-review" options={{ title: '방문 인증' }} />
               <Stack.Screen name="group-manage" options={{ headerShown: false }} />
               <Stack.Screen name="lunch-vote" options={{ title: '점심 투표' }} />
+              <Stack.Screen name="tutorial" options={{ presentation: 'fullScreenModal', headerShown: false }} />
             </Stack>
             <KeyboardDoneBar />
           </>
@@ -135,7 +138,8 @@ export default function RootLayout() {
           bottomOffset={100}
           swipeable={false}
         />
-      </GestureHandlerRootView>
+        </GestureHandlerRootView>
+      </SafeAreaProvider>
     </QueryClientProvider>
   );
 }

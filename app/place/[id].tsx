@@ -3,6 +3,7 @@ import { Image } from 'expo-image';
 import { useState, useEffect, useCallback } from 'react';
 import { useLocalSearchParams, Stack, router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PlaceDetail, Comment, PlaceCategory } from '../../types';
 import { placeApi } from '../../api/place';
 import { commentApi } from '../../api/comment';
@@ -21,6 +22,7 @@ import { getErrorMessage } from '../../utils/getErrorMessage';
 
 export default function PlaceDetailScreen() {
   const c = useTheme();
+  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { isAuthenticated } = useAuthStore();
 
@@ -457,8 +459,8 @@ export default function PlaceDetailScreen() {
           }
         />
 
-        {/* 하단 고정: 방문 인증 */}
-        <View style={[styles.bottomBar, { backgroundColor: c.surface, borderTopColor: c.divider }]}>
+        {/* 하단 고정: 방문 인증 — 안드로이드 edge-to-edge 시스템 바와 겹침 방지 */}
+        <View style={[styles.bottomBar, { backgroundColor: c.surface, borderTopColor: c.divider, paddingBottom: Math.max(insets.bottom, 12) + (Platform.OS === 'ios' ? 20 : 0) }]}>
           <TouchableOpacity
             style={[
               styles.bottomButton,
@@ -579,10 +581,9 @@ const styles = StyleSheet.create({
   viewerClose: { position: 'absolute', top: 60, right: 20, zIndex: 10, padding: 8 },
   viewerImage: { width: SCREEN_WIDTH, height: Dimensions.get('window').height * 0.7 },
 
-  // 하단 고정 바
+  // 하단 고정 바 — paddingBottom 은 컴포넌트 내부에서 insets.bottom 으로 동적 적용
   bottomBar: {
-    paddingHorizontal: 16, paddingVertical: 12,
-    paddingBottom: Platform.OS === 'ios' ? 32 : 12,
+    paddingHorizontal: 16, paddingTop: 12,
     borderTopWidth: 0.5,
   },
   bottomButton: {

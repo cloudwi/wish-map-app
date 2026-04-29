@@ -11,7 +11,7 @@ export default ({ config }: ConfigContext): WishMapExpoConfig => ({
   ...config,
   name: '위시맵',
   slug: 'wish-map-app',
-  version: '1.1.7',
+  version: '1.1.8',
   orientation: 'portrait',
   icon: './assets/images/icon.png',
   scheme: 'wishmap',
@@ -57,7 +57,7 @@ export default ({ config }: ConfigContext): WishMapExpoConfig => ({
     },
   },
   android: {
-    package: 'com.wishmap.app',
+    package: 'kr.wishmap.app',
     adaptiveIcon: {
       backgroundColor: '#E6F4FE',
       foregroundImage: './assets/images/android-icon-foreground.png',
@@ -71,6 +71,8 @@ export default ({ config }: ConfigContext): WishMapExpoConfig => ({
   },
   plugins: [
     './plugins/fix-entry-file',
+    './plugins/add-adi-registration',
+    './plugins/disable-lint-extra-translation',
     [
       'expo-build-properties',
       {
