@@ -1,6 +1,6 @@
 import apiClient from './client';
 
-export type ReportTargetType = 'COMMENT' | 'RESTAURANT';
+export type ReportTargetType = 'PARTY' | 'USER';
 export type ReportReason = 'SPAM' | 'INAPPROPRIATE' | 'FALSE_INFO' | 'OTHER';
 
 interface CreateReportRequest {

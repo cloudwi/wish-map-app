@@ -29,4 +29,5 @@ export const authApi = {
   deleteAccount: async (): Promise<void> => {
     await apiClient.delete('/auth/me');
   },
+
 };

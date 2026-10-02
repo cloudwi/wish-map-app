@@ -146,7 +146,7 @@ export default function LoginScreen() {
             style={styles.logoImage}
           />
           <Text style={[styles.appName, { color: c.primary }]}>위시맵</Text>
-          <Text style={[styles.tagline, { color: c.textSecondary }]}>우리 동네 장소 지도</Text>
+          <Text style={[styles.tagline, { color: c.textSecondary }]}>장소에서 함께할 사람을 만나세요</Text>
         </View>
 
         {/* 소셜 로그인 버튼 - iOS는 App Store 가이드라인(4.8) 준수를 위해 Apple을 최상단에 배치 */}

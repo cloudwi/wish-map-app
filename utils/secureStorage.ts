@@ -14,12 +14,12 @@ function warnOnce() {
 /**
  * SecureStore wrapper
  * - iOS/Android: expo-secure-store (암호화 저장)
- * - Web: localStorage (폴백)
+ * - Web: sessionStorage (브라우저 탭을 닫으면 삭제)
  * - SecureStore 실패 시: 메모리 fallback (앱 재시작 시 초기화)
  */
 export async function setItem(key: string, value: string): Promise<void> {
   if (Platform.OS === 'web') {
-    localStorage.setItem(key, value);
+    sessionStorage.setItem(key, value);
   } else {
     try {
       await SecureStore.setItemAsync(key, value);
@@ -32,7 +32,7 @@ export async function setItem(key: string, value: string): Promise<void> {
 
 export async function getItem(key: string): Promise<string | null> {
   if (Platform.OS === 'web') {
-    return localStorage.getItem(key);
+    return sessionStorage.getItem(key);
   }
   try {
     return await SecureStore.getItemAsync(key);
@@ -44,7 +44,7 @@ export async function getItem(key: string): Promise<string | null> {
 
 export async function deleteItem(key: string): Promise<void> {
   if (Platform.OS === 'web') {
-    localStorage.removeItem(key);
+    sessionStorage.removeItem(key);
   } else {
     try {
       await SecureStore.deleteItemAsync(key);

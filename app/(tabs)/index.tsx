@@ -1,491 +1,93 @@
-import { StyleSheet, View, Text, ActivityIndicator, TouchableOpacity, Keyboard, Linking } from 'react-native';
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { StatusBar } from 'expo-status-bar';
-import { Ionicons } from '@expo/vector-icons';
-import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
-import type * as LocationType from 'expo-location';
-import { type NaverMapViewRef } from '@mj-studio/react-native-naver-map';
-import { Place, MapBounds, PlaceCategory } from '../../types';
-import { placeApi } from '../../api/place';
-import { placeCategoryApi } from '../../api/placeCategory';
-import { PlaceResult, searchPlaces } from '../../api/search';
-import NaverMap from '../../components/NaverMap';
-import { PlaceDetailSheet } from '../../components/PlaceDetailSheet';
-import { SearchBar } from '../../components/map/SearchBar';
-import { FilterChips, TrendFilter } from '../../components/map/FilterChips';
-import { MapControls } from '../../components/map/MapControls';
-import { useSearch } from '../../hooks/useSearch';
-import { useTheme } from '../../hooks/useTheme';
-import { useGroupStore } from '../../stores/groupStore';
-import { useAuthStore } from '../../stores/authStore';
-import { useLocationStore } from '../../stores/locationStore';
-import { lightTap, mediumTap } from '../../utils/haptics';
-import { showError } from '../../utils/toast';
+import { useCallback, useState } from 'react';
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
-import { RecommendSlot } from '../../components/RecommendSlot';
+import { Ionicons } from '@expo/vector-icons';
+import { partyApi, Party } from '../../api/party';
+import { useAuthStore } from '../../stores/authStore';
+import { useTheme } from '../../hooks/useTheme';
 
-const INITIAL_BOUNDS: MapBounds = { minLat: 37.4, maxLat: 37.7, minLng: 126.8, maxLng: 127.2 };
+const labels: Record<string, string> = { MEAL: '식사', BOWLING: '볼링', CAFE: '카페', SPORTS: '운동', OTHER: '기타' };
 
-export default function MapScreen() {
+export default function PartiesScreen() {
   const c = useTheme();
-  const insets = useSafeAreaInsets();
-  const [places, setPlaces] = useState<Place[]>([]);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const [parties, setParties] = useState<Party[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<Place | null>(null);
-  const [showResearchBtn, setShowResearchBtn] = useState(false);
-  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
-  const initialLoadDone = useRef(false);
+  const [error, setError] = useState('');
+  const [query, setQuery] = useState('');
+  const [appliedQuery, setAppliedQuery] = useState('');
 
-  const { searchQuery, searchResults, searching, handleSearch, searchNow, clearSearch } = useSearch();
-  const [selectedPlace, setSelectedPlace] = useState<PlaceResult | null>(null);
-  const { isAuthenticated } = useAuthStore();
-  const { groups, selectedGroupId, fetchGroups } = useGroupStore();
-  const [placeCategories, setPlaceCategories] = useState<PlaceCategory[]>([]);
-  const [categoryFilter, setCategoryFilter] = useState<number | null>(null);
-  const [trendFilter, setTrendFilter] = useState<TrendFilter | null>(null);
-  const [statsRefreshKey, setStatsRefreshKey] = useState(0);
-
-  const [slotVisible, setSlotVisible] = useState(false);
-  const [slotCandidates, setSlotCandidates] = useState<Place[]>([]);
-  const [slotWinner, setSlotWinner] = useState<Place | null>(null);
-
-  const detailSheetRef = useRef<BottomSheet>(null);
-  const mapRef = useRef<NaverMapViewRef>(null);
-  const currentBoundsRef = useRef<MapBounds>(INITIAL_BOUNDS);
-  const currentCameraRef = useRef<{ latitude: number; longitude: number; zoom: number }>({ latitude: 37.5665, longitude: 126.9780, zoom: 14 });
-
-  useEffect(() => {
-    if (isAuthenticated) fetchGroups();
-  }, [isAuthenticated]);
-
-  useEffect(() => {
-    placeCategoryApi.getPlaceCategories()
-      .then(setPlaceCategories)
-      .catch(() => {});
-  }, []);
-
-  // 그룹 선택/해제 시 카메라 이동 + 재조회. 초기 mount에서는 스킵(mount useEffect가 담당).
-  const isFirstGroupEffect = useRef(true);
-  useEffect(() => {
-    if (isFirstGroupEffect.current) { isFirstGroupEffect.current = false; return; }
-    if (selectedGroupId) {
-      const group = groups.find(g => g.id === selectedGroupId);
-      if (group?.baseLat && group?.baseLng) {
-        const radius = group.baseRadius || 1000;
-        const zoom = radius <= 300 ? 17 : radius <= 500 ? 16 : 15;
-        mapRef.current?.animateCameraTo({
-          latitude: group.baseLat, longitude: group.baseLng, zoom,
-        });
-      }
-    }
-    fetchPlaces(currentBoundsRef.current);
-  }, [selectedGroupId]);
-
-  // 트렌드 필터 변경 시 재조회 (초기 mount 제외).
-  const isFirstTrendEffect = useRef(true);
-  useEffect(() => {
-    if (isFirstTrendEffect.current) { isFirstTrendEffect.current = false; return; }
-    fetchPlaces(currentBoundsRef.current);
-  }, [trendFilter]);
-
-  const fetchPlaces = useCallback(async (bounds: MapBounds, placeCategoryId?: number | null) => {
+  const load = useCallback(async () => {
     try {
-      const { selectedGroupId: groupId, groups: storeGroups } = useGroupStore.getState();
-      const effectiveCategoryId = placeCategoryId !== undefined ? placeCategoryId : categoryFilter;
-
-      // 그룹에 반경이 설정된 경우 뷰포트가 아닌 반경 기반 bounds로 제한
-      let effectiveBounds = bounds;
-      if (groupId) {
-        const group = storeGroups.find(g => g.id === groupId);
-        if (group?.baseLat && group?.baseLng && group?.baseRadius) {
-          const radiusDeg = group.baseRadius / 111000;
-          effectiveBounds = {
-            minLat: group.baseLat - radiusDeg,
-            maxLat: group.baseLat + radiusDeg,
-            minLng: group.baseLng - radiusDeg / Math.cos(group.baseLat * Math.PI / 180),
-            maxLng: group.baseLng + radiusDeg / Math.cos(group.baseLat * Math.PI / 180),
-          };
-        }
-      }
-
-      const response = groupId
-        ? await placeApi.getGroupPlaces(groupId, effectiveBounds)
-        : await placeApi.getPlaces({
-            bounds,
-            placeCategoryId: trendFilter?.placeCategoryId || effectiveCategoryId || undefined,
-            tags: trendFilter?.tags,
-            priceRange: trendFilter?.priceRange as any,
-            size: 500,
-          });
-      setPlaces(response.content);
-      setShowResearchBtn(false);
-    } catch (error) {
-      console.warn('[fetchPlaces]', error);
+      setError('');
+      setParties(await partyApi.list(appliedQuery));
+    } catch {
+      setError('파티를 불러오지 못했어요. 다시 시도해주세요.');
     } finally {
       setLoading(false);
-      initialLoadDone.current = true;
     }
-  }, [categoryFilter, trendFilter]);
+  }, [appliedQuery]);
 
-  // 방문 인증/장소 등록 후 복귀 시 stats + 장소 목록 재조회. 최초 mount는 skip.
-  useFocusEffect(useCallback(() => {
-    setStatsRefreshKey(k => k + 1);
-    if (initialLoadDone.current) fetchPlaces(currentBoundsRef.current);
-  }, [fetchPlaces]));
-
-  // visit-review 등 다른 화면에서 재사용할 수 있도록 현재 위치를 store에 싱크.
-  useEffect(() => {
-    if (userLocation) useLocationStore.getState().setUserLocation(userLocation);
-  }, [userLocation]);
-
-  // 초기 fetch + GPS 권한 요청 및 위치 구독. GPS는 카메라만 이동시키고, 재조회는
-  // 사용자가 재검색 버튼으로 명시적으로 트리거(B안).
-  const initialMountFetchedRef = useRef(false);
-  useEffect(() => {
-    let subscription: { remove: () => void } | null = null;
-    let mounted = true;
-    if (!initialMountFetchedRef.current) {
-      initialMountFetchedRef.current = true;
-      fetchPlaces(INITIAL_BOUNDS);
-    }
-    (async () => {
-      try {
-        const Location = require('expo-location') as typeof LocationType;
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (!mounted || status !== 'granted') return;
-        const location = await Location.getLastKnownPositionAsync()
-          ?? await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-        if (!mounted) return;
-        const { latitude, longitude } = location.coords;
-        setUserLocation({ latitude, longitude });
-        mapRef.current?.animateCameraTo({ latitude, longitude, zoom: 15 });
-        subscription = await Location.watchPositionAsync(
-          { accuracy: Location.Accuracy.Balanced, distanceInterval: 10 },
-          (loc) => { if (mounted) setUserLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude }); },
-        );
-      } catch (e) {
-        console.warn('[Location Error]', e);
-      }
-    })();
-    return () => { mounted = false; subscription?.remove(); };
-  }, [fetchPlaces]);
-
-  // 카메라 정지 시 재검색 버튼 노출. 자동 fetch 없음(초기 조회는 mount에서 이미 수행).
-  const handleBoundsChange = useCallback((
-    bounds: MapBounds,
-    camera: { latitude: number; longitude: number; zoom: number },
-  ) => {
-    currentBoundsRef.current = bounds;
-    currentCameraRef.current = camera;
-    if (initialLoadDone.current) setShowResearchBtn(true);
-  }, []);
-
-  const handleResearch = useCallback(() => {
-    mediumTap();
-    fetchPlaces(currentBoundsRef.current);
-  }, [fetchPlaces]);
-
-  const handleSelectPlace = (place: PlaceResult) => {
-    lightTap();
-    clearSearch();
-    setSelected(null);
-
-    setSelectedPlace(place);
-    Keyboard.dismiss();
-
-    mapRef.current?.animateCameraTo({
-      latitude: place.lat,
-      longitude: place.lng,
-      zoom: 16,
-    });
-    setTimeout(() => detailSheetRef.current?.expand(), 100);
-  };
-
-  const closePlaceDetail = () => {
-    detailSheetRef.current?.close();
-    setSelectedPlace(null);
-    setSelected(null);
-  };
-
-  const openNaverMap = async (place: PlaceResult) => {
-    lightTap();
-    const appUrl = `nmap://place?lat=${place.lat}&lng=${place.lng}&name=${encodeURIComponent(place.name)}&appname=com.wishmap.app`;
-    const placeIdMatch = place.link?.match(/bizes\/(\d+)/);
-    const webUrl = placeIdMatch
-      ? `https://m.place.naver.com/place/${placeIdMatch[1]}/home`
-      : `https://map.naver.com/v5/search/${encodeURIComponent(place.name)}`;
-    try {
-      const supported = await Linking.canOpenURL(appUrl);
-      await Linking.openURL(supported ? appUrl : webUrl);
-    } catch {
-      await Linking.openURL(webUrl);
-    }
-  };
-
-  const callPhone = (phone: string) => {
-    lightTap();
-    Linking.openURL(`tel:${phone}`);
-  };
-
-  // 마커 탭 → 상세 시트 즉시 오픈. 주소/전화는 백그라운드로 보강.
-  const handleMarkerClick = useCallback((tapped: Place) => {
-    lightTap();
-    setSelected(tapped);
-    setSelectedPlace({
-      id: tapped.naverPlaceId || '',
-      name: tapped.name,
-      address: '',
-      roadAddress: '',
-      lat: tapped.lat,
-      lng: tapped.lng,
-      category: tapped.category || '',
-      phone: '',
-      link: '',
-    });
-    setTimeout(() => detailSheetRef.current?.expand(), 50);
-
-    (async () => {
-      try {
-        const results = await searchPlaces(tapped.name);
-        if (!results.length) return;
-        const match = results.reduce((closest, r) => {
-          const dR = Math.abs(r.lat - tapped.lat) + Math.abs(r.lng - tapped.lng);
-          const dC = Math.abs(closest.lat - tapped.lat) + Math.abs(closest.lng - tapped.lng);
-          return dR < dC ? r : closest;
-        });
-        setSelectedPlace(prev => prev && prev.name === tapped.name ? {
-          ...prev,
-          address: match.address || prev.address,
-          roadAddress: match.roadAddress || prev.roadAddress,
-          phone: match.phone || prev.phone,
-          link: match.link || prev.link,
-          id: prev.id || match.id || '',
-        } : prev);
-      } catch {}
-    })();
-  }, []);
-
-  const handleRegisterCustomPlace = useCallback((categoryId: number, categoryName: string) => {
-    if (!isAuthenticated) {
-      router.push('/login');
-      return;
-    }
-    if (!userLocation) {
-      showError('위치 필요', '현재 위치를 확인할 수 없습니다.');
-      return;
-    }
-    clearSearch();
-    Keyboard.dismiss();
-    router.push({
-      pathname: '/visit-review',
-      params: {
-        placeName: categoryName,
-        placeLat: String(userLocation.latitude),
-        placeLng: String(userLocation.longitude),
-        placeId: '',
-        placeCategory: '',
-        placeCategoryId: String(categoryId),
-      },
-    });
-  }, [isAuthenticated, userLocation, clearSearch]);
-
-  const handleRecommend = useCallback(() => {
-    mediumTap();
-    clearSearch();
-    Keyboard.dismiss();
-    if (!userLocation) {
-      showError('위치 필요', '현재 위치를 확인할 수 없습니다.');
-      return;
-    }
-    // 300m 이내 음식점만 필터
-    const nearby = places.filter((r) => {
-      if (r.placeCategoryId !== 1) return false; // 음식점만
-      const dLat = (r.lat - userLocation.latitude) * 111000;
-      const dLng = (r.lng - userLocation.longitude) * 111000 * Math.cos(userLocation.latitude * Math.PI / 180);
-      return Math.sqrt(dLat * dLat + dLng * dLng) <= 300;
-    });
-    if (nearby.length === 0) {
-      showError('추천 불가', '300m 이내에 등록된 음식점이 없습니다.');
-      return;
-    }
-    const pick = nearby[Math.floor(Math.random() * nearby.length)];
-    setSlotCandidates(nearby);
-    setSlotWinner(pick);
-    setSlotVisible(true);
-  }, [places, userLocation, clearSearch]);
-
-  const handleSlotResult = useCallback((place: Place) => {
-    setSlotVisible(false);
-    handleMarkerClick(place);
-    mapRef.current?.animateCameraTo({ latitude: place.lat, longitude: place.lng, zoom: 16 });
-  }, [handleMarkerClick]);
+  useFocusEffect(useCallback(() => { load(); }, [load]));
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="light" />
-      <NaverMap
-        ref={mapRef}
-        places={places}
-        placeCategories={placeCategories}
-        onMarkerClick={handleMarkerClick}
-        onBoundsChange={handleBoundsChange}
-        onTapMap={() => { Keyboard.dismiss(); setSelected(null); }}
-        userLocation={userLocation}
-        selectedPlace={selectedPlace}
-        selectedId={selected?.id ?? null}
-        selectedCategoryId={selected?.placeCategoryId ?? null}
-      />
-
-      {/* 상태바 영역 반투명 오버레이 — 배터리/시간 가독성 확보 */}
-      <View
-        style={[styles.statusBarOverlay, { height: insets.top }]}
-        pointerEvents="none"
-      />
-
-      <SearchBar
-        top={insets.top + 8}
-        searchQuery={searchQuery}
-        searchResults={searchResults}
-        searching={searching}
-        onSearch={handleSearch}
-        onSearchNow={searchNow}
-        onClearSearch={clearSearch}
-        onSelectPlace={handleSelectPlace}
-        placeCategories={placeCategories}
-        selectedCategoryId={categoryFilter}
-        onCategoryChange={(catId) => {
-          setCategoryFilter(catId);
-          fetchPlaces(currentBoundsRef.current, catId);
-        }}
-        onRegisterCustomPlace={handleRegisterCustomPlace}
-      />
-
-      <FilterChips
-        top={insets.top + 60}
-        activeTrend={trendFilter}
-        onTrendSelect={(filter) => {
-          setTrendFilter(filter);
-          setCategoryFilter(null);
-        }}
-      />
-
-      {showResearchBtn && (
-        <View style={[styles.researchContainer, { top: insets.top + 100 }]}>
-          <TouchableOpacity
-            style={[styles.researchBtn, { backgroundColor: c.primary }]}
-            onPress={handleResearch}
-            activeOpacity={0.85}
-          >
-            <Ionicons name="refresh-outline" size={16} color="#fff" />
-            <Text style={styles.researchText}>현재 지도에서 재검색</Text>
-          </TouchableOpacity>
+    <View style={[styles.container, { backgroundColor: c.background }]}>
+      <View style={styles.headingRow}>
+        <View>
+          <Text style={[styles.heading, { color: c.textPrimary }]}>함께할 사람을 찾아요</Text>
+          <Text style={{ color: c.textSecondary }}>가고 싶은 장소에서 파티를 시작해보세요</Text>
         </View>
+        <Pressable accessibilityRole="button" accessibilityLabel="파티 만들기"
+          onPress={() => router.push(isAuthenticated ? '/party/create' : '/login')}
+          style={[styles.add, { backgroundColor: c.primary }]}>
+          <Ionicons name="add" size={27} color="white" />
+        </Pressable>
+      </View>
+      <View style={[styles.searchRow, { borderColor: c.border, backgroundColor: c.cardBg }]}>
+        <Ionicons name="search" size={20} color={c.textSecondary} />
+        <TextInput accessibilityLabel="지역 또는 장소 검색" placeholder="동네, 장소, 파티 검색" value={query}
+          onChangeText={setQuery} onSubmitEditing={() => setAppliedQuery(query.trim())}
+          style={[styles.searchInput, { color: c.textPrimary }]} returnKeyType="search" />
+        <Pressable accessibilityRole="button" onPress={() => setAppliedQuery(query.trim())}>
+          <Text style={{ color: c.primary, fontWeight: '700' }}>검색</Text>
+        </Pressable>
+      </View>
+      {loading ? <ActivityIndicator style={{ marginTop: 50 }} color={c.primary} /> : (
+        <FlatList data={parties} keyExtractor={(item) => String(item.id)}
+          refreshControl={<RefreshControl refreshing={false} onRefresh={load} />}
+          contentContainerStyle={styles.list}
+          ListEmptyComponent={<View style={[styles.empty, { backgroundColor: c.cardBg, borderColor: c.border }]}>
+            <Ionicons name="people-outline" size={38} color={c.primary} />
+            <Text style={[styles.title, { color: c.textPrimary }]}>{error || '아직 모집 중인 파티가 없어요'}</Text>
+            <Text style={{ color: c.textSecondary }}>첫 파티를 만들어 보세요!</Text>
+            {error ? <Pressable onPress={load}><Text style={{ color: c.primary }}>다시 시도</Text></Pressable> : null}
+          </View>}
+          renderItem={({ item }) => <Pressable accessibilityRole="button"
+            onPress={() => router.push(`/party/${item.id}`)}
+            style={[styles.card, { backgroundColor: c.cardBg, borderColor: c.border }]}>
+            <Text style={[styles.category, { color: c.primary }]}>{labels[item.category] || item.category}</Text>
+            <Text style={[styles.title, { color: c.textPrimary }]}>{item.title}</Text>
+            <Text style={{ color: c.textSecondary, marginTop: 8 }}>{item.venueName} · {item.venueAddress}</Text>
+            <Text style={{ color: c.textSecondary, marginTop: 7 }}>
+              {new Date(item.startsAt).toLocaleString('ko-KR')} · {item.participantCount}/{item.capacity}명
+            </Text>
+          </Pressable>}
+        />
       )}
-
-      <MapControls
-        mapRef={mapRef}
-        currentCameraRef={currentCameraRef}
-        onLocationUpdate={setUserLocation}
-        onRecommend={handleRecommend}
-      />
-
-      {loading && (
-        <View style={[styles.loadingOverlay, { backgroundColor: c.loadingOverlay }]}>
-          <ActivityIndicator size="large" color={c.primary} />
-        </View>
-      )}
-
-      {selectedPlace && (
-        <BottomSheet
-          ref={detailSheetRef}
-          enableDynamicSizing
-          enablePanDownToClose
-          onClose={() => { setSelectedPlace(null); setSelected(null); }}
-          backgroundStyle={[styles.sheetBg, { backgroundColor: c.sheetBg }]}
-          handleIndicatorStyle={{ backgroundColor: c.textDisabled, width: 40 }}
-          containerStyle={{ zIndex: 20 }}
-        >
-          <BottomSheetView>
-            <PlaceDetailSheet
-              place={selectedPlace}
-              restaurantId={selected?.id ?? null}
-              initialSummary={selected ? {
-                visitCount: selected.visitCount,
-                priceRange: selected.priceRange,
-                placeCategoryId: selected.placeCategoryId,
-                lastVisitedAt: selected.lastVisitedAt,
-                thumbnailImage: selected.thumbnailImage,
-              } : null}
-              onClose={closePlaceDetail}
-              onOpenNaverMap={openNaverMap}
-              onCallPhone={callPhone}
-              onVisitSuccess={() => fetchPlaces(currentBoundsRef.current)}
-              weeklyChampion={selected?.weeklyChampion}
-              placeCategories={placeCategories}
-              refreshKey={statsRefreshKey}
-            />
-          </BottomSheetView>
-        </BottomSheet>
-      )}
-
-      <RecommendSlot
-        visible={slotVisible}
-        candidates={slotCandidates}
-        winner={slotWinner}
-        onResult={handleSlotResult}
-        onClose={() => setSlotVisible(false)}
-      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  statusBarOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 5,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-  },
-  researchContainer: {
-    position: 'absolute',
-    top: 62,
-    alignSelf: 'center',
-    zIndex: 9,
-  },
-  researchBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  researchText: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  sheetBg: {
-    borderTopLeftRadius: 14,
-    borderTopRightRadius: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    elevation: 6,
-  },
+  headingRow: { padding: 20, paddingTop: 28, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  heading: { fontSize: 24, fontWeight: '700', marginBottom: 6 },
+  add: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
+  list: { padding: 20, paddingTop: 0, paddingBottom: 40 },
+  searchRow: { marginHorizontal: 20, marginBottom: 16, borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  searchInput: { flex: 1, fontSize: 15, minWidth: 0 },
+  card: { borderWidth: 1, borderRadius: 16, padding: 18, marginBottom: 12 },
+  category: { fontSize: 13, fontWeight: '700', marginBottom: 7 },
+  title: { fontSize: 18, fontWeight: '700' },
+  empty: { borderWidth: 1, borderRadius: 16, padding: 28, alignItems: 'center', gap: 12 },
 });

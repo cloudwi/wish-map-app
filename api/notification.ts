@@ -2,7 +2,7 @@ import { apiClient } from './client';
 
 export interface NotificationResponse {
   id: number;
-  type: 'GROUP_LOCATION_CHANGED' | 'GROUP_INVITE' | 'FRIEND_REQUEST';
+  type: string;
   title: string;
   message: string;
   isRead: boolean;

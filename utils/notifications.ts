@@ -21,27 +21,37 @@ export function setupNotificationHandler() {
 }
 
 export async function registerForPushNotifications(): Promise<string | null> {
+  console.log('[PUSH] start, isNativeAvailable=', isNativeAvailable);
   if (!isNativeAvailable) return null;
   try {
     const Device = require('expo-device');
     const Notifications = require('expo-notifications');
 
+    console.log('[PUSH] isDevice=', Device.isDevice);
     if (!Device.isDevice) return null;
 
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    console.log('[PUSH] existing permission=', existingStatus);
     let finalStatus = existingStatus;
     if (existingStatus !== 'granted') {
       const { status } = await Notifications.requestPermissionsAsync();
       finalStatus = status;
     }
+    console.log('[PUSH] final permission=', finalStatus);
     if (finalStatus !== 'granted') return null;
 
     const tokenData = await Notifications.getExpoPushTokenAsync({
       projectId: '8fb1765b-9b9e-4dff-a01b-ceebec4dc209',
     });
     const token = tokenData.data;
+    console.log('[PUSH] token=', token);
 
-    try { await apiClient.patch('/auth/me/push-token', { pushToken: token }); } catch {}
+    try {
+      const res = await apiClient.patch('/auth/me/push-token', { pushToken: token });
+      console.log('[PUSH] PATCH success, status=', res.status);
+    } catch (e: any) {
+      console.error('[PUSH] PATCH failed:', e?.response?.status, e?.response?.data, e?.message);
+    }
 
     if (Platform.OS === 'android') {
       await Notifications.setNotificationChannelAsync('default', {
@@ -50,7 +60,10 @@ export async function registerForPushNotifications(): Promise<string | null> {
       });
     }
     return token;
-  } catch { return null; }
+  } catch (e: any) {
+    console.error('[PUSH] outer catch:', e?.message, e);
+    return null;
+  }
 }
 
 export function addNotificationResponseListener(callback: () => void) {

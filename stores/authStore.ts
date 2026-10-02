@@ -10,7 +10,6 @@ interface AuthState {
   isLoading: boolean;
   hasAgreedToTerms: boolean;
   isCheckingTerms: boolean;
-  hasSeenTutorial: boolean;
   login: (provider: AuthProvider, accessToken: string, nickname?: string) => Promise<void>;
   logout: () => Promise<void>;
   forceLogout: () => void;
@@ -19,12 +18,7 @@ interface AuthState {
   updateNickname: (nickname: string) => Promise<void>;
   checkTermsAgreement: () => Promise<boolean>;
   setTermsAgreed: () => void;
-  checkTutorialSeen: () => Promise<void>;
-  setTutorialSeen: () => Promise<void>;
 }
-
-// 튜토리얼 본 여부는 유저별로 저장 — 같은 디바이스에서 다른 계정으로 로그인하면 다시 보여줘야 함.
-const tutorialSeenKey = (userId: number | string) => `tutorialSeen_${userId}`;
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
@@ -32,7 +26,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isLoading: true,
   hasAgreedToTerms: false,
   isCheckingTerms: false,
-  hasSeenTutorial: true,
 
   login: async (provider, accessToken, nickname) => {
     try {
@@ -46,7 +39,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       console.info(`[AUTH] 로그인 성공: provider=${provider}, userId=${response.user.id}`);
       // 약관 동의 확인은 백그라운드로 수행 — (tabs)/_layout.tsx가 결과에 따라 모달 노출.
       get().checkTermsAgreement();
-      get().checkTutorialSeen();
     } catch (error) {
       console.warn(`[AUTH] 로그인 실패: provider=${provider}`, error);
       set({ isLoading: false });
@@ -85,7 +77,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await setItem('refreshToken', response.refreshToken);
       set({ user: response.user, isAuthenticated: true });
       await get().checkTermsAgreement();
-      await get().checkTutorialSeen();
       set({ isLoading: false });
     } catch (e) {
       console.warn('Auth check failed:', e);
@@ -116,19 +107,4 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   setTermsAgreed: () => set({ hasAgreedToTerms: true }),
 
-  checkTutorialSeen: async () => {
-    const userId = get().user?.id;
-    if (!userId) {
-      set({ hasSeenTutorial: true });
-      return;
-    }
-    const seen = await getItem(tutorialSeenKey(userId));
-    set({ hasSeenTutorial: seen === '1' });
-  },
-
-  setTutorialSeen: async () => {
-    const userId = get().user?.id;
-    set({ hasSeenTutorial: true });
-    if (userId) await setItem(tutorialSeenKey(userId), '1');
-  },
 }));
