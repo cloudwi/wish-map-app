@@ -1,14 +1,13 @@
 import apiClient from './client';
-import { AuthProvider, TokenResponse, User } from '../types';
+import { TokenResponse, User } from '../types';
 
 export const authApi = {
-  socialLogin: async (provider: AuthProvider, accessToken: string, nickname?: string): Promise<TokenResponse> => {
-    const response = await apiClient.post<TokenResponse>(`/auth/${provider.toLowerCase()}`, {
-      accessToken,
-      nickname,
-    });
-    return response.data;
+  requestPhoneCode: async (phone: string): Promise<void> => {
+    await apiClient.post('/auth/phone/request', { phone });
   },
+
+  verifyPhoneCode: async (phone: string, code: string): Promise<TokenResponse> =>
+    (await apiClient.post<TokenResponse>('/auth/phone/verify', { phone, code })).data,
 
   refresh: async (refreshToken: string): Promise<TokenResponse> => {
     const response = await apiClient.post<TokenResponse>('/auth/refresh', {

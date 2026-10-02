@@ -10,8 +10,6 @@ services:
         value: "1"
       - key: EXPO_PUBLIC_API_URL
         value: https://api.wishmap.kr
-      - key: EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID
-        value: 386596705781-mp70rdrp1ulj6dovlqs0doig1t56592r.apps.googleusercontent.com
     routes:
       - type: rewrite
         source: /*

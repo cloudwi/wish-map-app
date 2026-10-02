@@ -12,5 +12,3 @@ export interface TokenResponse {
   expiresIn: number;
   user: User;
 }
-
-export type AuthProvider = 'KAKAO' | 'GOOGLE' | 'NAVER' | 'APPLE';

@@ -29,18 +29,6 @@ export default ({ config }: ConfigContext): WishMapExpoConfig => ({
     infoPlist: {
       CFBundleDevelopmentRegion: 'ko',
       ITSAppUsesNonExemptEncryption: false,
-      LSApplicationQueriesSchemes: [
-        'kakaokompassauth',
-        'naversearchapp',
-        'naversearchthirdlogin',
-      ],
-      CFBundleURLTypes: [
-        {
-          CFBundleURLSchemes: [
-            `com.googleusercontent.apps.${(process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || '').split('.')[0]}`,
-          ],
-        },
-      ],
     },
   },
   android: {
@@ -60,15 +48,6 @@ export default ({ config }: ConfigContext): WishMapExpoConfig => ({
     './plugins/fix-entry-file',
     './plugins/add-adi-registration',
     './plugins/disable-lint-extra-translation',
-    [
-      'expo-build-properties',
-      {
-        android: {
-          // 네이버 지도 / 카카오 SDK는 각 회사 전용 Maven에 있어 별도 등록 필요.
-          extraMavenRepos: ['https://devrepo.kakao.com/nexus/content/groups/public/'],
-        },
-      },
-    ],
     'expo-router',
     'expo-font',
     'expo-secure-store',
@@ -85,24 +64,6 @@ export default ({ config }: ConfigContext): WishMapExpoConfig => ({
         },
       },
     ],
-    [
-      '@react-native-seoul/kakao-login',
-      {
-        kakaoAppKey: process.env.KAKAO_APP_KEY,
-        kotlinVersion: '2.1.0',
-      },
-    ],
-    '@react-native-google-signin/google-signin',
-    [
-      '@react-native-seoul/naver-login',
-      {
-        consumerKey: process.env.EXPO_PUBLIC_NAVER_CONSUMER_KEY,
-        consumerSecret: process.env.EXPO_PUBLIC_NAVER_CONSUMER_SECRET,
-        appName: '위시맵',
-        urlScheme: 'wishmap',
-      },
-    ],
-    'expo-apple-authentication',
     'expo-notifications',
   ],
   extra: {

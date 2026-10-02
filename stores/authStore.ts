@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { User, AuthProvider, TokenResponse } from '../types';
+import { User, TokenResponse } from '../types';
 import { authApi } from '../api/auth';
 import { agreementApi } from '../api/agreement';
 import { setItem, getItem, deleteItem } from '../utils/secureStorage';
@@ -10,7 +10,7 @@ interface AuthState {
   isLoading: boolean;
   hasAgreedToTerms: boolean;
   isCheckingTerms: boolean;
-  login: (provider: AuthProvider, accessToken: string, nickname?: string) => Promise<void>;
+  login: (phone: string, code: string) => Promise<void>;
   logout: () => Promise<void>;
   forceLogout: () => void;
   checkAuth: () => Promise<void>;
@@ -27,20 +27,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   hasAgreedToTerms: false,
   isCheckingTerms: false,
 
-  login: async (provider, accessToken, nickname) => {
+  login: async (phone, code) => {
     try {
       set({ isLoading: true });
-      const response: TokenResponse = await authApi.socialLogin(provider, accessToken, nickname);
+      const response: TokenResponse = await authApi.verifyPhoneCode(phone, code);
       await Promise.all([
         setItem('accessToken', response.accessToken),
         setItem('refreshToken', response.refreshToken),
       ]);
       set({ user: response.user, isAuthenticated: true, isLoading: false });
-      console.info(`[AUTH] 로그인 성공: provider=${provider}, userId=${response.user.id}`);
+      console.info(`[AUTH] 로그인 성공: userId=${response.user.id}`);
       // 약관 동의 확인은 백그라운드로 수행 — (tabs)/_layout.tsx가 결과에 따라 모달 노출.
       get().checkTermsAgreement();
     } catch (error) {
-      console.warn(`[AUTH] 로그인 실패: provider=${provider}`, error);
+      console.warn('[AUTH] 로그인 실패', error);
       set({ isLoading: false });
       throw error;
     }
