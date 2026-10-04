@@ -11,6 +11,7 @@ Production release is not complete. Do not equate an EAS build or an App Store C
 - Store version: `2.0.0`.
 - Final Android build: `67fb4541-9523-45d7-9fa5-2e64a9fe2f41`, version code `11`.
 - Final iOS build: `2c1cc482-bfa4-4a8b-a44d-b664756db3fa`, build number `109`.
+- Both final production builds finished successfully and match functional source `21f7443`.
 - Superseded builds: Android `10`, iOS `108`. These omit the native safe area correction.
 
 ## Completed validation
@@ -23,7 +24,7 @@ Production release is not complete. Do not equate an EAS build or an App Store C
 - Browser home checks: categories, dates, seats, query, paging, stale responses, Naver map links and error retry; mobile and desktop layouts.
 - iOS Release compile: pass on Xcode 26.4.
 - Native iPhone UI journey: guest home → login → guest My page; title position checked below the status bar. No real SMS or production party writes.
-- iOS, Android and web production JavaScript exports: pass before the final safe area adjustment; final native iOS Release UI checks include that adjustment.
+- iOS and Android production JavaScript exports and final signed native builds: pass. Final web production export: pass, including the safe area adjustment.
 - Production database health: connected.
 - Production Naver local search: successful Korean queries return up to five places. A transient search failure was observed during deploy and handled as a retryable 503.
 - Critical dependency audit findings resolved. Other dependency audit findings still require review; this is not a claim of a clean security audit.
@@ -36,9 +37,10 @@ App Store version ID: `08f13203-bf87-4c07-a79b-55dea5aae6fa`.
 - Korean and English descriptions, keywords, promotional text and release notes updated for party recruitment.
 - Subtitles updated; categories: Social Networking / Lifestyle.
 - Privacy policy URL: `https://api.wishmap.kr/privacy.html`.
-- Native 1320×2868 JPEG screenshots stored under `store-assets/ios/2.0.0`.
-- Previous build 108 was uploaded and became `VALID`; replace its association with final build 109 before review.
+- Native 1320×2868 JPEG screenshots stored under `store-assets/ios/2.0.0`. Both draft locales now contain only the three current screenshots, all processed `COMPLETE` by Apple.
+- Final build 109 was uploaded, became `VALID` and is attached to 2.0.0. Apple build ID: `fb4ef470-a0ea-4af2-a03b-f06cfd9ef7a9`. Version state remains `PREPARE_FOR_SUBMISSION`; no review request has been submitted.
 - Google Play production profile: `track=production`, `releaseStatus=completed`. Submission cannot proceed until a Google service account is connected.
+- Submission of final Android build 11 was attempted and stopped with `Google Service Account Keys cannot be set up in --non-interactive mode`. No production upload/release was created.
 
 ## Required external configuration
 
@@ -51,8 +53,10 @@ App Store version ID: `08f13203-bf87-4c07-a79b-55dea5aae6fa`.
 
 Chrome dashboard control requires the user to enable **View → Developer → Allow JavaScript from Apple Events**. The agent must not enable this browser permission itself.
 
+No Android emulator/device UI check was performed; local Android emulator tools are unavailable. Android production compilation succeeded. Native authenticated journeys and real push receipt remain unverified.
+
 The operating database was not erased. Reset SQL and fresh schema validation exist, but a live destructive reset must target the intended database explicitly.
 
 ## Resume release
 
-After the external configuration is available, verify final build commits and processing states, upload the final Android AAB to production and final iOS IPA to App Store Connect, attach build 109 to 2.0.0, reconcile screenshots/privacy/review access, and submit to review. Confirm Play production release status and Apple review/public availability before declaring release complete.
+After the external configuration is available, upload the final Android AAB to production, reconcile privacy/review access, and submit iOS 2.0.0 with its attached build 109 to review. Confirm Play production release status and Apple review/public availability before declaring release complete. iOS public version is still 1.1.8 at the time of these checks.
