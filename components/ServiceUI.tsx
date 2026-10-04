@@ -3,9 +3,9 @@ import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollVie
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../hooks/useTheme';
 
-export function Page({ children }: { children: ReactNode }) {
+export function Page({ children, safeTop = false }: { children: ReactNode; safeTop?: boolean }) {
   const c = useTheme();
-  return <SafeAreaView edges={['bottom']} style={{ flex: 1, backgroundColor: c.background }}>
+  return <SafeAreaView edges={safeTop ? ['top', 'bottom'] : ['bottom']} style={{ flex: 1, backgroundColor: c.background }}>
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={ui.page}>{children}</ScrollView>
     </KeyboardAvoidingView>

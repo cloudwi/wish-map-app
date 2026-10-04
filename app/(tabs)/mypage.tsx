@@ -55,7 +55,7 @@ export default function MyPageScreen() {
   };
 
   const visible = items.filter((p) => filter === 'ALL' || (filter === 'HOST' ? p.myStatus === 'HOST' : p.myStatus !== 'HOST'));
-  return <Page>
+  return <Page safeTop>
     <Heading title="나의 위시맵" subtitle={user ? '함께할 모임과 내 활동을 한곳에서 관리해요.' : '로그인하고 나만의 모임을 시작해보세요.'} />
     {user ? <>
       <Panel>
