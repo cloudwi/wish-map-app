@@ -8,6 +8,7 @@ export interface PartyMember {
 }
 
 export interface Party {
+  myStatus?: 'HOST' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'WITHDRAWN' | null;
   id: number;
   title: string;
   description: string;
@@ -46,6 +47,7 @@ export interface PartyListOptions {
 }
 
 export const partyApi = {
+  mine: async (page = 0): Promise<Party[]> => (await apiClient.get<Party[]>('/parties/mine', { params: { page, limit: 50 } })).data,
   list: async (query = '', options: PartyListOptions = {}): Promise<Party[]> =>
     (await apiClient.get<Party[]>('/parties', { params: { query, ...options } })).data,
   detail: async (id: number): Promise<Party> => (await apiClient.get<Party>(`/parties/${id}`)).data,

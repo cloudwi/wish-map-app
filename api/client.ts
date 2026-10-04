@@ -49,7 +49,7 @@ apiClient.interceptors.response.use(
     }
 
     // 503: 서버 점검 중 → 점검 화면 표시
-    if (status === 503) {
+    if (status === 503 && (error.response?.data as { code?: string } | undefined)?.code === 'MAINTENANCE') {
       const { useAppStore } = require('../stores/appStore');
       useAppStore.getState().setMaintenance(true);
       return Promise.reject(error);
@@ -67,7 +67,7 @@ apiClient.interceptors.response.use(
     }
 
     // 403: 유저가 DB에 없는 경우 (DB 초기화 등) → 강제 로그아웃
-    if (status === 403) {
+    if (status === 403 && (error.response?.data as { message?: string } | undefined)?.message === '로그인이 필요합니다') {
       console.warn('[AUTH] 403 강제 로그아웃');
       const token = await getItem('accessToken');
       if (token) {

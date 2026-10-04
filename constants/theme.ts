@@ -2,17 +2,17 @@
 
 const lightColors = {
   // Primary
-  primary: '#E8590C',
+  primary: '#C24708',
   primaryLight: '#FF8F66',
   primaryDark: '#C4470A',
   primaryBg: '#FFF5F0',
-  primaryPressed: '#D94E20',
+  primaryPressed: '#B84200',
 
   // Gray Scale
   gray950: '#191F28',
   gray900: '#333D4B',
   gray800: '#4E5968',
-  gray700: '#6B7684',
+  gray700: '#626D7C',
   gray600: '#8B95A1',
   gray500: '#A0A8B4',
   gray400: '#B0B8C1',
@@ -22,9 +22,9 @@ const lightColors = {
   gray50: '#F9FAFB',
 
   // Semantic
-  success: '#4CAF50',
+  success: '#237A3B',
   successBg: '#F0FFF5',
-  error: '#FF4444',
+  error: '#C63232',
   errorBg: '#FFF0F0',
   warning: '#FF9800',
   warningBg: '#FFF8F0',
@@ -38,7 +38,7 @@ const lightColors = {
 
   // Text
   textPrimary: '#191F28',
-  textSecondary: '#6B7684',
+  textSecondary: '#626D7C',
   textTertiary: '#A0A8B4',
   textDisabled: '#D1D6DB',
   textWhite: '#FFFFFF',

@@ -5,9 +5,10 @@ import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { partyApi, Party } from '../../api/party';
 import { PARTY_CATEGORIES, getPartyCategory } from '../../constants/party-options';
-import { formatPartyDate, getPartyDateUpperBound, PartyDateFilter } from '../../utils/party-date';
+import { getPartyDateUpperBound, PartyDateFilter } from '../../utils/party-date';
 import { useAuthStore } from '../../stores/authStore';
 import { useTheme } from '../../hooks/useTheme';
+import { PartyCard } from '../../components/PartyCard';
 
 const PAGE_SIZE = 24;
 const dateFilters: { id: PartyDateFilter; label: string }[] = [
@@ -84,7 +85,7 @@ export default function PartiesScreen() {
     }
   }, [loading, refreshing, hasMore, appliedQuery, options]);
 
-  const createParty = () => router.push(isAuthenticated ? '/party/create' : '/login');
+  const createParty = () => isAuthenticated ? router.push('/party/create') : router.push({ pathname: '/login', params: { redirect: '/party/create' } });
   const search = () => { Keyboard.dismiss(); setAppliedQuery(query.trim()); };
   const clearFilters = () => {
     setQuery(''); setAppliedQuery(''); setCategory('ALL'); setDateFilter('ANY'); setAvailableOnly(true);
@@ -196,41 +197,7 @@ export default function PartiesScreen() {
           <Text style={{ color: c.textSecondary, fontWeight: '600' }}>파티 더 보기</Text>
         </Pressable> : <Text style={{ color: c.textSecondary }}>원하는 모임이 없다면 직접 파티를 열어보세요.</Text>}
       </View> : null}
-      renderItem={({ item }) => {
-        const metadata = getPartyCategory(item.category);
-        const remaining = Math.max(0, item.capacity - item.participantCount);
-        return <Pressable accessibilityRole="button" accessibilityLabel={`${metadata.label}, ${item.title}, ${formatPartyDate(item.startsAt)}, ${remaining}자리 남음`}
-          onPress={() => router.push(`/party/${item.id}`)} style={({ pressed }) => [styles.card, {
-            backgroundColor: pressed ? c.surfaceSecondary : c.cardBg, borderColor: c.border,
-          }]}>
-          <View style={styles.cardTop}>
-            <View style={[styles.categoryBadge, { backgroundColor: c.primaryBg }]}>
-              <Ionicons name={metadata.icon} size={14} color={c.primary} />
-              <Text style={[styles.badgeText, { color: c.primary }]}>{metadata.label}</Text>
-            </View>
-            <Text style={[styles.seats, { color: remaining === 0 ? c.textSecondary : remaining <= 2 ? c.primary : c.success }]}>
-              {remaining === 0 ? '정원 마감' : `${remaining}자리 남음`}
-            </Text>
-          </View>
-          <Text numberOfLines={2} style={[styles.cardTitle, { color: c.textPrimary }]}>{item.title}</Text>
-          <View style={styles.metaRow}>
-            <Ionicons name="time-outline" size={16} color={c.textSecondary} />
-            <Text style={[styles.metaText, { color: c.textPrimary }]}>{formatPartyDate(item.startsAt)}</Text>
-          </View>
-          <View style={styles.metaRow}>
-            <Ionicons name="location-outline" size={16} color={c.textSecondary} />
-            <Text numberOfLines={1} style={[styles.metaText, { color: c.textSecondary }]}>{item.venueName}</Text>
-          </View>
-          <Text numberOfLines={1} style={[styles.address, { color: c.textSecondary }]}>{item.venueAddress}</Text>
-          <View style={[styles.cardBottom, { borderColor: c.borderLight }]}>
-            <Text numberOfLines={1} style={[styles.host, { color: c.textSecondary }]}>주최 {item.hostNickname}</Text>
-            <View style={styles.peopleCount}>
-              <Ionicons name="people-outline" size={15} color={c.primary} />
-              <Text style={[styles.count, { color: c.textPrimary }]}>{item.participantCount}<Text style={{ color: c.textSecondary }}> / {item.capacity}명</Text></Text>
-            </View>
-          </View>
-        </Pressable>;
-      }} />
+      renderItem={({ item }) => <PartyCard party={item} onPress={() => router.push(`/party/${item.id}`)} />} />
   </SafeAreaView>;
 }
 
@@ -259,19 +226,6 @@ const styles = StyleSheet.create({
   listHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 15 },
   sectionTitle: { fontSize: 20, fontWeight: '700', letterSpacing: -0.5 },
   sortLabel: { fontSize: 12 },
-  card: { borderWidth: 1, borderRadius: 20, padding: 19, marginBottom: 13 },
-  cardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 13 },
-  categoryBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 8, paddingHorizontal: 9, paddingVertical: 5 },
-  badgeText: { fontSize: 12, fontWeight: '700' },
-  seats: { fontSize: 12, fontWeight: '700' },
-  cardTitle: { fontSize: 19, lineHeight: 27, fontWeight: '700', marginBottom: 14, letterSpacing: -0.3 },
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 7 },
-  metaText: { flex: 1, fontSize: 14, lineHeight: 20 },
-  address: { fontSize: 12, lineHeight: 18, marginTop: 2, marginLeft: 23 },
-  cardBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 16, paddingTop: 13, borderTopWidth: 1 },
-  host: { flex: 1, fontSize: 12 },
-  peopleCount: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  count: { fontSize: 13, fontWeight: '700' },
   empty: { borderWidth: 1, borderColor: 'transparent', borderRadius: 20, padding: 26, alignItems: 'center', gap: 12, marginBottom: 20 },
   emptyIcon: { width: 60, height: 60, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginBottom: 3 },
   emptyTitle: { fontSize: 18, lineHeight: 26, fontWeight: '700', textAlign: 'center' },

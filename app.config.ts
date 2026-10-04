@@ -45,6 +45,7 @@ export default ({ config }: ConfigContext): WishMapExpoConfig => ({
     favicon: './assets/images/favicon.png',
   },
   plugins: [
+    '@react-native-community/datetimepicker',
     './plugins/fix-entry-file',
     './plugins/add-adi-registration',
     './plugins/disable-lint-extra-translation',

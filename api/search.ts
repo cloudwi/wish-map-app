@@ -22,7 +22,7 @@ interface NaverPlaceItem {
 export async function searchPlaces(query: string): Promise<PlaceResult[]> {
   if (!query.trim()) return [];
   const { data } = await apiClient.get<{ items: NaverPlaceItem[] }>('/search/places', {
-    params: { query: query.trim(), display: 15 },
+    params: { query: query.trim(), display: 5 },
   });
   return (data.items || []).map((item) => ({
     id: `${item.mapx}-${item.mapy}`,

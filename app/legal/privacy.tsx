@@ -1,85 +1,13 @@
 import { Stack } from 'expo-router';
 import LegalDocument from '../../components/LegalDocument';
 
-const EFFECTIVE_DATE = '2026년 10월 2일';
-
-const SECTIONS = [
-  {
-    title: '1. 수집하는 개인정보',
-    content: `"위시맵"(이하 "앱")은 서비스 제공을 위해 아래의 개인정보를 수집합니다.
-
-• 회원 정보: 휴대폰 번호, 닉네임
-• 인증 정보: 일회용 인증번호의 암호화된 값, 발송 및 인증 시도 기록
-• 파티 이용 정보: 작성한 파티의 제목·설명·장소·시간과 참가 신청 및 승인 상태
-• 자동 수집 정보: 기기 정보, 서비스 접속 및 오류 기록`,
-  },
-  {
-    title: '2. 개인정보의 수집 및 이용 목적',
-    content: `수집한 개인정보는 다음의 목적으로만 이용됩니다.
-
-• 회원 식별 및 서비스 로그인
-• 문자 인증 로그인과 파티 생성·참가 자격 확인
-• 파티 모집, 참가 신청과 승인, 신고 처리
-• 앱 오류 분석 및 서비스 안정성 개선
-• 서비스 이용 통계 분석 (비식별 처리)`,
-  },
-  {
-    title: '3. 개인정보의 보유 및 이용 기간',
-    content: `• 회원 탈퇴 시: 즉시 파기
-• 관련 법령에 의한 보존: 전자상거래법 등 관련 법률에 따라 일정 기간 보관이 필요한 경우 해당 기간 동안 보관
-
-회원 탈퇴를 요청하면 모든 개인정보를 지체 없이 파기합니다.`,
-  },
-  {
-    title: '4. 개인정보의 제3자 제공',
-    content: `앱은 이용자의 개인정보를 원칙적으로 제3자에게 제공하지 않습니다. 다만, 아래의 경우에는 예외로 합니다.
-
-• 이용자가 사전에 동의한 경우
-• 법령에 의해 요구되는 경우`,
-  },
-  {
-    title: '5. 개인정보의 처리 위탁',
-    content: `앱은 서비스 운영을 위해 아래의 업체에 개인정보 처리를 위탁합니다.
-
-• 클라우드 서버 운영: 서버 호스팅 (데이터 저장 및 처리)
-• 장소 검색: 네이버 검색 API
-• 문자 발송: Solapi (휴대폰 인증번호 발송)`,
-  },
-  {
-    title: '6. 이용자의 권리와 행사 방법',
-    content: `이용자는 언제든지 다음의 권리를 행사할 수 있습니다.
-
-• 개인정보 열람 요청
-• 개인정보 수정 (앱 내 설정에서 직접 변경 가능)
-• 회원 탈퇴 및 개인정보 삭제 (앱 내 설정 > 계정 탈퇴)`,
-  },
-  {
-    title: '7. 개인정보의 안전성 확보 조치',
-    content: `앱은 개인정보의 안전한 처리를 위해 다음의 조치를 취하고 있습니다.
-
-• 앱 인증 토큰의 OS 보안 저장소 저장, 웹 인증 토큰의 브라우저 세션 저장소 저장
-• HTTPS를 통한 데이터 전송 암호화
-• 접근 권한 최소화 및 JWT 기반 인증`,
-  },
-  {
-    title: '8. 개인정보 보호책임자',
-    content: `• 이메일: cloudwiiiii@gmail.com
-
-개인정보 관련 문의, 불만 처리, 피해 구제에 대해 위 이메일로 연락해 주시면 신속하게 처리하겠습니다.`,
-  },
-  {
-    title: '9. 개인정보 처리방침의 변경',
-    content: `본 개인정보 처리방침이 변경되는 경우, 앱 내 공지를 통해 사전에 안내합니다.
-
-• 시행일: ${EFFECTIVE_DATE}`,
-  },
-];
+import { PRIVACY_SECTIONS, EFFECTIVE_DATE } from '../../constants/legal-content';
 
 export default function PrivacyScreen() {
   return (
     <>
       <Stack.Screen options={{ title: '개인정보 처리방침' }} />
-      <LegalDocument title="개인정보 처리방침" effectiveDate={EFFECTIVE_DATE} sections={SECTIONS} />
+      <LegalDocument title="개인정보 처리방침" effectiveDate={EFFECTIVE_DATE} sections={PRIVACY_SECTIONS} />
     </>
   );
 }

@@ -35,10 +35,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         setItem('accessToken', response.accessToken),
         setItem('refreshToken', response.refreshToken),
       ]);
-      set({ user: response.user, isAuthenticated: true, isLoading: false });
+      set({ user: response.user, isAuthenticated: true, isLoading: false, hasAgreedToTerms: false, isCheckingTerms: true });
       console.info(`[AUTH] 로그인 성공: userId=${response.user.id}`);
       // 약관 동의 확인은 백그라운드로 수행 — (tabs)/_layout.tsx가 결과에 따라 모달 노출.
-      get().checkTermsAgreement();
+      await get().checkTermsAgreement();
     } catch (error) {
       console.warn('[AUTH] 로그인 실패', error);
       set({ isLoading: false });
@@ -52,13 +52,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     finally {
       await deleteItem('accessToken');
       await deleteItem('refreshToken');
-      set({ user: null, isAuthenticated: false });
+      set({ user: null, isAuthenticated: false, hasAgreedToTerms: false, isCheckingTerms: false });
       console.info(`[AUTH] 로그아웃: userId=${userId}`);
     }
   },
 
   forceLogout: () => {
-    set({ user: null, isAuthenticated: false });
+    set({ user: null, isAuthenticated: false, hasAgreedToTerms: false, isCheckingTerms: false });
   },
 
   checkAuth: async () => {
@@ -100,7 +100,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ hasAgreedToTerms: agreed, isCheckingTerms: false });
       return agreed;
     } catch {
-      set({ isCheckingTerms: false });
+      set({ hasAgreedToTerms: false, isCheckingTerms: false });
       return false;
     }
   },
