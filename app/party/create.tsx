@@ -6,11 +6,7 @@ import { PlaceResult, searchPlaces } from '../../api/search';
 import { useAuthStore } from '../../stores/authStore';
 import { useTheme } from '../../hooks/useTheme';
 import { getErrorMessage } from '../../utils/getErrorMessage';
-
-const categories = [
-  { id: 'MEAL', label: '식사' }, { id: 'BOWLING', label: '볼링' },
-  { id: 'CAFE', label: '카페' }, { id: 'SPORTS', label: '운동' }, { id: 'OTHER', label: '기타' },
-];
+import { PARTY_CATEGORIES } from '../../constants/party-options';
 
 export default function CreatePartyScreen() {
   const c = useTheme();
@@ -56,7 +52,7 @@ export default function CreatePartyScreen() {
     <Text style={[styles.label, { color: c.textPrimary }]}>어떤 모임인가요?</Text>
     <TextInput accessibilityLabel="파티 제목" placeholder="예: 퇴근 후 같이 볼링쳐요" value={title} onChangeText={setTitle}
       style={[styles.input, { color: c.textPrimary, borderColor: c.border }]} />
-    <View style={styles.categories}>{categories.map((item) => <Pressable key={item.id} onPress={() => setCategory(item.id)}
+    <View style={styles.categories}>{PARTY_CATEGORIES.map((item) => <Pressable key={item.id} onPress={() => setCategory(item.id)}
       style={[styles.chip, { borderColor: c.border, backgroundColor: category === item.id ? c.primary : c.cardBg }]}>
       <Text style={{ color: category === item.id ? 'white' : c.textPrimary }}>{item.label}</Text>
     </Pressable>)}</View>

@@ -1,10 +1,13 @@
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { partyApi, Party } from '../../api/party';
 import { useAuthStore } from '../../stores/authStore';
 import { useTheme } from '../../hooks/useTheme';
 import { getErrorMessage } from '../../utils/getErrorMessage';
+import { getPartyCategory } from '../../constants/party-options';
+import { formatPartyDate } from '../../utils/party-date';
+import { openVenueMap } from '../../utils/venue-map';
 
 export default function PartyDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -34,22 +37,26 @@ export default function PartyDetailScreen() {
   const mine = party.members.find((m) => m.userId === user?.id);
   const isHost = user?.id === party.hostId;
   const active = party.status === 'OPEN' && new Date(party.startsAt) > new Date();
-  const placeUrl = `https://www.google.com/maps/search/?api=1&query=${party.latitude},${party.longitude}`;
 
   return <ScrollView style={{ backgroundColor: c.background }} contentContainerStyle={styles.page}>
     <Stack.Screen options={{ title: '파티 상세' }} />
-    <Text style={[styles.label, { color: c.primary }]}>{party.category}</Text>
+    <Text style={[styles.label, { color: c.primary }]}>{getPartyCategory(party.category).label}</Text>
     <Text style={[styles.title, { color: c.textPrimary }]}>{party.title}</Text>
     <Text style={[styles.meta, { color: c.textSecondary }]}>주최 {party.hostNickname} · {party.participantCount}/{party.capacity}명</Text>
-    <Text style={[styles.meta, { color: c.textSecondary }]}>{new Date(party.startsAt).toLocaleString('ko-KR')}</Text>
+    <Text style={[styles.meta, { color: c.textSecondary }]}>{formatPartyDate(party.startsAt)}</Text>
     <View style={[styles.box, { backgroundColor: c.cardBg, borderColor: c.border }]}>
       <Text style={[styles.sectionTitle, { color: c.textPrimary }]}>{party.venueName}</Text>
       <Text style={{ color: c.textSecondary }}>{party.venueAddress}</Text>
-      <Pressable onPress={() => Linking.openURL(placeUrl)}><Text style={[styles.link, { color: c.primary }]}>지도에서 위치 보기</Text></Pressable>
+      <Pressable accessibilityRole="button" accessibilityLabel="네이버 지도에서 장소 보기"
+        onPress={() => { void openVenueMap(party).catch(() => setError('지도를 열지 못했어요. 잠시 후 다시 시도해주세요.')); }}
+        style={{ minHeight: 44, justifyContent: 'center' }}>
+        <Text style={[styles.link, { color: c.primary }]}>네이버 지도로 장소 보기 ↗</Text>
+      </Pressable>
     </View>
     <Text style={[styles.sectionTitle, { color: c.textPrimary }]}>함께할 내용</Text>
     <Text style={[styles.description, { color: c.textPrimary }]}>{party.description || '주최자가 남긴 설명이 없어요.'}</Text>
     <Text style={[styles.sectionTitle, { color: c.textPrimary }]}>참가자</Text>
+    <Text style={[styles.member, { color: c.textSecondary }]}>{party.hostNickname} · 주최자</Text>
     {party.members.filter((m) => m.status === 'APPROVED').map((m) =>
       <Text key={m.id} style={[styles.member, { color: c.textSecondary }]}>{m.nickname}</Text>)}
     {mine?.status === 'PENDING' && <Text style={{ color: c.primary }}>승인을 기다리고 있어요.</Text>}
@@ -62,7 +69,8 @@ export default function PartyDetailScreen() {
     {error ? <Text style={{ color: c.error, marginTop: 20 }}>{error}</Text> : null}
     {active && !user && <Action label="로그인하고 참가하기" onPress={() => router.push('/login')} disabled={busy} color={c.primary} />}
     {active && user && !isHost && (!mine || mine.status === 'WITHDRAWN' || mine.status === 'REJECTED') &&
-      <Action label="참가 신청" onPress={() => run(() => partyApi.join(partyId))} disabled={busy || party.participantCount >= party.capacity} color={c.primary} />}
+      <Action label={party.participantCount >= party.capacity ? '정원이 가득 찼어요' : '참가 신청'}
+        onPress={() => run(() => partyApi.join(partyId))} disabled={busy || party.participantCount >= party.capacity} color={c.primary} />}
     {active && (mine?.status === 'PENDING' || mine?.status === 'APPROVED') &&
       <Action label="신청 취소" onPress={() => run(() => partyApi.withdraw(partyId))} disabled={busy} color={c.error} />}
     {isHost && party.status === 'OPEN' && <Action label="파티 취소" onPress={() => run(() => partyApi.cancel(partyId))} disabled={busy} color={c.error} />}

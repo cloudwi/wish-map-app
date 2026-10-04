@@ -37,8 +37,17 @@ export interface CreatePartyInput {
   capacity: number;
 }
 
+export interface PartyListOptions {
+  category?: string;
+  startsBefore?: string;
+  availableOnly?: boolean;
+  limit?: number;
+  page?: number;
+}
+
 export const partyApi = {
-  list: async (query = ''): Promise<Party[]> => (await apiClient.get<Party[]>('/parties', { params: { query } })).data,
+  list: async (query = '', options: PartyListOptions = {}): Promise<Party[]> =>
+    (await apiClient.get<Party[]>('/parties', { params: { query, ...options } })).data,
   detail: async (id: number): Promise<Party> => (await apiClient.get<Party>(`/parties/${id}`)).data,
   create: async (input: CreatePartyInput): Promise<Party> => (await apiClient.post<Party>('/parties', input)).data,
   join: async (id: number): Promise<Party> => (await apiClient.post<Party>(`/parties/${id}/join`)).data,
